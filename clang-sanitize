@@ -1,0 +1,28 @@
+#
+# to be able to use this cross file a special build of cef is necessary and needs to be installed manually:
+# https://bitbucket.org/chromiumembedded/cef/wiki/UsingAddressSanitizer.md
+#
+
+[binaries]
+c = 'clang-16'
+cpp = 'clang++-16'
+pkgconfig = 'pkg-config'
+
+[built-in options]
+c_link_args = ['-fsanitize=address', '-l:libc++abi.a']
+cpp_link_args = ['-fsanitize=address', '-l:libc++abi.a']
+
+[project options]
+b_sanitize = 'address'
+
+[spdlog:project options]
+b_sanitize = 'address'
+
+[cef:project options]
+b_sanitize = 'address'
+
+[tiny_process_library:project options]
+b_sanitize = 'address'
+
+[mini:project options]
+b_sanitize = 'address'
