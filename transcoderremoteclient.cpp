@@ -36,7 +36,7 @@ bool TranscoderRemoteClient::StreamUrl(std::string url) {
 
 bool TranscoderRemoteClient::Pause() {
     httplib::Params params;
-    params.emplace("streamId", browserIp + ":" + std::to_string(browserPort));
+    params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
 
     if (auto res = client->Post("/Pause", params)) {
         if (res->status != 200) {
@@ -54,7 +54,7 @@ bool TranscoderRemoteClient::Pause() {
 
 bool TranscoderRemoteClient::Seek(std::string seekTo) {
     httplib::Params params;
-    params.emplace("streamId", browserIp + ":" + std::to_string(browserPort));
+    params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
     params.emplace("seekTo", seekTo);
 
     if (auto res = client->Post("/SeekTo", params)) {
@@ -73,7 +73,7 @@ bool TranscoderRemoteClient::Seek(std::string seekTo) {
 
 bool TranscoderRemoteClient::Resume() {
     httplib::Params params;
-    params.emplace("streamId", browserIp + ":" + std::to_string(browserPort));
+    params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
 
     if (auto res = client->Post("/Resume", params)) {
         if (res->status != 200) {
@@ -91,7 +91,7 @@ bool TranscoderRemoteClient::Resume() {
 
 bool TranscoderRemoteClient::Stop() {
     httplib::Params params;
-    params.emplace("streamId", browserIp + ":" + std::to_string(browserPort));
+    params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
 
     if (auto res = client->Post("/Stop", params)) {
         if (res->status != 200) {

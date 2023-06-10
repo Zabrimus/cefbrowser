@@ -132,7 +132,7 @@ function watchAndHandleVideoObjectMutations() {
         }, false);
 
         video && video.addEventListener && video.addEventListener('timeupdate', function () {
-            console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
+            // console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
 
             var pos = Math.floor(video.currentTime * 1000);
             node.playPostion = pos;
@@ -199,6 +199,7 @@ function watchAndHandleVideoObjectMutations() {
             addVideoNode(node, newUrl);
             // node.data = "";
             node.data = newUrl;
+            node.style.visibility = 'hidden';
         } else if (mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
                    mimeType.lastIndexOf('video/mpeg', 0) === 0) { // mpeg-ts
             console.log("Found MPEG on node: " + node + " -> " + node.data);
