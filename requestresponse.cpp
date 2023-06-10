@@ -21,10 +21,12 @@ bool isVideoOrAudio(std::string& data) {
     std::string type;
     std::string mime;
 
-    FileType(data, type, mime);
+    if (data.length() > 80) {
+        FileType(data, type, mime);
 
-    if ((mime.find("video/") != std::string::npos) || (mime.find("audio/") != std::string::npos)){
-        return true;
+        if ((mime.find("video/") != std::string::npos) || (mime.find("audio/") != std::string::npos)) {
+            return true;
+        }
     }
 
     return false;
@@ -273,7 +275,7 @@ void RequestClient::OnDownloadData(CefRefPtr<CefURLRequest> request, const void 
 
     std::string downloadChunk = std::string(static_cast<const char*>(data), data_length);
 
-    if (download_data.length() == 0) {
+    if (download_data.length() < 80) {
         // check file type
         DEBUG("RequestClient::OnDownloadData: IsVideoOrAudio: {}", isVideoOrAudio(downloadChunk));
         if (isVideoOrAudio(downloadChunk)) {
