@@ -1,5 +1,6 @@
 #include "browserclient.h"
 #include "sharedmemory.h"
+#include "database.h"
 
 BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
                     : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort) {
@@ -137,6 +138,38 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             return true;
         } else {
             ERROR("BrowserClient::OnProcessMessageReceived: Stream request without URL");
+        }
+    }  else if (message->GetName().ToString() == "RedButton") {
+        if (message->GetArgumentList()->GetSize() == 1) {
+            std::string channelId = message->GetArgumentList()->GetString(0).ToString();
+            DEBUG("BrowserClient::OnProcessMessageReceived: RedButton {}" + channelId);
+
+            std::string url = database.getRedButtonUrl(channelId);
+            std::string channel = database.getChannel(channelId);
+
+            std::ofstream _dynamic;
+            _dynamic.open ("js/_dynamic.js", std::ios_base::trunc);
+            _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
+            _dynamic.close();
+
+            // load url
+            browser->GetMainFrame()->LoadURL(url);
+
+            return true;
+        } else {
+            ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
+        }
+    } else if (message->GetName().ToString() == "LoadUrl") {
+        if (message->GetArgumentList()->GetSize() == 1) {
+            std::string url = message->GetArgumentList()->GetString(0).ToString();
+            DEBUG("BrowserClient::OnProcessMessageReceived: LoadUrl {}" + url);
+
+            // load url
+            browser->GetMainFrame()->LoadURL(url);
+
+            return true;
+        } else {
+            ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
         }
     }
 

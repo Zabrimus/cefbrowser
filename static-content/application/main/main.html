@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//HbbTV//1.1.1//EN" "http://www.hbbtv.org/dtd/HbbTV-1.1.1.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Main Application</title>
+    <meta http-equiv="Content-Type" content="application/vnd.hbbtv.xml+xhtml; utf-8" />
+    <link rel="stylesheet" href="main-interaction.css" />
+    <script type="text/javascript" src="main-interaction.js"></script>
+</head>
+
+<body onload="start();">
+    <div>
+        <object type="application/oipfApplicationManager" id="applicationManager"> </object>
+    </div>
+
+    <div class="safe_area" id="app_area">
+        <!-- title -->
+
+        <div class="title_text">Applikationen</div>
+
+        <ul id="applist">
+            <li data-url="https://html5test.com/">HTML5 Test</li>
+            <li data-url="http://itv.mit-xperts.com/hbbtvtest/index.php">HbbTV Test</li>
+        </ul>
+
+        <!-- bottom legend -->
+        <div class="bottom_legend">
+            <div class="legend_cell">
+                <div class="legend_button_red"></div>
+                <span class="legend_text">Start TV Station Application</span>
+            </div>
+
+            <div class="legend_cell">
+                <div class="legend_button_green"></div>
+                <span class="legend_text"></span>
+            </div>
+            <div class="legend_cell">
+                <div class="legend_button_yellow"></div>
+                <span class="legend_text"></span>
+            </div>
+            <div class="legend_cell">
+                <div class="legend_button_blue"></div>
+                <span class="legend_text"></span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -105,7 +105,7 @@ void startHttpServer(std::string browserIp, int browserPort) {
             _dynamic.close();
 
             // create application url
-            std::string url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/tutorial/rc-interaction/rc-interaction.html";
+            std::string url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/main/main.html";
 
             // load url
             currentBrowser->GetMainFrame()->LoadURL(url);
@@ -299,6 +299,12 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     CefRefPtr<CefV8Value> seekVideo = CefV8Value::CreateFunction("SeekVideo", handler);
     object->SetValue("cefSeekVideo", seekVideo, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> redButton = CefV8Value::CreateFunction("RedButton", handler);
+    object->SetValue("cefRedButton", redButton, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> loadUrl = CefV8Value::CreateFunction("LoadUrl", handler);
+    object->SetValue("cefLoadUrl", loadUrl, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {

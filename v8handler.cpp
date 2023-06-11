@@ -81,6 +81,34 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
         retval = CefV8Value::CreateBool(true);
         return true;
+    } else if (name == "RedButton") {
+        DEBUG("V8Handler::Execute RedButton");
+
+        if (!arguments.empty()) {
+            auto param = arguments.at(0);
+            auto channelId = param.get()->GetStringValue().ToString();
+
+            DEBUG("V8Handler::Execute RedButton Argument ChannelId {}", channelId);
+
+            sendMessageToBrowser("RedButton", channelId);
+        }
+
+        retval = CefV8Value::CreateBool(true);
+        return true;
+    } else if (name == "LoadUrl") {
+        DEBUG("V8Handler::Execute LoadUrl");
+
+        if (!arguments.empty()) {
+            auto param = arguments.at(0);
+            auto url = param.get()->GetStringValue().ToString();
+
+            DEBUG("V8Handler::Execute LoadUrl {}", url);
+
+            sendMessageToBrowser("LoadUrl", url);
+        }
+
+        retval = CefV8Value::CreateBool(true);
+        return true;
     }
 
     // Function does not exist.
