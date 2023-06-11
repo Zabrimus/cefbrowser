@@ -24,6 +24,7 @@ private:
 private:
     void sendMessageToBrowser(std::string message);
     void sendMessageToBrowser(std::string message, std::string parameter);
+    void sendMessageToBrowser(std::string message, std::vector<std::string>& parameter);
 
     IMPLEMENT_REFCOUNTING(V8Handler);
 };

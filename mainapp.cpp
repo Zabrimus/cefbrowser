@@ -305,6 +305,12 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     CefRefPtr<CefV8Value> loadUrl = CefV8Value::CreateFunction("LoadUrl", handler);
     object->SetValue("cefLoadUrl", loadUrl, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> videoSize = CefV8Value::CreateFunction("VideoSize", handler);
+    object->SetValue("cefVideoSize", videoSize, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> videoFull = CefV8Value::CreateFunction("VideoFullscreen", handler);
+    object->SetValue("cefVideoFullscreen", videoFull, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {

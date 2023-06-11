@@ -25,7 +25,7 @@ bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        std::cout << "HTTP error (ProcessOsdUpdate): " << httplib::to_string(err) << std::endl;
         return false;
     }
 
@@ -40,7 +40,7 @@ bool VdrRemoteClient::ProcessTSPacket(std::string packets) {
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        std::cout << "HTTP error (ProcessTSPacket): " << httplib::to_string(err) << std::endl;
         return false;
     }
 
@@ -55,7 +55,7 @@ bool VdrRemoteClient::StartVideo() {
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        std::cout << "HTTP error (StartVideo): " << httplib::to_string(err) << std::endl;
         return false;
     }
 
@@ -70,7 +70,43 @@ bool VdrRemoteClient::StopVideo() {
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        std::cout << "HTTP error (StopVideo): " << httplib::to_string(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool VdrRemoteClient::VideoSize(std::string x, std::string y, std::string w, std::string h) {
+    httplib::Params params;
+    params.emplace("x", x);
+    params.emplace("y", y);
+    params.emplace("w", w);
+    params.emplace("h", h);
+
+    if (auto res = client->Post("/VideoSize", params)) {
+        if (res->status != 200) {
+            std::cout << "Http result: " << res->status << std::endl;
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        std::cout << "HTTP error (VideoSize): " << httplib::to_string(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool VdrRemoteClient::VideoFullscreen() {
+    if (auto res = client->Get("/VideoFullscreen")) {
+        if (res->status != 200) {
+            std::cout << "Http result: " << res->status << std::endl;
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        std::cout << "HTTP error (VideoFullscreen): " << httplib::to_string(err) << std::endl;
         return false;
     }
 

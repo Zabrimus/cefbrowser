@@ -30,6 +30,23 @@ void V8Handler::sendMessageToBrowser(std::string message, std::string parameter)
     browser->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
 }
 
+void V8Handler::sendMessageToBrowser(std::string message, std::vector<std::string>& parameter) {
+    CefRefPtr<CefV8Context> ctx = CefV8Context::GetCurrentContext();
+    CefRefPtr<CefBrowser> browser = ctx->GetBrowser();
+
+    CefRefPtr<CefProcessMessage> msg= CefProcessMessage::Create(message);
+    CefRefPtr<CefListValue> args = msg->GetArgumentList();
+
+    int idx = 0;
+    for (const auto &item: parameter) {
+        args->SetString(idx, item);
+        idx++;
+    }
+
+    browser->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
+}
+
+
 bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, const CefV8ValueList &arguments, CefRefPtr<CefV8Value> &retval, CefString &exception) {
     DEBUG("V8Handler::Execute: {}", name.ToString());
 
@@ -106,6 +123,36 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             sendMessageToBrowser("LoadUrl", url);
         }
+
+        retval = CefV8Value::CreateBool(true);
+        return true;
+    }  else if (name == "VideoSize") {
+        DEBUG("V8Handler::Execute VideoSize");
+
+        if (!arguments.empty()) {
+            auto x = arguments.at(0);
+            auto y = arguments.at(1);
+            auto w = arguments.at(2);
+            auto h = arguments.at(3);
+
+            std::vector<std::string> params;
+            params.push_back(x.get()->GetStringValue().ToString());
+            params.push_back(y.get()->GetStringValue().ToString());
+            params.push_back(w.get()->GetStringValue().ToString());
+            params.push_back(h.get()->GetStringValue().ToString());
+
+            sendMessageToBrowser("VideoSize", params);
+
+            vdrRemoteClient->VideoSize(x.get()->GetStringValue().ToString(), y.get()->GetStringValue().ToString(), w.get()->GetStringValue().ToString(), h.get()->GetStringValue().ToString());
+        }
+
+        retval = CefV8Value::CreateBool(true);
+        return true;
+    } else if (name == "VideoFullscreen") {
+        DEBUG("V8Handler::Execute VideoFullscreen");
+
+        sendMessageToBrowser("VideoFullscreen");
+        vdrRemoteClient->VideoFullscreen();
 
         retval = CefV8Value::CreateBool(true);
         return true;

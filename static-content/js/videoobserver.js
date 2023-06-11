@@ -200,6 +200,15 @@ function watchAndHandleVideoObjectMutations() {
             // node.data = "";
             node.data = newUrl;
             node.style.visibility = 'hidden';
+
+            let position = node.getBoundingClientRect();
+            let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
+
+            if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
+                window.cefVideoFullscreen();
+            } else {
+                window.cefVideoSize(String(position.x), String(position.y), String(position.width), String(position.height));
+            }
         } else if (mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
                    mimeType.lastIndexOf('video/mpeg', 0) === 0) { // mpeg-ts
             console.log("Found MPEG on node: " + node + " -> " + node.data);

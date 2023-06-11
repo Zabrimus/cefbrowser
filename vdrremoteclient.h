@@ -14,6 +14,9 @@ public:
     bool StartVideo();
     bool StopVideo();
 
+    bool VideoSize(std::string x, std::string y, std::string w, std::string h);
+    bool VideoFullscreen();
+
 private:
     httplib::Client* client;
 };
