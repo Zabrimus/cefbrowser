@@ -143,9 +143,32 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
     return false;
 }
 
-bool
-BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request,
-                              bool user_gesture, bool is_redirect) {
+CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                                                CefRefPtr<CefRequest> request,
+                                                bool is_navigation,
+                                                bool is_download,
+                                                const CefString &request_initiator,
+                                                bool &disable_default_handling)
+{
+    std::string url = request->GetURL().ToString();
+
+    if (!startsWith(url, "http://" + browserIp + ":" + std::to_string(browserPort) + "/application") && (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + browserIp))  ) {
+        // let the browser handle this
+        return nullptr;
+    }
+
+    if (is_navigation) {
+        DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
+              request->GetURL().ToString(), request_initiator.ToString());
+        return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
+                                   disable_default_handling, browserIp, browserPort);
+    }
+
+    return nullptr;
+}
+
+
+bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect) {
     return false;
 }
 

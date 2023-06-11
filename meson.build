@@ -84,3 +84,4 @@ install_subdir('static-content/js', install_dir : meson.current_build_dir() + '/
 install_subdir('static-content/css', install_dir : meson.current_build_dir() + '/Release')
 install_subdir('static-content/movie', install_dir : meson.current_build_dir() + '/Release')
 install_subdir('static-content/database', install_dir : meson.current_build_dir() + '/Release')
+install_subdir('static-content/application', install_dir : meson.current_build_dir() + '/Release')

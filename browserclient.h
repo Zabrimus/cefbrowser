@@ -52,24 +52,7 @@ public:
             bool is_navigation,
             bool is_download,
             const CefString &request_initiator,
-            bool &disable_default_handling) override {
-
-
-        std::string url = request->GetURL().ToString();
-        if (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + browserIp)) {
-            // let the browser handle this
-            return nullptr;
-        }
-
-        if (is_navigation) {
-            DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
-                  request->GetURL().ToString(), request_initiator.ToString());
-            return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
-                                       disable_default_handling, browserIp, browserPort);
-        }
-
-        return nullptr;
-    }
+            bool &disable_default_handling) override;
 
     // RenderHandler
     void setRenderSize(int width, int height);

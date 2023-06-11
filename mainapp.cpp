@@ -12,6 +12,9 @@ scoped_refptr<CefBrowser> currentBrowser;
 httplib::Server svr;
 
 void startHttpServer(std::string browserIp, int browserPort) {
+    int _browserPort = browserPort;
+    std::string _browserIp = browserIp;
+
     auto ret = svr.set_mount_point("/js", "./js");
     if (!ret) {
         // must not happen
@@ -23,6 +26,13 @@ void startHttpServer(std::string browserIp, int browserPort) {
     if (!ret) {
         // must not happen
         ERROR("http mount point ./css does not exists. Application will not work as desired.");
+        return;
+    }
+
+    ret = svr.set_mount_point("/application", "./application");
+    if (!ret) {
+        // must not happen
+        ERROR("http mount point ./application does not exists. Application will not work as desired.");
         return;
     }
 
@@ -76,6 +86,30 @@ void startHttpServer(std::string browserIp, int browserPort) {
                 currentBrowser->GetMainFrame()->LoadURL(url);
                 res.set_content("ok", "text/plain");
             }
+        }
+    });
+
+    svr.Post("/StartApplication", [_browserIp, _browserPort](const httplib::Request &req, httplib::Response &res) {
+        auto channelId = req.get_param_value("channelId");
+        auto appId = req.get_param_value("appId");
+        INFO("Start Application, channelId {}, appId {}", channelId, appId);
+
+        if (channelId.empty()) {
+            res.status = 404;
+        } else {
+            // write channel information
+            std::string channel = database.getChannel(channelId);
+            std::ofstream _dynamic;
+            _dynamic.open ("js/_dynamic.js", std::ios_base::trunc);
+            _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
+            _dynamic.close();
+
+            // create application url
+            std::string url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/tutorial/rc-interaction/rc-interaction.html";
+
+            // load url
+            currentBrowser->GetMainFrame()->LoadURL(url);
+            res.set_content("ok", "text/plain");
         }
     });
 
@@ -245,16 +279,7 @@ void BrowserApp::OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDi
 }
 
 void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
-    ERROR("BrowserApp::OnContextCreated");
-
-    ERROR("===> TRANS IP {}", transcoderIp);
-    ERROR("===> TRANS PO {}", transcoderPort);
-
-    ERROR("===> VDR IP {}", vdrIp);
-    ERROR("===> VDR PO {}", vdrPort);
-
-    ERROR("===> BROW IP {}", browserIp);
-    ERROR("===> BROW PO {}", browserPort);
+    DEBUG("BrowserApp::OnContextCreated");
 
     // register all native JS functions
     CefRefPtr<CefV8Value> object = context->GetGlobal();
