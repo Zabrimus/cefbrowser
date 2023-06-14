@@ -4,8 +4,8 @@
 V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std::string vdrIp, int vdrPort)
         : browserIp(bIp), browserPort(bPort), transcoderIp(tIp), transcoderPort(tPort), vdrIp(vdrIp), vdrPort(vdrPort)
 {
-    new TranscoderRemoteClient(tIp, tPort, bIp, bPort);
-    new VdrRemoteClient(vdrIp, vdrPort);
+    transcoderRemoteClient = new TranscoderRemoteClient(tIp, tPort, bIp, bPort);
+    vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
 }
 
 V8Handler::~V8Handler() {
@@ -130,20 +130,20 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         DEBUG("V8Handler::Execute VideoSize");
 
         if (!arguments.empty()) {
-            auto x = arguments.at(0);
-            auto y = arguments.at(1);
-            auto w = arguments.at(2);
-            auto h = arguments.at(3);
+            const auto x = arguments.at(0)->GetIntValue();
+            const auto y = arguments.at(1)->GetIntValue();
+            const auto w = arguments.at(2)->GetIntValue();
+            const auto h = arguments.at(3)->GetIntValue();
 
             std::vector<std::string> params;
-            params.push_back(x.get()->GetStringValue().ToString());
-            params.push_back(y.get()->GetStringValue().ToString());
-            params.push_back(w.get()->GetStringValue().ToString());
-            params.push_back(h.get()->GetStringValue().ToString());
+            params.push_back(std::to_string(x));
+            params.push_back(std::to_string(y));
+            params.push_back(std::to_string(w));
+            params.push_back(std::to_string(h));
 
             sendMessageToBrowser("VideoSize", params);
 
-            vdrRemoteClient->VideoSize(x.get()->GetStringValue().ToString(), y.get()->GetStringValue().ToString(), w.get()->GetStringValue().ToString(), h.get()->GetStringValue().ToString());
+            vdrRemoteClient->VideoSize(x, y, w, h);
         }
 
         retval = CefV8Value::CreateBool(true);
@@ -156,6 +156,26 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
         retval = CefV8Value::CreateBool(true);
         return true;
+    } else if (name == "StartApp") {
+        DEBUG("V8Handler::Execute StartApp");
+
+        if (!arguments.empty()) {
+            const auto channelId = arguments.at(0)->GetStringValue();
+            const auto appId = arguments.at(1)->GetStringValue();
+            const auto args = arguments.at(2)->GetStringValue();
+
+            std::vector<std::string> params;
+            params.push_back(channelId);
+            params.push_back(appId);
+            params.push_back(args);
+
+            sendMessageToBrowser("StartApp", params);
+        }
+
+        retval = CefV8Value::CreateBool(true);
+        return true;
+    } else {
+        ERROR("Javascript function {} is not implemented.", name.ToString());
     }
 
     // Function does not exist.

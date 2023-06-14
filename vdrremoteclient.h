@@ -9,16 +9,15 @@ public:
     ~VdrRemoteClient();
 
     bool ProcessOsdUpdate(int width, int height);
-    bool ProcessTSPacket(std::string packets);
+    bool ProcessTSPacket(std::string packets) const;
 
     bool StartVideo();
     bool StopVideo();
 
-    bool VideoSize(std::string x, std::string y, std::string w, std::string h);
+    bool VideoSize(int x, int y, int w, int h);
     bool VideoFullscreen();
 
 private:
     httplib::Client* client;
 };
 
-extern VdrRemoteClient* vdrRemoteClient;

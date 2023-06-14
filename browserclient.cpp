@@ -9,8 +9,8 @@ BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string
     this->renderHeight = height;
 
     // create clients
-    new TranscoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort);
-    new VdrRemoteClient(vdrIp, vdrPort);
+    transcoderRemoteClient = new TranscoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort);
+    vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
 }
 
 BrowserClient::~BrowserClient() {
@@ -48,23 +48,23 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
     INFO("BrowserClient::OnPaint, width: {}, height: {}", width, height);
 
     sharedMemory.write((uint8_t *)buffer, width * height * 4);
-    vdrRemoteClient->ProcessOsdUpdate(width, height);
 
-    /*
+    // hex = 0xAARRGGBB.
+    // rgb(254, 46, 154) = #fe2e9a
+    // fffe2e9a => 00fe2e9a
+
     int w = std::min(width, 1920);
     int h = std::min(height, 1080);
 
-    uint32_t* buf = reinterpret_cast<uint32_t *>(sharedMemory.write((uint8_t *) buffer, w * h * 4, Data) + sizeof(int));
-
-    if (clearX != 0 && clearY != 0 && clearHeight != width && clearHeight != height) {
-        // clear part of the OSD
-        for (auto i = 0; i < clearHeight; ++i) {
-            for (auto j = clearX; j < clearX + clearWidth; ++j) {
-                *(buf + (clearY - 1 + i) * width + j) = 0;
-            }
+    // delete parts of the OSD where a video shall be visible
+    uint32_t* buf = (uint32_t*)sharedMemory.get();
+    for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
+        if (buf[i] == 0xfffe2e9a) {
+            buf[i] = 0x00fe2e9a;
         }
     }
-    */
+
+    vdrRemoteClient->ProcessOsdUpdate(width, height);
 }
 
 bool BrowserClient::GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) {
@@ -132,7 +132,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
         if (message->GetArgumentList()->GetSize() == 1) {
             std::string pos = message->GetArgumentList()->GetString(0).ToString();
 
-            DEBUG("BrowserClient::OnProcessMessageReceived: SeekVideo {}" + pos);
+            DEBUG("BrowserClient::OnProcessMessageReceived: SeekVideo {}", pos);
 
             transcoderRemoteClient->Seek(pos);
             return true;
@@ -142,7 +142,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
     }  else if (message->GetName().ToString() == "RedButton") {
         if (message->GetArgumentList()->GetSize() == 1) {
             std::string channelId = message->GetArgumentList()->GetString(0).ToString();
-            DEBUG("BrowserClient::OnProcessMessageReceived: RedButton {}" + channelId);
+            DEBUG("BrowserClient::OnProcessMessageReceived: RedButton {}", channelId);
 
             std::string url = database.getRedButtonUrl(channelId);
             std::string channel = database.getChannel(channelId);
@@ -162,7 +162,28 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
     } else if (message->GetName().ToString() == "LoadUrl") {
         if (message->GetArgumentList()->GetSize() == 1) {
             std::string url = message->GetArgumentList()->GetString(0).ToString();
-            DEBUG("BrowserClient::OnProcessMessageReceived: LoadUrl {}" + url);
+            DEBUG("BrowserClient::OnProcessMessageReceived: LoadUrl {}", url);
+
+            // load url
+            browser->GetMainFrame()->LoadURL(url);
+
+            return true;
+        } else {
+            ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
+        }
+    }  else if (message->GetName().ToString() == "StartApp") {
+        if (message->GetArgumentList()->GetSize() == 3) {
+            const auto channelId = message->GetArgumentList()->GetString(0).ToString();
+            const auto appId = message->GetArgumentList()->GetString(1).ToString();
+            const auto args = message->GetArgumentList()->GetString(2).ToString();
+
+            DEBUG("BrowserClient::OnProcessMessageReceived: StartApp {}, {}, {}", channelId, appId, args);
+
+            // get AppUrl
+            std::string url = database.getAppUrl(channelId, appId);
+            if (!args.empty()) {
+                url += args;
+            }
 
             // load url
             browser->GetMainFrame()->LoadURL(url);

@@ -13,7 +13,7 @@ private:
     std::thread *readerThread;
 
 public:
-    explicit FFmpegHandler(VdrRemoteClient& client);
+    explicit FFmpegHandler(VdrRemoteClient* client);
     ~FFmpegHandler();
 
     bool streamVideo(std::string url);
@@ -23,5 +23,5 @@ public:
 private:
     int fifo;
     bool readerRunning;
-    VdrRemoteClient client;
+    VdrRemoteClient* client;
 };

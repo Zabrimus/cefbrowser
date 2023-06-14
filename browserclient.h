@@ -101,6 +101,9 @@ private:
     std::string browserIp;
     int browserPort;
 
+    VdrRemoteClient* vdrRemoteClient;
+    TranscoderRemoteClient *transcoderRemoteClient;
+
 private:
     IMPLEMENT_REFCOUNTING(BrowserClient);
 };

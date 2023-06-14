@@ -12,7 +12,7 @@ public:
     bool Pause();
     bool Seek(std::string seekTo);
     bool Resume();
-    bool Stop();
+    bool Stop() const;
 
 private:
     httplib::Client *client;
@@ -23,5 +23,3 @@ private:
     std::string browserIp;
     int browserPort;
 };
-
-extern TranscoderRemoteClient* transcoderRemoteClient;

@@ -1,19 +1,19 @@
 #include "vdrremoteclient.h"
 #include "logger.h"
 
-VdrRemoteClient* vdrRemoteClient;
+std::mutex httpMutex;
 
 VdrRemoteClient::VdrRemoteClient(std::string vdrIp, int vdrPort) {
     client = new httplib::Client(vdrIp, vdrPort);
-    vdrRemoteClient = this;
 }
 
 VdrRemoteClient::~VdrRemoteClient() {
     delete client;
-    vdrRemoteClient = nullptr;
 }
 
 bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
     httplib::Params params;
     params.emplace("width", std::to_string(width));
     params.emplace("height", std::to_string(height));
@@ -32,7 +32,9 @@ bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
     return true;
 }
 
-bool VdrRemoteClient::ProcessTSPacket(std::string packets) {
+bool VdrRemoteClient::ProcessTSPacket(std::string packets) const {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
     if (auto res = client->Post("/ProcessTSPacket", packets, "text/plain")) {
         if (res->status != 200) {
             std::cout << "Http result: " << res->status << std::endl;
@@ -48,6 +50,8 @@ bool VdrRemoteClient::ProcessTSPacket(std::string packets) {
 }
 
 bool VdrRemoteClient::StartVideo() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
     if (auto res = client->Get("/StartVideo")) {
         if (res->status != 200) {
             std::cout << "Http result: " << res->status << std::endl;
@@ -63,6 +67,8 @@ bool VdrRemoteClient::StartVideo() {
 }
 
 bool VdrRemoteClient::StopVideo() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
     if (auto res = client->Get("/StopVideo")) {
         if (res->status != 200) {
             std::cout << "Http result: " << res->status << std::endl;
@@ -77,12 +83,14 @@ bool VdrRemoteClient::StopVideo() {
     return true;
 }
 
-bool VdrRemoteClient::VideoSize(std::string x, std::string y, std::string w, std::string h) {
+bool VdrRemoteClient::VideoSize(int x, int y, int w, int h) {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
     httplib::Params params;
-    params.emplace("x", x);
-    params.emplace("y", y);
-    params.emplace("w", w);
-    params.emplace("h", h);
+    params.emplace("x", std::to_string(x));
+    params.emplace("y", std::to_string(y));
+    params.emplace("w", std::to_string(w));
+    params.emplace("h", std::to_string(h));
 
     if (auto res = client->Post("/VideoSize", params)) {
         if (res->status != 200) {
@@ -99,6 +107,8 @@ bool VdrRemoteClient::VideoSize(std::string x, std::string y, std::string w, std
 }
 
 bool VdrRemoteClient::VideoFullscreen() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
     if (auto res = client->Get("/VideoFullscreen")) {
         if (res->status != 200) {
             std::cout << "Http result: " << res->status << std::endl;

@@ -11,9 +11,11 @@ scoped_refptr<CefBrowser> currentBrowser;
 
 httplib::Server svr;
 
-void startHttpServer(std::string browserIp, int browserPort) {
+void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort) {
     int _browserPort = browserPort;
     std::string _browserIp = browserIp;
+    VdrRemoteClient vdrRemoteClient(vdrIp, vdrPort);
+    TranscoderRemoteClient transcoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort);
 
     auto ret = svr.set_mount_point("/js", "./js");
     if (!ret) {
@@ -161,7 +163,7 @@ void startHttpServer(std::string browserIp, int browserPort) {
     });
 
     // called by transcoder
-    svr.Post("/ProcessTSPacket", [](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/ProcessTSPacket", [&vdrRemoteClient, &transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
         const std::string body = req.body;
 
         if (body.empty()) {
@@ -169,10 +171,10 @@ void startHttpServer(std::string browserIp, int browserPort) {
         } else {
             TRACE("ProcessTSPacket, length {}", body.length());
 
-            if (!vdrRemoteClient->ProcessTSPacket(std::string(body.c_str(), body.length()))) {
+            if (!vdrRemoteClient.ProcessTSPacket(std::string(body.c_str(), body.length()))) {
                 // vdr is not running? stop transcoder
                 ERROR("vdr is not running? stop transcoder");
-                transcoderRemoteClient->Stop();
+                transcoderRemoteClient.Stop();
             }
 
             res.set_content("ok", "text/plain");
@@ -186,6 +188,8 @@ void startHttpServer(std::string browserIp, int browserPort) {
         if (body.empty()) {
             res.status = 404;
         } else {
+            TRACE("InsertHbbtv: {}", body);
+
             database.insertHbbtv(body);
 
             res.set_content("ok", "text/plain");
@@ -199,6 +203,7 @@ void startHttpServer(std::string browserIp, int browserPort) {
         if (body.empty()) {
             res.status = 404;
         } else {
+            TRACE("InsertChannel: {}", body);
             database.insertChannel(body);
 
             res.set_content("ok", "text/plain");
@@ -262,7 +267,7 @@ void BrowserApp::OnContextInitialized() {
 
     INFO("Start Http Server on {}:{}", browserIp, browserPort);
 
-    std::thread t1(startHttpServer, browserIp, browserPort);
+    std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort);
     t1.detach();
 }
 
@@ -311,6 +316,9 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     CefRefPtr<CefV8Value> videoFull = CefV8Value::CreateFunction("VideoFullscreen", handler);
     object->SetValue("cefVideoFullscreen", videoFull, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> startApp = CefV8Value::CreateFunction("StartApp", handler);
+    object->SetValue("cefStartApp", startApp, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
@@ -322,3 +330,4 @@ bool BrowserApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefP
     TRACE("BrowserApp::OnProcessMessageReceived");
     return false;
 }
+

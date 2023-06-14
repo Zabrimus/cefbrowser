@@ -41,12 +41,6 @@ mini_proj = subproject('mini')
 mini_dep = mini_proj.get_variable('mini_dep')
 
 #
-# cpp-httplib
-#
-cpp_httplib_proj = subproject('cpp_httplib', default_options: ['cpp-httplib_openssl=disabled', 'cpp-httplib_brotli=disabled', 'cpp-httplib_macosx_keychain=disabled', 'cpp-httplib_compile=false', 'cpp-httplib_test=false'])
-cpp_httplib_dep = cpp_httplib_proj.get_variable('cpp_httplib_dep')
-
-#
 # sqlite3
 #
 sqlite3_proj = subproject('sqlite3')
@@ -66,16 +60,19 @@ exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  'sharedmemory.cpp', 'requestresponse.cpp', 'keycodes.cpp',
                  'v8handler.cpp', 'tools.cpp', 'database.cpp',
                  'transcoderremoteclient.cpp', 'vdrremoteclient.cpp',
+                 'httplib.cpp',
+                 cpp_args : '-DPHTTPLIB_ZLIB_SUPPORT',
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, cpp_httplib_dep, sqlite3_dep])
+                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep])
 
 exe = executable('vdrclient', 'test-tools/vdr_tool.cpp', 'logger.cpp', 'sharedmemory.cpp', 'test-tools/common.cpp',
                 'vdrremoteclient.cpp', 'test-tools/ffmpeghandler.cpp',
+                'httplib.cpp',
                  cpp_args : '-DCLIENT_ONLY',
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: [mini_dep, spdlog_dep, deps, cpp_httplib_dep, tiny_process_library_dep])
+                 dependencies: [mini_dep, spdlog_dep, deps, tiny_process_library_dep])
 
 #
 # install static content

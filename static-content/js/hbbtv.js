@@ -174,6 +174,8 @@
     Application.prototype.createApplication = function (uri, createChild) {
         var newLocation = uri;
 
+        console.log("uri -> " + uri);
+
         if (uri.startsWith("dvb://current.ait")) {
             var app;
 
@@ -182,18 +184,20 @@
                 app = /dvb:\/\/current\.ait\/(.*)\.(.*)/.exec(uri);
             }
 
-            if (app) {
-                let appid = ('0' + app[2].toLocaleUpperCase()).slice(-2);
-                let newurl = window._HBBTV_APPURL_.get(appid);
+            // dvb://current.ait/13.14
+            // yourNumber = parseInt(hexString, 16);
+            // yourNumber = parseInt('14', 16);
 
-                if (newurl) {
-                    newLocation = newurl + (app[3] ? app[3] : "");
-                }
+            if (app) {
+                console.log("app2 = " + app[2] + " -> " + parseInt(app[2], 16).toString());
+
+                let appid = parseInt(app[2], 16).toString();
+                let channelId = window.HBBTV_POLYFILL_NS.currentChannel.channelId;
+                let args = (app[3] ? app[3] : "");
+
+                window.cefStartApp(channelId, appid, args);
             }
         }
-
-        // signalCef("CREATE_APP: " + window.location.href);
-        // window.cefChangeUrl(newLocation);
     };
 
     Application.prototype.destroyApplication = function () {
@@ -314,7 +318,7 @@
     // Introspection: looking for existing objects ...
     var objects = document.getElementsByTagName("object");
     for (var i = 0; i < objects.length; i++) {
-        objects.item(i).style.visibility = 'hidden';
+        // objects.item(i).style.visibility = 'hidden';
 
         var oipfPluginObject = objects.item(i);
         var sType = oipfPluginObject.getAttribute("type");

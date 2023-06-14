@@ -25,7 +25,7 @@ void startReaderThread(int fifo, FFmpegHandler* handler, VdrRemoteClient* client
     }
 }
 
-FFmpegHandler::FFmpegHandler(VdrRemoteClient& client)  : client(client) {
+FFmpegHandler::FFmpegHandler(VdrRemoteClient* client)  : client(client) {
     streamHandler = nullptr;
     readerThread = nullptr;
     readerRunning = false;
@@ -69,7 +69,7 @@ bool FFmpegHandler::streamVideo(std::string url) {
 
     // TODO: Evt. Transcoding durchführen. Die Commandline muss generischer werden.
     DEBUG("Start transcoder");
-    client.StartVideo();
+    client->StartVideo();
 
     std::string cmdLine = "ffmpeg -re -y -i " + url +  " -c copy -f mpegts " + fifoFilename;
     streamHandler = new TinyProcessLib::Process(cmdLine, "",
@@ -91,7 +91,7 @@ bool FFmpegHandler::streamVideo(std::string url) {
     // start reader thread
     DEBUG("Start reader thread");
     readerRunning = true;
-    readerThread = new std::thread(startReaderThread, fifo, this, &client);
+    readerThread = new std::thread(startReaderThread, fifo, this, client);
     // readerThread->detach();
     readerThread->join();
 
@@ -99,7 +99,7 @@ bool FFmpegHandler::streamVideo(std::string url) {
 }
 
 void FFmpegHandler::stopVideo() {
-    client.StopVideo();
+    client->StopVideo();
 
     readerRunning = false;
 

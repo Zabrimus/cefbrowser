@@ -21,6 +21,9 @@ private:
     std::string vdrIp;
     int vdrPort;
 
+    VdrRemoteClient* vdrRemoteClient;
+    TranscoderRemoteClient* transcoderRemoteClient;
+
 private:
     void sendMessageToBrowser(std::string message);
     void sendMessageToBrowser(std::string message, std::string parameter);

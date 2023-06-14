@@ -174,9 +174,58 @@ function watchAndHandleVideoObjectMutations() {
 
         video.autoplay = true;
         video.src = url;
-        video.style = 'top:0px; left:0px; width:100%; height:100%;';
+        video.style = 'top:0px; left:0px; width:100%; height:100%;background-color:rgb(254, 46, 154)';
 
         node.replaceChildren(video);
+    }
+
+    const promoteVideoSize = (node, considerLayer) => {
+        let position = node.getBoundingClientRect();
+        let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
+        let overlay = document.getElementById('_video_color_overlay_');
+
+        if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
+            overlay.style.visibility = "hidden";
+
+            window.cefVideoFullscreen();
+        } else {
+            if (overlay && considerLayer) {
+                overlay.style.visibility = "visible";
+                overlay.style.left = position.x.toString() + "px";
+                overlay.style.top = position.y.toString() + "px";
+                overlay.style.width = position.width.toString() + "px";
+                overlay.style.height = position.height.toString() + "px";
+                overlay.style.backgroundColor = "rgb(254, 46, 154)";
+            }
+
+            window.cefVideoSize(position.x, position.y, position.width, position.height);
+        }
+    }
+
+    const watchAndHandleVideoAttributes = (videoObject, layer) => {
+        const handleAttributeChanged = (event) => {
+            promoteVideoSize(videoObject, layer);
+        };
+
+        const handleAttributeMutation = (mutationList, mutationObserver) => {
+            mutationList.forEach((mutation) => {
+                switch (mutation.type) {
+                    case 'childList':
+                        break;
+                    case 'attributes':
+                        handleAttributeChanged(mutation);
+                        break;
+                }
+            });
+        };
+
+        const mutationAttributeObserver = new MutationObserver(handleAttributeMutation);
+        mutationAttributeObserver.observe(videoObject, {
+            'subtree': true,
+            'childList': true,
+            'attributes': true,
+            'characterData': true
+        });
     }
 
     const checkNode = (node) => {
@@ -185,38 +234,54 @@ function watchAndHandleVideoObjectMutations() {
             return;
         }
 
+        let considerLayer = false;
+
         mimeType = mimeType.toLowerCase();
 
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
             console.log("Found TV on node: " + node);
-        } else if (mimeType.lastIndexOf('video/mpeg4', 0) === 0 ||
-                   mimeType.lastIndexOf('video/mp4', 0) === 0 ||  // h.264 video
-                   mimeType.lastIndexOf('audio/mp4', 0) === 0 ||  // aac audio
-                   mimeType.lastIndexOf('audio/mpeg', 0) === 0) { // mp3 audio
+
+            let div = document.createElement('div');
+            div.style.width = "100%";
+            div.style.height = "100%";
+            div.style.backgroundColor = "rgb(254, 46, 154)";
+            node.appendChild(div);
+            node.style.visibility = "visible";
+
+            considerLayer = false;
+        } else if (mimeType.lastIndexOf('video/mpeg4', 0) === 0 ||          // mpeg4 video
+                   mimeType.lastIndexOf('video/mp4', 0) === 0 ||            // h.264 video
+                   mimeType.lastIndexOf('audio/mp4', 0) === 0 ||            // aac audio
+                   mimeType.lastIndexOf('audio/mpeg', 0) === 0 ||           // mp3 audio
+                   mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
+                   mimeType.lastIndexOf('video/mpeg', 0) === 0) {           // mpeg-ts
+
             console.log("Found Video on node: " + node + " -> " + node.data);
 
             let newUrl = window.cefStreamVideo(node.data);
             addVideoNode(node, newUrl);
-            // node.data = "";
             node.data = newUrl;
             node.style.visibility = 'hidden';
 
-            let position = node.getBoundingClientRect();
+            considerLayer = true;
+        }
+
+        node.bindToCurrentChannel = node.bindToCurrentChannel || function() {
+            console.log("Node bindToCurrentChannel");
+            return window.HBBTV_POLYFILL_NS.currentChannel;
+        }
+
+        node.setFullScreen = node.setFullScreen || function() {
             let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
 
-            if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
-                window.cefVideoFullscreen();
-            } else {
-                window.cefVideoSize(String(position.x), String(position.y), String(position.width), String(position.height));
-            }
-        } else if (mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
-                   mimeType.lastIndexOf('video/mpeg', 0) === 0) { // mpeg-ts
-            console.log("Found MPEG on node: " + node + " -> " + node.data);
-
-            let newUrl = window.cefStreamVideo(node.data);
-            addVideoNode(node, newUrl);
-            node.data = "";
+            node.x = 0;
+            node.y = 0;
+            node.width = bodyPos.width;
+            node.height = bodyPos.height;
         }
+
+        promoteVideoSize(node, considerLayer);
+        watchAndHandleVideoAttributes(node, considerLayer);
     }
 
     const handleChildAddedRemoved = (mutation) => {

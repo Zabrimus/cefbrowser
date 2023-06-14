@@ -3,6 +3,7 @@
 #include <fstream>
 #include "tools.h"
 #include "filetype.cpp"
+#include "httplib.h"
 
 
 std::string preJavascript;
@@ -68,7 +69,7 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
 
 std::string readPostJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[2] = { "videoobserver.js", "hbbtv.js" };
+    std::string files[3] = { "initlast.js", "videoobserver.js", "hbbtv.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());
@@ -79,7 +80,10 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     _dynamic << result << std::endl;
     _dynamic.close();
 
-    return "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
+    std::string post = "<div id=\"_video_color_overlay_\" style=\"visibility:hidden;position: absolute; background-color: rgb(254, 46, 154); z-index: 999;\"></div>\n";
+    post += "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
+
+    return post;
 }
 
 std::string insertAfterHead(std::string& origStr, std::string& addStr) {
@@ -165,6 +169,34 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
         return RV_CANCEL;
     }
 
+    // receive head of the url request (last fallback)
+    CefURLParts _parts;
+    CefParseURL(request->GetURL(), _parts);
+    std::string path = CefString(&_parts.path);
+    std::string port = CefString(&_parts.port);
+    std::string host = CefString(&_parts.host);
+    std::string scheme = CefString(&_parts.scheme);
+
+    std::string content_type;
+
+    std::string tmp_url = scheme + "://" + host + (port.length() > 0 ? ":" + port : "");
+    httplib::Client _client(tmp_url);
+    if (auto res = _client.Head(path)) {
+        if (res->status == 200) {
+            DEBUG("Content-Type: {}", res->get_header_value("Content-Type"));
+            content_type = res->get_header_value("Content-Type");
+        }
+    } else {
+        auto err = res.error();
+        content_type = "";
+        DEBUG("HTTP error: url: {}, error: {}", tmp_url, httplib::to_string(err));
+    }
+
+    // block everything else, except text/html, application/vnd.hbbtv.xhtml+xml, application/xhtml+xml
+    if ( (content_type.find("text/html") == std::string::npos) && (content_type.find("application/vnd.hbbtv.xhtml+xml") == std::string::npos) && (content_type.find("application/xhtml+xml") == std::string::npos) ) {
+        return RV_CANCEL;
+    }
+
     // create request by copying the original one
     CefRefPtr<CefRequest> _request = CefRequest::Create();
     CefRequest::HeaderMap headerMap;
@@ -183,12 +215,14 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
 
 RequestResponse::RequestResponse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                                  CefRefPtr<CefRequest> request, bool is_navigation, bool is_download,
-                                 const CefString &request_initiator, bool &disable_default_handling, std::string browserIp, int browserPort) {
+                                 const CefString &request_initiator, bool &disable_default_handling,
+                                 std::string browserIp, int browserPort) {
     DEBUG("RequestResponse::RequestResponse: {}, {}, {}, {}", is_navigation, is_download, request->GetURL().ToString(), (int)request->GetResourceType());
     preJavascript = readPreJavascript(browserIp, browserPort);
     postJavascript = readPostJavascript(browserIp, browserPort);
     preCSS = readPreCSS(browserIp, browserPort);
 }
+
 bool RequestResponse::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
     TRACE("RequestResponse::Open: {}", request->GetURL().ToString());
 
@@ -280,6 +314,7 @@ void RequestClient::OnDownloadData(CefRefPtr<CefURLRequest> request, const void 
         DEBUG("RequestClient::OnDownloadData: IsVideoOrAudio: {}", isVideoOrAudio(downloadChunk));
         if (isVideoOrAudio(downloadChunk)) {
             callback->Cancel();
+            return;
         }
     }
 

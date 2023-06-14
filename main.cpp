@@ -5,6 +5,7 @@
 #include "sharedmemory.h"
 #include "logger.h"
 #include "mini/ini.h"
+#include "database.h"
 
 const char kProcessType[] = "type";
 const char kRendererProcess[] = "renderer";
@@ -55,6 +56,8 @@ ProcessType GetProcessType(const CefRefPtr<CefCommandLine>& command_line) {
 void signal_handler(int signal)
 {
     sharedMemory.shutdown();
+    database.shutdown();
+    CefShutdown();
     exit(1);
 }
 
@@ -140,6 +143,12 @@ bool readConfiguration(std::string configFile) {
     return true;
 }
 
+std::string getexepath() {
+    char result[ PATH_MAX ];
+    ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+    return std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
+}
+
 int main(int argc, char *argv[]) {
     parseCommandLine(argc, argv);
 
@@ -172,6 +181,13 @@ int main(int argc, char *argv[]) {
 
     CefString(&settings.user_agent).FromASCII("HbbTV/1.4.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
 
+    std::string exepath = getexepath();
+    std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
+    std::string profile_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
+
+    CefString(&settings.cache_path).FromASCII(cache_path.c_str());
+    CefString(&settings.user_data_path).FromASCII(profile_path.c_str());
+
     // Initialize CEF for the browser process. The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.
     CefInitialize(main_args, settings, app, nullptr);
 
@@ -182,6 +198,7 @@ int main(int argc, char *argv[]) {
     sigIntHandler.sa_flags = 0;
 
     sigaction(SIGINT, &sigIntHandler, nullptr);
+    sigaction(SIGQUIT, &sigIntHandler, nullptr);
 
     if (!command_line->HasSwitch("config")) {
         ERROR("Argument --config not found. Exiting...");
@@ -192,6 +209,8 @@ int main(int argc, char *argv[]) {
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.
     CefRunMessageLoop();
 
+    sharedMemory.shutdown();
+    database.shutdown();
     CefShutdown();
 
     return 0;

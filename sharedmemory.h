@@ -8,6 +8,8 @@ public:
     ~SharedMemory();
 
     bool write(uint8_t *data, int size);
+    uint8_t* get();
+
     void shutdown();
 
 private:

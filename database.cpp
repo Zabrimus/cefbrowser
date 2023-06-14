@@ -35,6 +35,10 @@ Database::Database() {
 }
 
 Database::~Database() {
+    shutdown();
+}
+
+void Database::shutdown() {
     sqlite3_finalize(insertHbbtvStmt);
     sqlite3_finalize(insertChannelStmt);
 
@@ -176,6 +180,31 @@ void Database::createTables() {
                       )";
 
     sqlite3_exec(db, sqlChannels.c_str(), unused_callback, nullptr, &errMsg);
+}
+
+std::string Database::getAppUrl(const std::string channelId, const std::string appId) {
+    std::string sql = R"(
+            SELECT url_base || ifnull(URL_loc,'') || ifnull(url_ext, '') url
+              FROM HBBTV_URLS
+             WHERE CHANNEL_ID = ?
+               AND APPLICATION_ID = ?;
+         )";
+
+    sqlite3_stmt* stmt;
+
+    sqlite3_prepare(db, sql.c_str(), (int)sql.length(), &stmt, nullptr);
+
+    sqlite3_bind_text(stmt, 1, channelId.c_str(), (int)channelId.length(), SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, std::atoi(appId.c_str()));
+
+    sqlite3_step(stmt);
+    char* url = (char*)sqlite3_column_text(stmt, 0);
+
+    std::string result(url, sqlite3_column_bytes(stmt, 0));
+
+    sqlite3_finalize(stmt);
+
+    return result;
 }
 
 Database database;

@@ -1,16 +1,12 @@
 #include "transcoderremoteclient.h"
 
-TranscoderRemoteClient* transcoderRemoteClient;
-
 TranscoderRemoteClient::TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
                                     : transcoderIp(transcoderIp), transcoderPort(transcoderPort),  browserIp(browserIp), browserPort(browserPort) {
     client = new httplib::Client(transcoderIp, transcoderPort);
-    transcoderRemoteClient = this;
 }
 
 TranscoderRemoteClient::~TranscoderRemoteClient() {
     delete client;
-    transcoderRemoteClient = nullptr;
 }
 
 bool TranscoderRemoteClient::StreamUrl(std::string url) {
@@ -89,7 +85,7 @@ bool TranscoderRemoteClient::Resume() {
     return true;
 }
 
-bool TranscoderRemoteClient::Stop() {
+bool TranscoderRemoteClient::Stop() const {
     httplib::Params params;
     params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
 

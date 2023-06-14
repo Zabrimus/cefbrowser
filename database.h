@@ -15,6 +15,10 @@ public:
     std::string getChannel(std::string channelId);
     std::string getMainApp(std::string channelId);
 
+    void shutdown();
+
+    std::string getAppUrl(const std::string basicString, const std::string basicString1);
+
 private:
     void createTables();
 

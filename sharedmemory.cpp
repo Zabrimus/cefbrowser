@@ -52,4 +52,8 @@ void SharedMemory::shutdown() {
     shmctl(shmid, IPC_RMID, 0);
 }
 
+uint8_t *SharedMemory::get() {
+    return shmp;
+}
+
 SharedMemory sharedMemory;
