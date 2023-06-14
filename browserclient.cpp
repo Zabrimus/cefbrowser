@@ -105,41 +105,7 @@ void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
     DEBUG("BrowserClient::OnProcessMessageReceived {}", message->GetName().ToString());
 
-    if (message->GetName().ToString() == "StreamVideo") {
-        if (message->GetArgumentList()->GetSize() == 1) {
-            std::string url = message->GetArgumentList()->GetString(0).ToString();
-            DEBUG("BrowserClient::OnProcessMessageReceived: Stream request with URL: {}", url);
-            return true;
-        } else {
-            ERROR("BrowserClient::OnProcessMessageReceived: Stream request without URL");
-        }
-    } else if (message->GetName().ToString() == "StopVideo") {
-        DEBUG("BrowserClient::OnProcessMessageReceived: StopVideo");
-
-        transcoderRemoteClient->Stop();
-        return true;
-    } else if (message->GetName().ToString() == "PauseVideo") {
-        DEBUG("BrowserClient::OnProcessMessageReceived: PauseVideo");
-
-        transcoderRemoteClient->Pause();
-        return true;
-    } else if (message->GetName().ToString() == "ResumeVideo") {
-        DEBUG("BrowserClient::OnProcessMessageReceived: ResumeVideo");
-
-        transcoderRemoteClient->Resume();
-        return true;
-    } else if (message->GetName().ToString() == "SeekVideo") {
-        if (message->GetArgumentList()->GetSize() == 1) {
-            std::string pos = message->GetArgumentList()->GetString(0).ToString();
-
-            DEBUG("BrowserClient::OnProcessMessageReceived: SeekVideo {}", pos);
-
-            transcoderRemoteClient->Seek(pos);
-            return true;
-        } else {
-            ERROR("BrowserClient::OnProcessMessageReceived: Stream request without URL");
-        }
-    }  else if (message->GetName().ToString() == "RedButton") {
+    if (message->GetName().ToString() == "RedButton") {
         if (message->GetArgumentList()->GetSize() == 1) {
             std::string channelId = message->GetArgumentList()->GetString(0).ToString();
             DEBUG("BrowserClient::OnProcessMessageReceived: RedButton {}", channelId);

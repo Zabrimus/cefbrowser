@@ -52,10 +52,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
     if (name == "StreamVideo") {
         if (!arguments.empty()) {
-            auto urlParam = arguments.at(0);
+            const auto& urlParam = arguments.at(0);
             auto url = urlParam.get()->GetStringValue();
-
-            vdrRemoteClient->StartVideo();
 
             if (!transcoderRemoteClient->StreamUrl(url)) {
                 // transcoder not available
@@ -63,24 +61,24 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 return false;
             }
 
-            sendMessageToBrowser("StreamVideo", url);
+            vdrRemoteClient->StartVideo();
         }
 
         retval = CefV8Value::CreateString("http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
         return true;
     } else if (name == "StopVideo") {
         vdrRemoteClient->StopVideo();
-        sendMessageToBrowser("StopVideo");
+        transcoderRemoteClient->Stop();
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "PauseVideo") {
-        sendMessageToBrowser("PauseVideo");
+        transcoderRemoteClient->Pause();
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "ResumeVideo") {
-        sendMessageToBrowser("ResumeVideo");
+        transcoderRemoteClient->Resume();
 
         retval = CefV8Value::CreateBool(true);
         return true;
@@ -88,12 +86,12 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         DEBUG("V8Handler::Execute SeekVideo");
 
         if (!arguments.empty()) {
-            auto param = arguments.at(0);
+            const auto& param = arguments.at(0);
             auto position = param.get()->GetStringValue().ToString();
 
             DEBUG("V8Handler::Execute SeekVideo Argument Pos {}", position);
 
-            sendMessageToBrowser("SeekVideo", position);
+            transcoderRemoteClient->Seek(position);
         }
 
         retval = CefV8Value::CreateBool(true);
@@ -102,7 +100,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         DEBUG("V8Handler::Execute RedButton");
 
         if (!arguments.empty()) {
-            auto param = arguments.at(0);
+            const auto& param = arguments.at(0);
             auto channelId = param.get()->GetStringValue().ToString();
 
             DEBUG("V8Handler::Execute RedButton Argument ChannelId {}", channelId);
@@ -116,7 +114,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         DEBUG("V8Handler::Execute LoadUrl");
 
         if (!arguments.empty()) {
-            auto param = arguments.at(0);
+            const auto& param = arguments.at(0);
             auto url = param.get()->GetStringValue().ToString();
 
             DEBUG("V8Handler::Execute LoadUrl {}", url);
@@ -141,8 +139,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             params.push_back(std::to_string(w));
             params.push_back(std::to_string(h));
 
-            sendMessageToBrowser("VideoSize", params);
-
             vdrRemoteClient->VideoSize(x, y, w, h);
         }
 
@@ -151,7 +147,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
     } else if (name == "VideoFullscreen") {
         DEBUG("V8Handler::Execute VideoFullscreen");
 
-        sendMessageToBrowser("VideoFullscreen");
         vdrRemoteClient->VideoFullscreen();
 
         retval = CefV8Value::CreateBool(true);
