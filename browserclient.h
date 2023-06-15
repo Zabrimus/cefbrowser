@@ -9,7 +9,6 @@
 
 class BrowserClient : public CefClient,
                       public CefRenderHandler,
-                      public CefAudioHandler,
                       public CefLifeSpanHandler,
                       public CefRequestHandler {
 
@@ -25,11 +24,6 @@ public:
     CefRefPtr<CefRenderHandler> GetRenderHandler() override {
         return this;
     };
-
-    // CefAudioHandler
-    CefRefPtr<CefAudioHandler> GetAudioHandler() override {
-        return this;
-    }
 
     // CefLifeSpanHandler
     CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override {
@@ -62,17 +56,6 @@ public:
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer,
                  int width, int height) override;
 
-    // AudioHandler
-    bool GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) override;
-
-    void OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) override;
-
-    void OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) override;
-
-    void OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) override;
-
-    void OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) override;
-
     // LifeSpanHandler
     void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
     void OnBeforeClose(CefRefPtr< CefBrowser > browser) override;
@@ -81,10 +64,10 @@ public:
     bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect) override;
     void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
 
-
 private:
     // clear parts of the OSD
     void osdClearVideo(int x, int y, int width, int height);
+    void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);
 
 private:
     int renderWidth;

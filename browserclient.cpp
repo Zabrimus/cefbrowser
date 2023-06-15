@@ -4,7 +4,7 @@
 
 BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
                     : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort) {
-    TRACE("BrowserClient::BrowserClient");
+    DEBUG("BrowserClient::BrowserClient");
     this->renderWidth = width;
     this->renderHeight = height;
 
@@ -14,7 +14,7 @@ BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string
 }
 
 BrowserClient::~BrowserClient() {
-    TRACE("BrowserClient:~BrowserClient");
+    DEBUG("BrowserClient:~BrowserClient");
 
     delete transcoderRemoteClient;
     delete vdrRemoteClient;
@@ -45,7 +45,7 @@ void BrowserClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     LOG_CURRENT_THREAD();
 
-    INFO("BrowserClient::OnPaint, width: {}, height: {}", width, height);
+    TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
 
     sharedMemory.write((uint8_t *)buffer, width * height * 4);
 
@@ -67,39 +67,12 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
     vdrRemoteClient->ProcessOsdUpdate(width, height);
 }
 
-bool BrowserClient::GetAudioParameters(CefRefPtr<CefBrowser> browser, CefAudioParameters &params) {
-    TRACE("BrowserClient::GetAudioParameters");
-
-    auto ret = CefAudioHandler::GetAudioParameters(browser, params);
-
-    // 48k default sample rate seems to better work with different input videos
-    params.sample_rate = 48000;
-
-    return ret;
-}
-
-void BrowserClient::OnAudioStreamStarted(CefRefPtr<CefBrowser> browser, const CefAudioParameters &params, int channels) {
-    TRACE("BrowserClient::OnAudioStreamStarted: Sample rate: {}, Channel layout: {}, Frames per buffer: {}, Channels: {} ", params.sample_rate, (int)params.channel_layout, params.frames_per_buffer, channels);
-}
-
-void BrowserClient::OnAudioStreamPacket(CefRefPtr<CefBrowser> browser, const float **data, int frames, int64 pts) {
-    TRACE("BrowserClient::OnAudioStreamPacket: Frames: {}, pts: {}", frames, pts);
-}
-
-void BrowserClient::OnAudioStreamStopped(CefRefPtr<CefBrowser> browser) {
-    DEBUG("OSRVideoHandler::OnAudioStreamStopped");
-    // this event will also be triggered if video paused. => do nothing
-}
-
-void BrowserClient::OnAudioStreamError(CefRefPtr<CefBrowser> browser, const CefString &message) {
-    DEBUG("OSRVideoHandler::OnAudioStreamError: {}", message.ToString());
-}
-
 void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
-    TRACE("BrowserClient::OnAfterCreated");
+    DEBUG("BrowserClient::OnAfterCreated");
 }
 
 void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
+    DEBUG("BrowserClient::OnBeforeClose");
 }
 
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
@@ -118,9 +91,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
             _dynamic.close();
 
-            // load url
-            browser->GetMainFrame()->LoadURL(url);
-
+            loadUrl(browser, url);
             return true;
         } else {
             ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
@@ -130,9 +101,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             std::string url = message->GetArgumentList()->GetString(0).ToString();
             DEBUG("BrowserClient::OnProcessMessageReceived: LoadUrl {}", url);
 
-            // load url
-            browser->GetMainFrame()->LoadURL(url);
-
+            loadUrl(browser, url);
             return true;
         } else {
             ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
@@ -151,16 +120,29 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
                 url += args;
             }
 
-            // load url
-            browser->GetMainFrame()->LoadURL(url);
-
+            loadUrl(browser, url);
             return true;
         } else {
-            ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
+            ERROR("BrowserClient::OnProcessMessageReceived: StartApp without channelId or appId");
         }
     }
 
     return false;
+}
+
+void BrowserClient::loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url) {
+    // Before loading a new url stop video (in VDR and transcoder) and set fullscreen
+
+    // TODO:
+    //  Bei manchen Seiten (z.B. ARD/Tagesschau) ist bei einem Wechsel des Videos innerhalb Seite kein StopVideo/Videofullscreen nötig.
+    //  Es reicht, den Transcoder zu stoppen, obwohl selbst das muss nicht sein - denke ich - da der Transcoder das selbst managed.
+
+    vdrRemoteClient->StopVideo();
+    vdrRemoteClient->VideoFullscreen();
+    transcoderRemoteClient->Stop();
+
+    // load url
+    browser->GetMainFrame()->LoadURL(url);
 }
 
 CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,

@@ -25,7 +25,9 @@ function watchAndHandleVideoObjectMutations() {
             }
             else if (speed > 0) {
                 setTimeout(() => {
-                    window.cefResumeVideo();
+                    if (node.playState === PLAY_STATES.paused) {
+                        window.cefResumeVideo(String(video.currentTime));
+                    }
 
                     node.speed = speed;
                     node.playState = PLAY_STATES.playing;

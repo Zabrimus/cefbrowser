@@ -67,9 +67,10 @@ bool TranscoderRemoteClient::Seek(std::string seekTo) {
     return true;
 }
 
-bool TranscoderRemoteClient::Resume() {
+bool TranscoderRemoteClient::Resume(std::string position) {
     httplib::Params params;
     params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
+    params.emplace("position", position);
 
     if (auto res = client->Post("/Resume", params)) {
         if (res->status != 200) {

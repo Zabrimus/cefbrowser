@@ -83,6 +83,40 @@ bool VdrRemoteClient::StopVideo() {
     return true;
 }
 
+bool VdrRemoteClient::Pause() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
+    if (auto res = client->Get("/PauseVideo")) {
+        if (res->status != 200) {
+            std::cout << "Http result: " << res->status << std::endl;
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        std::cout << "HTTP error (PauseVideo): " << httplib::to_string(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool VdrRemoteClient::Resume() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
+    if (auto res = client->Get("/ResumeVideo")) {
+        if (res->status != 200) {
+            std::cout << "Http result: " << res->status << std::endl;
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        std::cout << "HTTP error (ResumeVideo): " << httplib::to_string(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
 bool VdrRemoteClient::VideoSize(int x, int y, int w, int h) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 

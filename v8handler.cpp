@@ -73,12 +73,19 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "PauseVideo") {
+        vdrRemoteClient->Pause();
         transcoderRemoteClient->Pause();
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "ResumeVideo") {
-        transcoderRemoteClient->Resume();
+        const auto& param = arguments.at(0);
+        auto position = param.get()->GetStringValue().ToString();
+
+        DEBUG("RESUME at timestamp {}", position);
+
+        vdrRemoteClient->Resume();
+        transcoderRemoteClient->Resume(position);
 
         retval = CefV8Value::CreateBool(true);
         return true;

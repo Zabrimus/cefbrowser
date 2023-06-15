@@ -13,6 +13,8 @@ public:
 
     bool StartVideo();
     bool StopVideo();
+    bool Pause();
+    bool Resume();
 
     bool VideoSize(int x, int y, int w, int h);
     bool VideoFullscreen();

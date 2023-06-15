@@ -11,7 +11,7 @@ public:
     bool StreamUrl(std::string url);
     bool Pause();
     bool Seek(std::string seekTo);
-    bool Resume();
+    bool Resume(std::string position);
     bool Stop() const;
 
 private:
