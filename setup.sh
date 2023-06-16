@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Stable
-CEF_FILE="https://cef-builds.spotifycdn.com/cef_binary_111.2.7%2Bgebf5d6a%2Bchromium-111.0.5563.148_linux64_minimal.tar.bz2"
+CEF_FILE="https://cef-builds.spotifycdn.com/cef_binary_114.2.11%2Bg87c8807%2Bchromium-114.0.5735.134_linux64_minimal.tar.bz2"
 
 #
 # download cef
