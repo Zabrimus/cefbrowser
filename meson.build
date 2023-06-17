@@ -21,9 +21,9 @@ run_command('./setup.sh', arch, meson.current_build_dir(), check: false)
 cef_opt_var = cmake.subproject_options()
 
 if arch == 'arm'
-    cef_opt_var.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': meson.project_source_root() + '/xconfig/armhf.cmake'}, {'PROJECT_ARCH': 'armhf'})
+    cef_opt_var.add_cmake_defines({'PROJECT_ARCH': 'armhf'})
 elif arch == 'arm64'
-    cef_opt_var.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': meson.project_source_root() + '/xconfig/arm64.cmake'}, {'PROJECT_ARCH': 'aarch64'})
+    cef_opt_var.add_cmake_defines({'PROJECT_ARCH': 'aarch64'})
 endif
 
 cef_opt_var.append_compile_args('cpp', '-Wno-unused-variable')
