@@ -10,6 +10,8 @@ std::string preJavascript;
 std::string postJavascript;
 std::string preCSS;
 
+std::string lastContentType;
+
 std::string urlBlockList[5] {
     ".block.this",
     ".nmrodam.com",
@@ -268,7 +270,7 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
 }
 
 void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
-    TRACE("RequestResponse::GetResponseHeaders: {}", response->GetURL().ToString());
+    DEBUG("RequestResponse::GetResponseHeaders: {}", response->GetURL().ToString());
 
     CefResponse::HeaderMap responseHeader;
     url_request->GetResponse()->GetHeaderMap(responseHeader);
@@ -287,7 +289,23 @@ void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 
 
     response->SetStatus(200);
     response->SetStatusText("OK");
-    response->SetMimeType("application/xhtml+xml");
+
+    if (!lastContentType.empty()) {
+        if (lastContentType.find("text/html") != std::string::npos) {
+            response->SetMimeType("text/html");
+        } else if (lastContentType.find("application/vnd.hbbtv.xhtml+xml") != std::string::npos) {
+            response->SetMimeType("application/xhtml+xml");
+        } else {
+            // default
+            response->SetMimeType("application/xhtml+xml");
+        }
+    } else {
+        // default
+        response->SetMimeType("application/xhtml+xml");
+    }
+
+    lastContentType = "";
+
     response->SetHeaderMap(responseHeader);
 
     response_length = client->download_total;
@@ -302,7 +320,7 @@ void RequestResponse::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefR
                                              CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response,
                                              CefResourceRequestHandler::URLRequestStatus status,
                                              int64 received_content_length) {
-    TRACE("RequestResponse::OnResourceLoadComplete: {} -> {}", (int)status, received_content_length);
+    DEBUG("RequestResponse::OnResourceLoadComplete: {} -> {}", (int)status, received_content_length);
 
     CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status,
                                                       received_content_length);
@@ -328,6 +346,8 @@ void RequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
 
     request->GetResponse()->GetHeaderMap(headerMap);
     DEBUG("Header by content: {}", request->GetResponse()->GetHeaderByName("Content-Type").ToString());
+
+    lastContentType = request->GetResponse()->GetHeaderByName("Content-Type").ToString();
 
     callback->Continue();
 }
