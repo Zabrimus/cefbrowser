@@ -35,3 +35,7 @@ or if you don't need the possibility to debug the application in Chrome
 
 ### Logging
 Log entries will be written to stdout/stderr.
+
+### Tested channels
+- Das Erste
+- ZDF
