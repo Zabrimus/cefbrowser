@@ -5,19 +5,27 @@ project('cefbrowser', 'cpp', 'c',
 
 add_global_arguments(language : 'cpp')
 
+arch=get_option('arch')
+
 cmake = import('cmake')
 CXX = meson.get_compiler('cpp')
 
 #
 # Download and extract subprojects
 #
-arch=get_option('arch')
 run_command('./setup.sh', arch, meson.current_build_dir(), check: false)
 
 #
 # Build cef
 #
 cef_opt_var = cmake.subproject_options()
+
+if arch == 'arm'
+    cef_opt_var.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': meson.project_source_root() + '/xconfig/armhf.cmake'}, {'PROJECT_ARCH': 'armhf'})
+elif arch == 'arm64'
+    cef_opt_var.add_cmake_defines({'CMAKE_TOOLCHAIN_FILE': meson.project_source_root() + '/xconfig/arm64.cmake'}, {'PROJECT_ARCH': 'aarch64'})
+endif
+
 cef_opt_var.append_compile_args('cpp', '-Wno-unused-variable')
 cef_opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'Debug'})
 cef_proj = cmake.subproject('cef', options: cef_opt_var)

@@ -1,3 +1,3 @@
 #!/bin/bash
 
-meson setup build --cross-file meson-cross-file-debian-arm.conf -Darch=arm
+meson setup build --cross-file xcompile/meson-cross-file-debian-arm.conf -Darch=arm
