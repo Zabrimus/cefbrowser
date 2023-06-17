@@ -1,6 +1,6 @@
 #pragma once
 
-#define ENABLE_THREAD_LOGGING 1
+// #define ENABLE_THREAD_LOGGING 1
 
 #ifdef CLIENT_ONLY
 #undef ENABLE_THREAD_LOGGING

@@ -189,8 +189,6 @@
             // yourNumber = parseInt('14', 16);
 
             if (app) {
-                console.log("app2 = " + app[2] + " -> " + parseInt(app[2], 16).toString());
-
                 let appid = parseInt(app[2], 16).toString();
                 let channelId = window.HBBTV_POLYFILL_NS.currentChannel.channelId;
                 let args = (app[3] ? app[3] : "");

@@ -188,7 +188,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         if (body.empty()) {
             res.status = 404;
         } else {
-            TRACE("InsertHbbtv: {}", body);
+            // TRACE("InsertHbbtv: {}", body);
 
             database.insertHbbtv(body);
 
@@ -203,7 +203,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         if (body.empty()) {
             res.status = 404;
         } else {
-            TRACE("InsertChannel: {}", body);
+            // TRACE("InsertChannel: {}", body);
             database.insertChannel(body);
 
             res.set_content("ok", "text/plain");

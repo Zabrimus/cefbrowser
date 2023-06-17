@@ -136,6 +136,8 @@ function watchAndHandleVideoObjectMutations() {
         video && video.addEventListener && video.addEventListener('timeupdate', function () {
             // console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
 
+            console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
+
             var pos = Math.floor(video.currentTime * 1000);
             node.playPostion = pos;
             if (node.PlayPositionChanged) {

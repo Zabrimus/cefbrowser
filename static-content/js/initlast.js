@@ -1,7 +1,4 @@
-// modify object with type video/broadcast it the element already exists
-
-/* Funktioniert nicht wie gewüscht
-function prepareBroadcast() {
+function prepareElements() {
     const objects = document.getElementsByTagName("object");
     for (let i = 0; i < objects.length; i++) {
         let node = objects[i];
@@ -13,37 +10,29 @@ function prepareBroadcast() {
 
         mimeType = mimeType.toLowerCase();
 
-        if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
-            console.log("Init Found TV on node: " + node);
-
-            let div = document.createElement('div');
-            div.style.width = "100%";
-            div.style.height = "100%";
-            div.style.backgroundColor = "rgb(254, 46, 154)";
-            node.appendChild(div);
-            node.style.visibility = "visible";
-        }
-    }
-}
-*/
-
-function prepareBroadcast() {
-    const objects = document.getElementsByTagName("object");
-    for (let i = 0; i < objects.length; i++) {
-        let node = objects[i];
-
-        let mimeType = node.type;
-        if (!node.type) {
-            continue;
-        }
-
-        mimeType = mimeType.toLowerCase();
-
-        if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
+        if (mimeType.lastIndexOf('video/broadcast', 0) >= 0) { // TV
             console.log("Init Found TV on node: " + node);
             node.style.visibility = "hidden";
         }
     }
+
+    const videoElement = document.getElementById('video');
+    if (videoElement) {
+        videoElement.bindToCurrentChannel = videoElement.bindToCurrentChannel || function() {
+            return window.HBBTV_POLYFILL_NS.currentChannel;
+        }
+
+        videoElement.setFullScreen = videoElement.setFullScreen || function() {
+            let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
+
+            videoElement.x = 0;
+            videoElement.y = 0;
+            videoElement.width = bodyPos.width;
+            videoElement.height = bodyPos.height;
+        }
+    }
 }
 
-prepareBroadcast();
+prepareElements();
+
+document.body.style["font-family"] = "Tiresias";

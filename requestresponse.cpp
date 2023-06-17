@@ -35,7 +35,7 @@ bool isVideoOrAudio(std::string& data) {
 
 std::string readPreJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[4] = {"init.js", "keyhandler.js", "font.js", "_dynamic.js" };
+    std::string files[3] = {"init.js", "keyhandler.js", "_dynamic.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());
@@ -62,7 +62,7 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
     _dynamic << result << std::endl;
     _dynamic.close();
 
-    return "\n<link rel=\"stylesheet\" href=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/css/_dynamic.css\">";
+    return "\n<link rel=\"stylesheet\" type=\"text/css\" href=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/css/_dynamic.css\"></link>";
 
     // return "\n<style>\n" + result + "</style>\n";
 }
@@ -118,12 +118,15 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     size_t found = url.find_first_of(':');
     size_t found2 = url.substr(found + 3).find_first_of('/');
 
+    /*
     for (const auto & block : urlBlockList) {
         if (url.substr(found + 3, found2).find(block) != std::string::npos) {
+            TRACE("Url {} is on the block list", url);
             // block
             return RV_CANCEL;
         }
     }
+    */
 
     // check file extension and block all known binary formats.
     auto toBlock = endsWith(url,"view-source:'") ||
@@ -166,6 +169,7 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     }
 
     if (toBlock) {
+        TRACE("Url {} blocked", url);
         return RV_CANCEL;
     }
 
@@ -176,12 +180,26 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     std::string port = CefString(&_parts.port);
     std::string host = CefString(&_parts.host);
     std::string scheme = CefString(&_parts.scheme);
+    std::string query = CefString(&_parts.query);
 
     std::string content_type;
 
     std::string tmp_url = scheme + "://" + host + (port.length() > 0 ? ":" + port : "");
+    std::string newUrl;
+
     httplib::Client _client(tmp_url);
     if (auto res = _client.Head(path)) {
+        DEBUG("http-lib: HEAD location {}, path {}, query {}, status {}", res->location, path, query, res->status);
+
+        if (res->status > 300 && res->status < 400) {
+            newUrl = res->get_header_value("Location") + (!query.empty() ? "?" + query : "");
+            DEBUG("Redirect to new URL {} ", newUrl);
+
+            // redirect
+            request->SetURL(newUrl);
+            return RV_CONTINUE;
+        }
+
         if (res->status == 200) {
             DEBUG("Content-Type: {}", res->get_header_value("Content-Type"));
             content_type = res->get_header_value("Content-Type");
@@ -194,7 +212,8 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
 
     // block everything else, except text/html, application/vnd.hbbtv.xhtml+xml, application/xhtml+xml
     if ( (content_type.find("text/html") == std::string::npos) && (content_type.find("application/vnd.hbbtv.xhtml+xml") == std::string::npos) && (content_type.find("application/xhtml+xml") == std::string::npos) ) {
-        return RV_CANCEL;
+        TRACE("Url {}, Content Type {} will be handled by the browser itself.", url, content_type);
+        return RV_CONTINUE;
     }
 
     // create request by copying the original one
@@ -202,13 +221,15 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     CefRequest::HeaderMap headerMap;
     request->GetHeaderMap(headerMap);
 
+    DEBUG("Vor Request: Location {} (Length {})", newUrl, query);
+
     _request->Set(request->GetURL(),
                   request->GetMethod(),
                   request->GetPostData(),
                   headerMap);
 
     client = new RequestClient(callback);
-    url_request = CefURLRequest::Create(request, client.get(), nullptr);
+    url_request = CefURLRequest::Create(_request, client.get(), nullptr);
 
     return RV_CONTINUE_ASYNC;
 }
@@ -249,17 +270,32 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
 void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
     TRACE("RequestResponse::GetResponseHeaders: {}", response->GetURL().ToString());
 
+    CefResponse::HeaderMap responseHeader;
+    url_request->GetResponse()->GetHeaderMap(responseHeader);
+    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ++itr) {
+        TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
+    }
+
+    CefRequest::HeaderMap requestHeader;
+    url_request->GetRequest()->GetHeaderMap(requestHeader);
+    for (auto itr = requestHeader.begin(); itr != requestHeader.end(); ++itr) {
+        TRACE("RequestHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
+    }
+
+    responseHeader.erase("Content-Type");
+    responseHeader.insert(std::make_pair("Content-Type","application/xhtml+xml;charset=UTF-8"));
+
     response->SetStatus(200);
     response->SetStatusText("OK");
-    response->SetMimeType("text/html");
-    response->SetHeaderMap(client->headerMap);
+    response->SetMimeType("application/xhtml+xml");
+    response->SetHeaderMap(responseHeader);
 
     response_length = client->download_total;
 }
 
 void RequestResponse::Cancel() {
-    DEBUG("RequestResponse::Cancel: url_request");
-    url_request->Cancel();
+    DEBUG("RequestResponse::Cancel: {}", url_request->GetRequest()->GetURL().ToString());
+    // url_request->Cancel();
 }
 
 void RequestResponse::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,

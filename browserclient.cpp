@@ -45,7 +45,7 @@ void BrowserClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     LOG_CURRENT_THREAD();
 
-    TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
+    // TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
 
     sharedMemory.write((uint8_t *)buffer, width * height * 4);
 
@@ -73,6 +73,22 @@ void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
 
 void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
     DEBUG("BrowserClient::OnBeforeClose");
+}
+
+bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
+                   CefRefPtr<CefFrame> frame,
+                   const CefString& target_url,
+                   const CefString& target_frame_name,
+                   WindowOpenDisposition target_disposition,
+                   bool user_gesture,
+                   const CefPopupFeatures& popupFeatures,
+                   CefWindowInfo& windowInfo,
+                   CefRefPtr<CefClient>& client,
+                   CefBrowserSettings& settings,
+                   CefRefPtr<CefDictionaryValue>& extra_info,
+                   bool* no_javascript_access) {
+    DEBUG("BrowserClient::OnBeforePopup: url {}, target_frame_name {}", target_url.ToString(), target_frame_name.ToString());
+    return false;
 }
 
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
@@ -116,6 +132,11 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
 
             // get AppUrl
             std::string url = database.getAppUrl(channelId, appId);
+            if (url.empty()) {
+                INFO("Application with appId {} for channelId {} not found -> ignore request");
+                return false;
+            }
+
             if (!args.empty()) {
                 url += args;
             }
@@ -159,7 +180,74 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return nullptr;
     }
 
-    if (is_navigation) {
+    TRACE("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation, request->GetURL().ToString(), request_initiator.ToString());
+    TRACE("GetResourceRequestHandler: Method:{}, Referrer:{}", request->GetMethod().ToString(), request->GetReferrerURL().ToString());
+    if (logger->isTraceEnabled()) {
+        switch(request->GetResourceType()) {
+            case RT_MAIN_FRAME:
+                TRACE("GetResourceRequestHandler: RT_MAIN_FRAME");
+                break;
+            case RT_SUB_FRAME:
+                TRACE("GetResourceRequestHandler: RT_SUB_FRAME");
+                break;
+            case RT_STYLESHEET:
+                TRACE("GetResourceRequestHandler: RT_STYLESHEET");
+                break;
+            case RT_SCRIPT:
+                TRACE("GetResourceRequestHandler: RT_SCRIPT");
+                break;
+            case RT_IMAGE:
+                TRACE("GetResourceRequestHandler: RT_IMAGE");
+                break;
+            case RT_FONT_RESOURCE:
+                TRACE("GetResourceRequestHandler: RT_FONT_RESOURCE");
+                break;
+            case RT_SUB_RESOURCE:
+                TRACE("GetResourceRequestHandler: RT_SUB_RESOURCE");
+                break;
+            case RT_OBJECT:
+                TRACE("GetResourceRequestHandler: RT_OBJECT");
+                break;
+            case RT_MEDIA:
+                TRACE("GetResourceRequestHandler: RT_MEDIA");
+                break;
+            case RT_WORKER:
+                TRACE("GetResourceRequestHandler: RT_WORKER");
+                break;
+            case RT_SHARED_WORKER:
+                TRACE("GetResourceRequestHandler: RT_SHARED_WORKER");
+                break;
+            case RT_PREFETCH:
+                TRACE("GetResourceRequestHandler: RT_PREFETCH");
+                break;
+            case RT_FAVICON:
+                TRACE("GetResourceRequestHandler: RT_FAVICON");
+                break;
+            case RT_XHR:
+                TRACE("GetResourceRequestHandler: RT_XHR");
+                break;
+            case RT_PING:
+                TRACE("GetResourceRequestHandler: RT_PING");
+                break;
+            case RT_SERVICE_WORKER:
+                TRACE("GetResourceRequestHandler: RT_SERVICE_WORKER");
+                break;
+            case RT_CSP_REPORT:
+                TRACE("GetResourceRequestHandler: RT_CSP_REPORT");
+                break;
+            case RT_PLUGIN_RESOURCE:
+                TRACE("GetResourceRequestHandler: RT_PLUGIN_RESOURCE");
+                break;
+            case RT_NAVIGATION_PRELOAD_MAIN_FRAME:
+                TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_MAIN_FRAME");
+                break;
+            case RT_NAVIGATION_PRELOAD_SUB_FRAME:
+                TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_SUB_FRAME");
+                break;
+        }
+    }
+
+    if ((is_navigation && request->GetResourceType() != RT_SUB_FRAME) || (request->GetResourceType() == RT_SUB_RESOURCE)) {
         DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
               request->GetURL().ToString(), request_initiator.ToString());
         return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,

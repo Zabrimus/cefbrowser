@@ -3,7 +3,7 @@ project('cefbrowser', 'cpp', 'c',
   default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static' ],
   meson_version: '>=0.63.0')
 
-add_global_arguments('-DLIBUS_NO_SSL', language : 'cpp')
+add_global_arguments(language : 'cpp')
 
 cmake = import('cmake')
 CXX = meson.get_compiler('cpp')
@@ -47,6 +47,12 @@ sqlite3_proj = subproject('sqlite3')
 sqlite3_dep = sqlite3_proj.get_variable('sqlite3_dep')
 
 #
+# ssl
+#
+dep_ssl = dependency('libssl')
+dep_crypto = dependency('libcrypto')
+
+#
 # Build browser
 #
 shared_libs = ['cef', 'z']
@@ -61,18 +67,18 @@ exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  'v8handler.cpp', 'tools.cpp', 'database.cpp',
                  'transcoderremoteclient.cpp', 'vdrremoteclient.cpp',
                  'httplib.cpp',
-                 cpp_args : '-DPHTTPLIB_ZLIB_SUPPORT',
+                 cpp_args : ['-DPHTTPLIB_ZLIB_SUPPORT', '-DCPPHTTPLIB_OPENSSL_SUPPORT'],
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep])
+                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep, dep_ssl, dep_crypto])
 
 exe = executable('vdrclient', 'test-tools/vdr_tool.cpp', 'logger.cpp', 'sharedmemory.cpp', 'test-tools/common.cpp',
                 'vdrremoteclient.cpp', 'test-tools/ffmpeghandler.cpp',
                 'httplib.cpp',
-                 cpp_args : '-DCLIENT_ONLY',
+                 cpp_args : ['-DCLIENT_ONLY', '-DPHTTPLIB_ZLIB_SUPPORT', '-DCPPHTTPLIB_OPENSSL_SUPPORT'],
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: [mini_dep, spdlog_dep, deps, tiny_process_library_dep])
+                 dependencies: [mini_dep, spdlog_dep, deps, tiny_process_library_dep, dep_ssl, dep_crypto])
 
 #
 # install static content
