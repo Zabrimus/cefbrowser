@@ -11,7 +11,8 @@ CXX = meson.get_compiler('cpp')
 #
 # Download and extract subprojects
 #
-run_command('./setup.sh', meson.current_build_dir(), check: false)
+arch=get_option('arch')
+run_command('./setup.sh', arch, meson.current_build_dir(), check: false)
 
 #
 # Build cef

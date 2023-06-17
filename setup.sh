@@ -1,7 +1,21 @@
 #!/bin/sh
 
 # Stable
-CEF_FILE="https://cef-builds.spotifycdn.com/cef_binary_114.2.11%2Bg87c8807%2Bchromium-114.0.5735.134_linux64_minimal.tar.bz2"
+
+CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_114.2.11%2Bg87c8807%2Bchromium-114.0.5735.134_linux64_minimal.tar.bz2"
+CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_114.2.11%2Bg87c8807%2Bchromium-114.0.5735.134_linuxarm64_minimal.tar.bz2"
+CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_114.2.11%2Bg87c8807%2Bchromium-114.0.5735.134_linuxarm_client.tar.bz2"
+
+# Default
+CEF_FILE=${CEF_FILE_X86}
+
+if [ "$1" = "x86" ]; then
+  CEF_FILE=${CEF_FILE_X86}
+elif [ "$1" = "arm64" ]; then
+  CEF_FILE=${CEF_FILE_ARM64}
+elif [ "$1" = "arm" ]; then
+  CEF_FILE=${CEF_FILE_ARM}
+fi
 
 #
 # download cef
@@ -16,8 +30,10 @@ fi
 #
 # Prepare cef release
 #
-if [ ! -d $1/Release ]; then
-    mkdir $1/Release
-    cp -a subprojects/cef/Resources/* $1/Release
-    cp -a subprojects/cef/Release/* $1/Release
+if [[ "$#" -gt 1 ]]; then
+  if [ ! -d $2/Release ]; then
+      mkdir $2/Release
+      cp -a subprojects/cef/Resources/* $2/Release
+      cp -a subprojects/cef/Release/* $2/Release
+  fi
 fi
