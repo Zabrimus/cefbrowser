@@ -75,22 +75,6 @@ void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
     DEBUG("BrowserClient::OnBeforeClose");
 }
 
-bool BrowserClient::OnBeforePopup(CefRefPtr<CefBrowser> browser,
-                   CefRefPtr<CefFrame> frame,
-                   const CefString& target_url,
-                   const CefString& target_frame_name,
-                   WindowOpenDisposition target_disposition,
-                   bool user_gesture,
-                   const CefPopupFeatures& popupFeatures,
-                   CefWindowInfo& windowInfo,
-                   CefRefPtr<CefClient>& client,
-                   CefBrowserSettings& settings,
-                   CefRefPtr<CefDictionaryValue>& extra_info,
-                   bool* no_javascript_access) {
-    DEBUG("BrowserClient::OnBeforePopup: url {}, target_frame_name {}", target_url.ToString(), target_frame_name.ToString());
-    return false;
-}
-
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
     DEBUG("BrowserClient::OnProcessMessageReceived {}", message->GetName().ToString());
 
