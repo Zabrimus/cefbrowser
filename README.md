@@ -8,9 +8,24 @@
 ## cefbrowser (Part 2)
 Works together with ```vdr-plugin-web``` and ```remotetranscoder```
 
-### Build
+### Dependencies (cross compile, Ubuntu 22.04)
+#### arm
 ```
-./setup.sh
+apt install -y zlib1g-dev:armhf libssl-dev:armhf libcrypt-dev:armhf libglib2.0-dev:armhf libnss3-dev:armhf \
+        libatk1.0-dev:armhf libatk-bridge2.0-dev:armhf libcups2-dev:armhf libxcomposite-dev:armhf libxdamage-dev:armhf \
+        libxrandr-dev:armhf libgbm-dev:armhf libxkbcommon-dev:armhf libpango1.0-dev:armhf libasound2-dev:armhf
+```
+
+#### arm64
+```
+sudo apt install -y zlib1g-dev:arm64 libssl-dev:arm64 libcrypt-dev:arm64 libglib2.0-dev:arm64 libnss3-dev:arm64 \
+        libatk1.0-dev:arm64 libatk-bridge2.0-dev:arm64 libcups2-dev:arm64 libxcomposite-dev:arm64 libxdamage-dev:arm64 \
+        libxrandr-dev:arm64 libgbm-dev:arm64 libxkbcommon-dev:arm64 libpango1.0-dev:arm64 libasound2-dev:arm64
+```
+
+### Build (default is x86)
+```
+./setup.sh <arm, arm64 or x86>
 meson setup build
 cd build
 meson compile
