@@ -1,0 +1,70 @@
+name: Build cefbrowser aarch64
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: install dependencies
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y git make cmake libssl-dev openssl curl pip ninja-build           
+          pip3 install --user meson
+
+      - name: Install Cross-Compile Support
+        uses: cyberjunk/gha-ubuntu-cross@v2
+        with:
+          arch: arm64
+
+      - name: Install target system packages
+        shell: bash
+        run: |
+          sudo apt install -y zlib1g-dev:arm64 libssl-dev:arm64 libcrypt-dev:arm64 libglib2.0-dev:arm64 libnss3-dev:arm64 \
+                  libatk1.0-dev:arm64 libatk-bridge2.0-dev:arm64 libcups2-dev:arm64 libxcomposite-dev:arm64 libxdamage-dev:arm64 \
+                  libxrandr-dev:arm64 libgbm-dev:arm64 libxkbcommon-dev:arm64 libpango1.0-dev:arm64 libasound2-dev:arm64
+
+      - name: git clone
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/Zabrimus/cefbrowser.git
+
+      - name: build
+        shell: bash
+        run: |
+          export PATH=~/.local/bin/:$PATH
+          cd cefbrowser
+          ./setup.sh arm64          
+          PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig meson setup build --cross-file xcompile/meson-cross-file-debian-arm64.conf -Darch=arm64 -Dstrip=true
+          echo "cd into build directory"          
+          cd build
+          meson compile 
+          meson install --skip-subprojects
+          CREV=$(cd .. && git rev-parse --short HEAD)
+          mv Release cefbrowser-aarch64-${CREV}
+          tar -czf cefbrowser-aarch64-${CREV}.tar.gz cefbrowser-aarch64-${CREV} 
+          ls -la
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - uses: oprypin/find-latest-tag@v1
+        with:
+          repository:  Zabrimus/Workflows
+          releases-only: false
+        id: current_release_tag
+
+      - name: Release
+        run: |
+          TAG="${{ steps.date.outputs.date }}"
+
+          cd cefbrowser/build
+          gh release create "$TAG" -R Zabrimus/Workflows || true
+          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/Workflows
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKFLOWRUNNER }}

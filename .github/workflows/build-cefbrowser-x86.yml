@@ -1,0 +1,65 @@
+name: Build cefbrowser x86_64
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: install dependencies
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt install -y git make cmake libssl-dev openssl curl pip ninja-build           
+          pip3 install --user meson
+
+      - name: Install target system packages
+        shell: bash
+        run: |
+          sudo apt install -y zlib1g-dev libssl-dev libcrypt-dev libglib2.0-dev libnss3-dev \
+                  libatk1.0-dev libatk-bridge2.0-dev libcups2-dev libxcomposite-dev libxdamage-dev \
+                  libxrandr-dev libgbm-dev libxkbcommon-dev libpango1.0-dev libasound2-dev
+
+      - name: git clone
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/Zabrimus/cefbrowser.git
+
+      - name: build
+        shell: bash
+        run: |
+          export PATH=~/.local/bin/:$PATH
+          cd cefbrowser
+          ./setup.sh
+          meson setup build -Dstrip=true
+          echo "cd into build directory"          
+          cd build
+          meson compile 
+          meson install --skip-subprojects
+          CREV=$(cd .. && git rev-parse --short HEAD)
+          mv Release cefbrowser-x86_64-${CREV}
+          tar -czf cefbrowser-x86_64-${CREV}.tar.gz cefbrowser-x86_64-${CREV} 
+          ls -la
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - uses: oprypin/find-latest-tag@v1
+        with:
+          repository:  Zabrimus/Workflows
+          releases-only: false
+        id: current_release_tag
+
+      - name: Release
+        run: |
+          TAG="${{ steps.date.outputs.date }}"
+          
+          cd cefbrowser/build
+          gh release create "$TAG" -R Zabrimus/Workflows || true
+          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/Workflows
+        env:
+          GITHUB_TOKEN: ${{ secrets.WORKFLOWRUNNER }}
