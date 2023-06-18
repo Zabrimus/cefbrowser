@@ -50,7 +50,7 @@ jobs:
 
       - uses: oprypin/find-latest-tag@v1
         with:
-          repository:  Zabrimus/Workflows
+          repository:  Zabrimus/cefbrowser
           releases-only: false
         id: current_release_tag
 
@@ -59,7 +59,7 @@ jobs:
           TAG="${{ steps.date.outputs.date }}"
           
           cd cefbrowser/build
-          gh release create "$TAG" -R Zabrimus/Workflows || true
-          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/Workflows
+          gh release create "$TAG" -R Zabrimus/cefbrowser || true
+          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
         env:
-          GITHUB_TOKEN: ${{ secrets.WORKFLOWRUNNER }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
