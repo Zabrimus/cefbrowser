@@ -1,0 +1,43 @@
+name: Build arm cefbrowser
+
+on:
+  workflow_dispatch:
+
+permissions: write-all
+
+jobs:
+  arm-openssl-1:
+    name: arm-openssl-1
+    uses: ./.github/workflows/build-arm-cefbrowser-docker.yml
+    with:
+      arch: armhf
+      arch_build: arm
+      compiler: arm-linux-gnueabihf
+      compiler_version: 10
+      ubuntu_version: 20.04
+      ubuntu_name: focal
+    secrets: inherit
+
+  arm-openssl-3:
+    name: arm-openssl-3
+    uses: ./.github/workflows/build-arm-cefbrowser-docker.yml
+    with:
+      arch: armhf
+      arch_build: arm
+      compiler: arm-linux-gnueabihf
+      compiler_version: 11
+      ubuntu_version: 22.04
+      ubuntu_name: jammy
+    secrets: inherit
+
+  arm64-openssl-3:
+    name: arm64-openssl-3
+    uses: ./.github/workflows/build-arm-cefbrowser-docker.yml
+    with:
+      arch: arm64
+      arch_build: arm64
+      compiler: aarch64-linux-gnu
+      compiler_version: 11
+      ubuntu_version: 22.04
+      ubuntu_name: jammy
+    secrets: inherit

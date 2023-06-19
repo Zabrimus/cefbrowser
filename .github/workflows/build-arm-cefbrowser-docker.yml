@@ -1,0 +1,145 @@
+name: Docker Build cefbrowser
+
+on:
+  workflow_call:
+    inputs:
+      arch:
+        description: "Architecure"
+        default: arm64
+        required: true
+        type: string
+      arch_build:
+        description: "Create Release"
+        default: arm64
+        required: true
+        type: string
+      compiler:
+        description: "Compiler"
+        default: aarch64-linux-gnu
+        required: true
+        type: string
+      compiler_version:
+        description: "Compiler Version"
+        default: 11
+        required: true
+        type: string
+      ubuntu_version:
+        description: "Ubuntu Version"
+        default: 22.04
+        required: true
+        type: string
+      ubuntu_name:
+        description: "Ubuntu Name"
+        default: jammy
+        required: true
+        type: string
+
+permissions: write-all
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    container:
+      image: ubuntu:${{ inputs.ubuntu_version }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Install build
+        run: |
+          export DEBIAN_FRONTEND=noninteractive 
+          apt update
+          apt install -y git make curl pip ninja-build apt-utils pkg-config build-essential
+          pip3 install --user cmake
+          pip3 install --user "meson==0.63"
+
+      - name: Install Cross-Compile Support
+        run: |
+            dpkg --add-architecture ${{ inputs.arch }}
+            bash -c "echo -e '\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }} main restricted \n\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }}-updates main restricted \n\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }} universe \n\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }}-updates universe \n\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }} multiverse \n\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }}-updates multiverse \n\
+            deb [arch=${{ inputs.arch }}] http://ports.ubuntu.com/ ${{ inputs.ubuntu_name }}-backports main restricted universe multiverse \n' > /etc/apt/sources.list.d/${{ inputs.arch }}-cross-compile-sources.list";
+            apt update || true
+            apt install -y libstdc++6-${{ inputs.arch }}-cross libc6-dev-${{ inputs.arch }}-cross libc6-dev:${{ inputs.arch }} linux-libc-dev-${{ inputs.arch }}-cross linux-libc-dev:${{ inputs.arch }}
+            apt install -y gcc-${{ inputs.compiler_version }}-${{ inputs.compiler }} g++-${{ inputs.compiler_version }}-${{ inputs.compiler }} libstdc++-${{ inputs.compiler_version }}-dev-${{ inputs.arch }}-cross libstdc++-${{ inputs.compiler_version }}-dev:${{ inputs.arch }}
+
+      - name: Set Cross-Compile Links
+        run: |
+            cd /usr/bin
+            ln -s ${{ inputs.compiler }}-gcc-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcc || true
+            ln -s ${{ inputs.compiler }}-g++-${{ inputs.compiler_version }} ${{ inputs.compiler }}-g++ || true
+            ln -s ${{ inputs.compiler }}-gcc-ar-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcc-ar || true
+            ln -s ${{ inputs.compiler }}-gcc-nm-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcc-nm || true
+            ln -s ${{ inputs.compiler }}-gcov-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcov || true
+            ln -s ${{ inputs.compiler }}-gcov-dump-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcov-dump || true
+            ln -s ${{ inputs.compiler }}-gcov-tool-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcov-tool || true
+            ln -s ${{ inputs.compiler }}-ld.bfd ${{ inputs.compiler }}-ld || true
+            ln -s /usr/share/pkg-config-crosswrapper /usr/bin/${{ inputs.compiler }}-pkg-config || true
+
+      - name: Install dependencies
+        run: |
+          apt install -y zlib1g-dev:${{ inputs.arch }} libssl-dev:${{ inputs.arch }} libcrypt-dev:${{ inputs.arch }} libglib2.0-dev:${{ inputs.arch }} \
+                libnss3-dev:${{ inputs.arch }} libatk1.0-dev:${{ inputs.arch }} libatk-bridge2.0-dev:${{ inputs.arch }} libcups2-dev:${{ inputs.arch }} \
+                libxcomposite-dev:${{ inputs.arch }} libxdamage-dev:${{ inputs.arch }} libxrandr-dev:${{ inputs.arch }} libgbm-dev:${{ inputs.arch }} \
+                libxkbcommon-dev:${{ inputs.arch }} libpango1.0-dev:${{ inputs.arch }} libasound2-dev:${{ inputs.arch }}
+
+      - name: Checkout
+        run: |
+          git clone --depth 1 https://github.com/Zabrimus/cefbrowser.git
+
+      - name: build
+        shell: bash
+        run: |
+          export PATH=~/.local/bin/:$PATH
+          cd cefbrowser
+          ./setup.sh ${{ inputs.arch_build }}
+          PKG_CONFIG_PATH=/usr/lib/${{ inputs.compiler }}/pkgconfig meson setup build --cross-file xcompile/meson-cross-file-debian-${{ inputs.arch_build }}.conf -Darch=${{ inputs.arch_build }} -Dstrip=true
+          echo "cd into build directory"          
+          cd build
+          meson compile 
+          meson install --skip-subprojects
+          CREV=$(cd .. && git rev-parse --short HEAD)
+          echo "VERSION=$CREV" >> Release/VERSION
+                     
+          if [ "${{ inputs.ubuntu_version }}" = "20.04" ]; then
+            OPENSSL_VERSION=1
+          else
+            OPENSSL_VERSION=3
+          fi
+          
+          echo "FILENAME=cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}" >> $GITHUB_ENV
+          
+          mv Release cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}
+          tar -czf cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}.tar.gz cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}
+          ls -la
+
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
+
+      - uses: oprypin/find-latest-tag@v1
+        with:
+          repository:  Zabrimus/cefbrowser
+          releases-only: false
+        id: current_release_tag
+
+      - name: Release
+        run: |
+          TAG="${{ steps.date.outputs.date }}"
+          
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | tee /etc/apt/sources.list.d/github-cli.list > /dev/null 
+          apt update || true
+          apt install gh -y
+          
+          cd cefbrowser/build
+          gh release create "$TAG" -R Zabrimus/cefbrowser || true
+          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
