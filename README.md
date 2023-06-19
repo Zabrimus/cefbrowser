@@ -54,3 +54,14 @@ Log entries will be written to stdout/stderr.
 ### Tested channels
 - Das Erste
 - ZDF
+
+## Releases
+The binary releases can be used in VDR*ELEC.
+
+| Distro     | Version | Release                           |
+|------------|---------|-----------------------------------|
+| CoreELEC   | 19      | cefbrowser-armhf-openssl-1.tar.gz |
+| CoreELEC   | 20      | cefbrowser-armhf-openssl-3.tar.gz |
+| CoreELEC   | 21-ng   | cefbrowser-armhf-openssl-3.tar.gz |
+| CoreELEC   | 21-ne   | cefbrowser-arm64-openssl-3.tar.gz |
+| LibreELEC  | all     | cefbrowser-arm64-openssl-3.tar.gz |
