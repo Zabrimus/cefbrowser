@@ -98,5 +98,5 @@ The binary releases can be used in VDR*ELEC.
 - start the browser via docker
   ```
     cd /opt/cefbrowser/cefbrowser-armhf-openssl-3-2c14cfa
-    docker run -it --rm -v .:/app -v /dev/shm:/dev/shm --ipc="host" --net=host ghcr.io/zabrimus/cefbrowser-base -ini sockets.ini
+    docker run -it --rm -v `pwd`:/app -v /dev/shm:/dev/shm --ipc="host" --net=host ghcr.io/zabrimus/cefbrowser-base -ini sockets.ini
   ```
