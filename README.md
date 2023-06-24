@@ -89,6 +89,7 @@ The binary releases can be used in VDR*ELEC.
 - Get and install cefbrowser binary (adapt version if desired)
     ```
     mkdir -p /opt/cefbrowser
+    cd /opt/cefbrowser
     wget https://github.com/Zabrimus/cefbrowser/releases/download/2023-06-19/cefbrowser-armhf-openssl-3-2c14cfa.tar.gz
     tar -xf cefbrowser-armhf-openssl-3-2c14cfa.tar.gz
     ```
