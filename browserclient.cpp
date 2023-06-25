@@ -4,7 +4,8 @@
 
 BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
                     : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort) {
-    DEBUG("BrowserClient::BrowserClient");
+    LOG_CURRENT_THREAD();
+
     this->renderWidth = width;
     this->renderHeight = height;
 
@@ -14,13 +15,14 @@ BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string
 }
 
 BrowserClient::~BrowserClient() {
-    DEBUG("BrowserClient:~BrowserClient");
+    LOG_CURRENT_THREAD();
 
     delete transcoderRemoteClient;
     delete vdrRemoteClient;
 }
 
 void BrowserClient::osdClearVideo(int x, int y, int width, int height) {
+    LOG_CURRENT_THREAD();
     TRACE("BrowserClient::osdClearVideo: {}, {}, {}, {}", x, y, width, height);
 
     clearX = x;
@@ -30,6 +32,7 @@ void BrowserClient::osdClearVideo(int x, int y, int width, int height) {
 }
 
 void BrowserClient::setRenderSize(int width, int height) {
+    LOG_CURRENT_THREAD();
     TRACE("BrowserClient::setRenderSize: {}, {}", width, height);
 
     renderWidth = width;
@@ -45,7 +48,7 @@ void BrowserClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     LOG_CURRENT_THREAD();
 
-    // TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
+    TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
 
     sharedMemory.write((uint8_t *)buffer, width * height * 4);
 
@@ -68,15 +71,18 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 }
 
 void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
-    DEBUG("BrowserClient::OnAfterCreated");
+    LOG_CURRENT_THREAD();
+    TRACE("BrowserClient::OnAfterCreated");
 }
 
 void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
-    DEBUG("BrowserClient::OnBeforeClose");
+    LOG_CURRENT_THREAD();
+    TRACE("BrowserClient::OnBeforeClose");
 }
 
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
-    DEBUG("BrowserClient::OnProcessMessageReceived {}", message->GetName().ToString());
+    LOG_CURRENT_THREAD();
+    TRACE("BrowserClient::OnProcessMessageReceived {}", message->GetName().ToString());
 
     if (message->GetName().ToString() == "RedButton") {
         if (message->GetArgumentList()->GetSize() == 1) {
@@ -157,6 +163,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                                                 const CefString &request_initiator,
                                                 bool &disable_default_handling)
 {
+    LOG_CURRENT_THREAD();
+
     std::string url = request->GetURL().ToString();
 
     if (!startsWith(url, "http://" + browserIp + ":" + std::to_string(browserPort) + "/application") && (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + browserIp))  ) {
@@ -246,7 +254,6 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
     return false;
 }
 
-void
-BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) {
+void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) {
 }
 

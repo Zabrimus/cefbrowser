@@ -6,8 +6,8 @@
 #undef ENABLE_THREAD_LOGGING
 #endif
 
-// #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
-#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
+#define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+// #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG
 
 #ifndef CLIENT_ONLY
 #include "cef_includes.h"
@@ -27,19 +27,19 @@
 #if defined ENABLE_THREAD_LOGGING && not defined(CLIENT_ONLY)
 #define LOG_CURRENT_THREAD() \
         if (CefCurrentlyOn(TID_UI))  { \
-            TRACE("Current Thread: UI"); \
+            DEBUG("Current Thread: UI"); \
         } else if (CefCurrentlyOn(TID_IO))  { \
-            TRACE("Current Thread: IO"); \
+            DEBUG("Current Thread: IO"); \
         } else if (CefCurrentlyOn(TID_FILE_BACKGROUND))  { \
-            TRACE("Current Thread: FILE_BACKGROUND"); \
+            DEBUG("Current Thread: FILE_BACKGROUND"); \
         } else if (CefCurrentlyOn(TID_FILE_USER_VISIBLE)) { \
-            TRACE("Current Thread: TID_FILE_USER_VISIBLE"); \
+            DEBUG("Current Thread: TID_FILE_USER_VISIBLE"); \
         } else if (CefCurrentlyOn(TID_FILE_USER_BLOCKING))  { \
-            TRACE("Current Thread: FILE_USER_BLOCKING"); \
+            DEBUG("Current Thread: FILE_USER_BLOCKING"); \
         } else if (CefCurrentlyOn(TID_PROCESS_LAUNCHER))  { \
-            TRACE("Current Thread: PROCESS_LAUNCHER"); \
+            DEBUG("Current Thread: PROCESS_LAUNCHER"); \
         } else if (CefCurrentlyOn(TID_RENDERER)) { \
-            TRACE("Current Thread: RENDERER"); \
+            DEBUG("Current Thread: RENDERER"); \
         }
 #else
 #define LOG_CURRENT_THREAD() (void)0
@@ -51,9 +51,6 @@ public:
     Logger();
 
     ~Logger();
-
-    // Must be called before setting the desired level
-    void switchToFileLogger(std::string filename);
 
     void set_level(spdlog::level::level_enum level) {
         _logger->set_level(level);
@@ -75,10 +72,6 @@ public:
         return _logger;
     }
 
-    inline bool switchedToFile() {
-        return this->_switchedToFile;
-    }
-
     inline void shutdown() {
         _logger->flush();
         spdlog::drop("cefbrowser");
@@ -87,7 +80,6 @@ public:
 
 private:
     std::shared_ptr<spdlog::logger> _logger;
-    bool _switchedToFile = false;
 };
 
 extern Logger* logger;

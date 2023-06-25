@@ -118,7 +118,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     // called by VDR
     svr.Post("/ProcessKey", [](const httplib::Request &req, httplib::Response &res) {
         auto key = req.get_param_value("key");
-        INFO("ProcessKey: {}", key);
+        DEBUG("ProcessKey: {}", key);
 
         if (key.empty()) {
             res.status = 404;
@@ -225,13 +225,10 @@ BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp,
 }
 
 CefRefPtr<CefBrowserProcessHandler> BrowserApp::GetBrowserProcessHandler() {
-    DEBUG("BrowserApp::GetBrowserProcessHandler()");
-
     return this;
 }
 
 CefRefPtr<CefRenderProcessHandler> BrowserApp::GetRenderProcessHandler() {
-    DEBUG("BrowserApp::GetRenderProcessHandler()");
     return this;
 }
 
@@ -284,7 +281,7 @@ void BrowserApp::OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDi
 }
 
 void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
-    DEBUG("BrowserApp::OnContextCreated");
+    TRACE("BrowserApp::OnContextCreated");
 
     // register all native JS functions
     CefRefPtr<CefV8Value> object = context->GetGlobal();

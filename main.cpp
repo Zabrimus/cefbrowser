@@ -14,6 +14,9 @@ const char kZygoteProcess[] = "zygote";
 // commandline arguments
 std::string configFilename;
 
+// log level
+int loglevel;
+
 // http server
 std::string browserIp;
 int browserPort;
@@ -64,12 +67,14 @@ void signal_handler(int signal)
 void parseCommandLine(int argc, char *argv[]) {
     static struct option long_options[] = {
             { "config",      required_argument, nullptr, 'c' },
+            { "loglevel",    optional_argument, nullptr, 'l' },
             {nullptr }
     };
 
     int c, option_index = 0;
     opterr = 0;
-    while ((c = getopt_long(argc, argv, "c:", long_options, &option_index)) != -1)
+    loglevel = 1;
+    while ((c = getopt_long(argc, argv, "c:l:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -77,12 +82,14 @@ void parseCommandLine(int argc, char *argv[]) {
                 configFilename = optarg;
                 break;
 
+            case 'l':
+                loglevel = atoi(optarg);
+                break;
+
             default:
                 return;
         }
     }
-
-    return;
 }
 
 bool readConfiguration(std::string configFile) {
@@ -152,13 +159,17 @@ std::string getexepath() {
 int main(int argc, char *argv[]) {
     parseCommandLine(argc, argv);
 
+    switch (loglevel) {
+        case 0:  logger->set_level(spdlog::level::critical); break;
+        case 1:  logger->set_level(spdlog::level::err); break;
+        case 2:  logger->set_level(spdlog::level::info); break;
+        case 3:  logger->set_level(spdlog::level::debug); break;
+        case 4:  logger->set_level(spdlog::level::trace); break;
+        default: logger->set_level(spdlog::level::err); break;
+    }
+
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
-
-    DEBUG("Command line: {}", command_line->GetCommandLineString().ToString());
-    for (int i = 0; i < argc; ++i) {
-        DEBUG("    {}", argv[i]);
-    }
 
     int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort), nullptr);
     if (exit_code >= 0) {
