@@ -19,7 +19,7 @@ ExecStart=/storage/.kodi/addons/service.system.docker/bin/docker run --rm --name
     --ipc="host" \
     --net=host \
     ghcr.io/zabrimus/cefbrowser-base:latest \
-    -ini sockets.ini \
+    -ini sockets.ini
 
 [Install]
 WantedBy=default.target
