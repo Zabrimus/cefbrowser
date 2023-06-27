@@ -1,0 +1,4 @@
+- VDR*ELEC
+  Das systemd script start-scripte/cefbrowser.service funktioniert auf der Konsole: Start und Stop.
+  Bei einem Reboot allerdings wird der Service zu früh gestartet. Docker ist noch nicht verfügbar und der Browser
+  startet nicht. Die Bedingungen "After=docker.service" und "Requires=docker.service" funktionieren nicht wie gewünscht.
