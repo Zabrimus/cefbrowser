@@ -48,25 +48,31 @@ void BrowserClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     LOG_CURRENT_THREAD();
 
+    if (width > 1920 || height > 1080) {
+        CRITICAL("BrowserClient::OnPaint, width {}, height {} are too large. Ignore this request.");
+        return;
+    }
+
     TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
 
-    sharedMemory.write((uint8_t *)buffer, width * height * 4);
+    SharedMemory sharedMemory;
+    sharedMemory.Write((uint8_t *)buffer, width * height * 4);
 
     // hex = 0xAARRGGBB.
     // rgb(254, 46, 154) = #fe2e9a
     // fffe2e9a => 00fe2e9a
 
-    int w = std::min(width, 1920);
-    int h = std::min(height, 1080);
+    TRACE("BrowserClient::OnPaint, final width: {}, height: {}", width, height);
 
     // delete parts of the OSD where a video shall be visible
-    uint32_t* buf = (uint32_t*)sharedMemory.get();
+    uint32_t* buf = (uint32_t*)sharedMemory.Get();
     for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
         if (buf[i] == 0xfffe2e9a) {
             buf[i] = 0x00fe2e9a;
         }
     }
 
+    TRACE("BrowserClient::OnPaint, send to browser");
     vdrRemoteClient->ProcessOsdUpdate(width, height);
 }
 

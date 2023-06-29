@@ -58,7 +58,6 @@ ProcessType GetProcessType(const CefRefPtr<CefCommandLine>& command_line) {
 
 void signal_handler(int signal)
 {
-    sharedMemory.shutdown();
     database.shutdown();
     CefShutdown();
     exit(1);
@@ -220,7 +219,6 @@ int main(int argc, char *argv[]) {
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.
     CefRunMessageLoop();
 
-    sharedMemory.shutdown();
     database.shutdown();
     CefShutdown();
 

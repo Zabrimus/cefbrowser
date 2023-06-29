@@ -1,41 +1,40 @@
-#include <cstdio>
-#include <thread>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string>
 #include <cstring>
-#include <sys/shm.h>
 #include "sharedmemory.h"
 #include "logger.h"
 
-const key_t sharedMemoryKey = (key_t)0xDEADC0DE;
+const std::string sharedMemoryFile("/cefbrowser");
 const int sharedMemorySize = 1920 * 1080 * 4;
 
 SharedMemory::SharedMemory() {
-    // init shared memory
-    shmid = -1;
-    shmp = nullptr;
-
-    shmid = shmget(sharedMemoryKey, sharedMemorySize, 0666 | IPC_CREAT | IPC_EXCL) ;
-
-    if (errno == EEXIST) {
-        shmid = shmget(sharedMemoryKey, sharedMemorySize, 0666);
+    int shmid = shm_open(sharedMemoryFile.c_str(), O_RDWR, 0666);
+    if (shmid < 0) {
+        printf("===> CREATE Shared Memory");
+        shmid = shm_open(sharedMemoryFile.c_str(), O_EXCL | O_CREAT | O_RDWR, 0666);
+        if (shmid >= 0) {
+            printf("===> Truncate Shared Memory");
+            ftruncate(shmid, sharedMemorySize);
+        }
+    } else {
+        printf("===> Use Existing Shared Memory");
     }
 
-    if (shmid == -1) {
-        perror("Unable to get shared memory");
-        return;
-    }
-
-    shmp = (uint8_t *) shmat(shmid, nullptr, 0);
-    if (shmp == (void *) -1) {
-        perror("Unable to attach to shared memory");
-        return;
-    }
+    shmp = (uint8_t*)mmap(nullptr, sharedMemorySize, PROT_READ | PROT_WRITE, MAP_SHARED, shmid, 0);
+    close(shmid);
 }
 
 SharedMemory::~SharedMemory() {
-    shutdown();
+    // munmap(shmp, sharedMemorySize);
 }
 
-bool SharedMemory::write(uint8_t* data, int size) {
+uint8_t* SharedMemory::Get() {
+    return shmp;
+}
+
+bool SharedMemory::Write(uint8_t* data, int size) {
     if (size > sharedMemorySize || size <= 0) {
         // abort
         ERROR("Prevent writing %d bytes in buffer of length %d", size, sharedMemorySize);
@@ -46,14 +45,3 @@ bool SharedMemory::write(uint8_t* data, int size) {
 
     return true;
 }
-
-void SharedMemory::shutdown() {
-    shmdt(shmp);
-    shmctl(shmid, IPC_RMID, 0);
-}
-
-uint8_t *SharedMemory::get() {
-    return shmp;
-}
-
-SharedMemory sharedMemory;

@@ -1,20 +1,16 @@
 #pragma once
 
+#include <cstdio>
 #include <cstdint>
 
 class SharedMemory {
+private:
+    uint8_t *shmp;
+
 public:
     explicit SharedMemory();
     ~SharedMemory();
 
-    bool write(uint8_t *data, int size);
-    uint8_t* get();
-
-    void shutdown();
-
-private:
-    int shmid;
-    uint8_t *shmp;
+    uint8_t* Get();
+    bool Write(uint8_t* data, int size);
 };
-
-extern SharedMemory sharedMemory;
