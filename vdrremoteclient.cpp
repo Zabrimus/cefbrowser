@@ -5,6 +5,9 @@ std::mutex httpMutex;
 
 VdrRemoteClient::VdrRemoteClient(std::string vdrIp, int vdrPort) {
     client = new httplib::Client(vdrIp, vdrPort);
+
+    // Send Hello
+    SendHello();
 }
 
 VdrRemoteClient::~VdrRemoteClient() {
@@ -22,6 +25,8 @@ bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
         if (res->status != 200) {
             std::cout << "Http result: " << res->status << std::endl;
             return false;
+        } else {
+            std::cout << "Http result: " << res->status << std::endl;
         }
     } else {
         auto err = res.error();
@@ -151,6 +156,23 @@ bool VdrRemoteClient::VideoFullscreen() {
     } else {
         auto err = res.error();
         std::cout << "HTTP error (VideoFullscreen): " << httplib::to_string(err) << std::endl;
+        return false;
+    }
+
+    return true;
+}
+
+bool VdrRemoteClient::SendHello() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
+    if (auto res = client->Get("/Hello")) {
+        if (res->status != 200) {
+            std::cout << "Http result: " << res->status << std::endl;
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        std::cout << "HTTP error (SendHello): " << httplib::to_string(err) << std::endl;
         return false;
     }
 

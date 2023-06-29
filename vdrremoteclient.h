@@ -19,6 +19,8 @@ public:
     bool VideoSize(int x, int y, int w, int h);
     bool VideoFullscreen();
 
+    bool SendHello();
+
 private:
     httplib::Client* client;
 };
