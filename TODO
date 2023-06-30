@@ -2,3 +2,10 @@
   Das systemd script start-scripte/cefbrowser.service funktioniert auf der Konsole: Start und Stop.
   Bei einem Reboot allerdings wird der Service zu früh gestartet. Docker ist noch nicht verfügbar und der Browser
   startet nicht. Die Bedingungen "After=docker.service" und "Requires=docker.service" funktionieren nicht wie gewünscht.
+
+- Problemsender
+  Arte
+      Videos lassen sich nicht abspielen. Es scheint Probleme mit mpeg-dash zu geben, da die Seite selbst viel Magie
+      enthält und u.a. mit dem Videoplayer spielt.
+
+

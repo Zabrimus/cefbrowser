@@ -10,6 +10,7 @@
 scoped_refptr<CefBrowser> currentBrowser;
 
 httplib::Server svr;
+std::mutex httpServerMutex;
 
 void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort) {
     int _browserPort = browserPort;
@@ -40,6 +41,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
     // called by VDR
     svr.Post("/LoadUrl", [](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         auto url = req.get_param_value("url");
         INFO("Load URL: {}", url);
 
@@ -52,6 +55,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     });
 
     svr.Post("/RedButton", [](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         auto channelId = req.get_param_value("channelId");
         INFO("Red Button for channelId: {}", channelId);
 
@@ -92,6 +97,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     });
 
     svr.Post("/StartApplication", [_browserIp, _browserPort](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         auto channelId = req.get_param_value("channelId");
         auto appId = req.get_param_value("appId");
         INFO("Start Application, channelId {}, appId {}", channelId, appId);
@@ -117,6 +124,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
     // called by VDR
     svr.Post("/ProcessKey", [](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         auto key = req.get_param_value("key");
         DEBUG("ProcessKey: {}", key);
 
@@ -164,6 +173,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
     // called by transcoder
     svr.Post("/ProcessTSPacket", [&vdrRemoteClient, &transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         const std::string body = req.body;
 
         if (body.empty()) {
@@ -183,6 +194,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
     // called by VDR
     svr.Post("/InsertHbbtv", [](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         const std::string body = req.body;
 
         if (body.empty()) {
@@ -198,6 +211,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
     // called by VDR
     svr.Post("/InsertChannel", [](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
         const std::string body = req.body;
 
         if (body.empty()) {

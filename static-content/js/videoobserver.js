@@ -271,9 +271,27 @@ function watchAndHandleVideoObjectMutations() {
         }
 
         node.bindToCurrentChannel = node.bindToCurrentChannel || function() {
-            console.log("Node bindToCurrentChannel");
+            console.log('Node bindToCurrentChannel');
             return window.HBBTV_POLYFILL_NS.currentChannel;
         }
+
+        node.setChannel = node.setChannel || function () {
+            console.log('Node setChannel() ...');
+        };
+
+        node.prevChannel = node.prevChannel || function () {
+            console.log('Node prevChannel() ...');
+            return window.HBBTV_POLYFILL_NS.currentChannel;
+        };
+
+        node.nextChannel = node.nextChannel || function () {
+            console.log('Node BroadcastVideo nextChannel() ...');
+            return window.HBBTV_POLYFILL_NS.currentChannel;
+        };
+
+        node.release = node.release || function () {
+            console.log('Node BroadcastVideo release() ...');
+        };
 
         node.setFullScreen = node.setFullScreen || function() {
             let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
@@ -283,6 +301,25 @@ function watchAndHandleVideoObjectMutations() {
             node.width = bodyPos.width;
             node.height = bodyPos.height;
         }
+
+        node.createChannelObject = node.createChannelObject || function () {
+            console.log('Node createChannelObject() ...');
+        };
+
+        node.addStreamEventListener = node.addStreamEventListener || function (url, eventName, listener) {
+            console.log('Node register listener -', eventName);
+            window.HBBTV_POLYFILL_NS.streamEventListeners.push({ url, eventName, listener });
+        };
+
+        node.removeStreamEventListener = node.removeStreamEventListener || function (url, eventName, listener) {
+            console.log('Node remove listener -', eventName);
+
+            var idx = window.HBBTV_POLYFILL_NS.streamEventListeners.findIndex((e) => {
+                return e.listener === listener && e.eventName === eventName && e.url === url;
+            });
+
+            window.HBBTV_POLYFILL_NS.streamEventListeners.splice(idx, 1);
+        };
 
         promoteVideoSize(node, considerLayer);
         watchAndHandleVideoAttributes(node, considerLayer);
@@ -309,6 +346,12 @@ function watchAndHandleVideoObjectMutations() {
             }
         });
     };
+
+    // prepare at first all object nodes
+    const objects = document.getElementsByTagName("object");
+    for (let i = 0; i < objects.length; i++) {
+        checkNode(objects[i]);
+    }
 
     this.mutationObserver = new MutationObserver(handleMutation);
     this.mutationObserver.observe(document.body, {
