@@ -12,14 +12,10 @@ const int sharedMemorySize = 1920 * 1080 * 4;
 SharedMemory::SharedMemory() {
     int shmid = shm_open(sharedMemoryFile.c_str(), O_RDWR, 0666);
     if (shmid < 0) {
-        printf("===> CREATE Shared Memory");
         shmid = shm_open(sharedMemoryFile.c_str(), O_EXCL | O_CREAT | O_RDWR, 0666);
         if (shmid >= 0) {
-            printf("===> Truncate Shared Memory");
             ftruncate(shmid, sharedMemorySize);
         }
-    } else {
-        printf("===> Use Existing Shared Memory");
     }
 
     shmp = (uint8_t*)mmap(nullptr, sharedMemorySize, PROT_READ | PROT_WRITE, MAP_SHARED, shmid, 0);
