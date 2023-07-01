@@ -8,6 +8,44 @@ const PLAY_STATES = {
     error: 6,
 };
 
+window.promoteVideoSize = (node, considerLayer) => {
+    let position = node.getBoundingClientRect();
+    let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
+    let overlay = document.getElementById('_video_color_overlay_');
+
+    /*
+    console.log("In PromoteVideoSize: body (" + bodyPos.x + "," + bodyPos.y + "," + bodyPos.width + "," + bodyPos.height + ")");
+    console.log("In PromoteVideoSize: node (" + position.x + "," + position.y + "," + position.width + "," + position.height + ")");
+    console.log("In PromoteVideoSize: Fullscreen: " + ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)));
+    */
+
+    if ((position.width == 300) && (position.height == 150)) {
+        // sometimes the wrong size is requested. Ignore this to prevent flickering
+        // console.log("Size 300x150 requested");
+
+        overlay.style.visibility = "hidden";
+        window.cefVideoFullscreen();
+        return;
+    }
+
+    if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
+        overlay.style.visibility = "hidden";
+
+        window.cefVideoFullscreen();
+    } else {
+        if (overlay && considerLayer) {
+            overlay.style.visibility = "visible";
+            overlay.style.left = position.x.toString() + "px";
+            overlay.style.top = position.y.toString() + "px";
+            overlay.style.width = position.width.toString() + "px";
+            overlay.style.height = position.height.toString() + "px";
+            overlay.style.backgroundColor = "rgb(254, 46, 154)";
+        }
+
+        window.cefVideoSize(position.x | 0, position.y | 0, position.width | 0, position.height | 0);
+    }
+}
+
 function watchAndHandleVideoObjectMutations() {
     const addVideoNode = (node, url) => {
         let video = document.createElement('video');
@@ -36,6 +74,9 @@ function watchAndHandleVideoObjectMutations() {
                         console.error(e.message);
                         node.error = 5;
                     });
+
+                    window.start_video_quirk();
+
                 }, 0);
             }
             else if (speed < 0) {
@@ -70,6 +111,8 @@ function watchAndHandleVideoObjectMutations() {
             node.playPosition = 0;
             node.speed = 0;
 
+            window.stop_video_quirk();
+
             return true;
         }
 
@@ -93,6 +136,9 @@ function watchAndHandleVideoObjectMutations() {
                 playerEvent.state = node.playState;
                 node.dispatchEvent(playerEvent);
             }
+
+            window.start_video_quirk();
+
         }, false);
 
         video && video.addEventListener && video.addEventListener('pause', function () {
@@ -115,6 +161,9 @@ function watchAndHandleVideoObjectMutations() {
                 playerEvent.state = node.playState;
                 node.dispatchEvent(playerEvent);
             }
+
+            window.stop_video_quirk();
+
         }, false);
 
         video && video.addEventListener && video.addEventListener('error', function (e) {
@@ -183,32 +232,9 @@ function watchAndHandleVideoObjectMutations() {
         node.replaceChildren(video);
     }
 
-    const promoteVideoSize = (node, considerLayer) => {
-        let position = node.getBoundingClientRect();
-        let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
-        let overlay = document.getElementById('_video_color_overlay_');
-
-        if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
-            overlay.style.visibility = "hidden";
-
-            window.cefVideoFullscreen();
-        } else {
-            if (overlay && considerLayer) {
-                overlay.style.visibility = "visible";
-                overlay.style.left = position.x.toString() + "px";
-                overlay.style.top = position.y.toString() + "px";
-                overlay.style.width = position.width.toString() + "px";
-                overlay.style.height = position.height.toString() + "px";
-                overlay.style.backgroundColor = "rgb(254, 46, 154)";
-            }
-
-            window.cefVideoSize(position.x, position.y, position.width, position.height);
-        }
-    }
-
     const watchAndHandleVideoAttributes = (videoObject, layer) => {
         const handleAttributeChanged = (event) => {
-            promoteVideoSize(videoObject, layer);
+            window.promoteVideoSize(videoObject, layer);
         };
 
         const handleAttributeMutation = (mutationList, mutationObserver) => {
@@ -245,13 +271,14 @@ function watchAndHandleVideoObjectMutations() {
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
             console.log("Found TV on node: " + node);
 
+            /*
             let div = document.createElement('div');
             div.style.width = "100%";
             div.style.height = "100%";
             div.style.backgroundColor = "rgb(254, 46, 154)";
             node.appendChild(div);
             node.style.visibility = "visible";
-
+            */
             considerLayer = false;
         } else if (mimeType.lastIndexOf('video/mpeg4', 0) === 0 ||          // mpeg4 video
                    mimeType.lastIndexOf('video/mp4', 0) === 0 ||            // h.264 video
@@ -321,7 +348,6 @@ function watchAndHandleVideoObjectMutations() {
             window.HBBTV_POLYFILL_NS.streamEventListeners.splice(idx, 1);
         };
 
-        promoteVideoSize(node, considerLayer);
         watchAndHandleVideoAttributes(node, considerLayer);
     }
 
@@ -364,3 +390,23 @@ function watchAndHandleVideoObjectMutations() {
 }
 
 watchAndHandleVideoObjectMutations();
+
+setTimeout(function() {
+    const objects = document.getElementsByTagName("object");
+
+    console.log("===> In TIMEOUT");
+
+    for (let i = 0; i < objects.length; i++) {
+        let mimeType = objects[i].type;
+        if (!objects[i].type) {
+            continue;
+        }
+
+        mimeType = mimeType.toLowerCase();
+        if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
+            console.log("===> Video PromoteSize");
+
+            window.promoteVideoSize(objects[i], true);
+        }
+    }
+}, 250);

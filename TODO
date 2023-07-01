@@ -3,9 +3,16 @@
   Bei einem Reboot allerdings wird der Service zu früh gestartet. Docker ist noch nicht verfügbar und der Browser
   startet nicht. Die Bedingungen "After=docker.service" und "Requires=docker.service" funktionieren nicht wie gewünscht.
 
+  Idee:
+  Das systemd-Script in /storage/.config/system.d unterbringen, beim Start des VDR prüfen, ob das web-Plugin
+  überhaupt geladen wird und dann den Browser direkt mit starten.
+
 - Problemsender
   Arte
       Videos lassen sich nicht abspielen. Es scheint Probleme mit mpeg-dash zu geben, da die Seite selbst viel Magie
       enthält und u.a. mit dem Videoplayer spielt.
 
-
+  Sat.1
+      Wird die Mediathek mit RED geschlossen, dann scheint auch der komplette MainFrame geschlossen zu werden.
+      und nachfolgende Aktionen schlagen fehl. Der Browser crasht nicht mehr, aber es passiert auch nix mehr.
+      Zu prüfen ist, ob das Öffnen eines neues Frames das Problem löst.

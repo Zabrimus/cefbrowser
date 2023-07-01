@@ -17,7 +17,8 @@ public:
                     const CefString &request_initiator,
                     bool &disable_default_handling,
                     std::string browserIp,
-                    int browserPort);
+                    int browserPort,
+                    bool blockThis);
 
     // CefResourceRequestHandler
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
@@ -45,6 +46,7 @@ public:
 private:
     CefRefPtr<RequestClient> client;
     CefRefPtr<CefURLRequest> url_request;
+    bool blockThis;
 
 private:
     IMPLEMENT_REFCOUNTING(RequestResponse);

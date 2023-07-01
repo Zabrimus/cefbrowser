@@ -49,7 +49,9 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         if (url.empty()) {
             res.status = 404;
         } else {
-            currentBrowser->GetMainFrame()->LoadURL(url);
+            if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possiböe, that MainFrame is null?
+                currentBrowser->GetMainFrame()->LoadURL(url);
+            }
             res.set_content("ok", "text/plain");
         }
     });
@@ -90,7 +92,10 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 _dynamic.close();
 
                 // load url
-                currentBrowser->GetMainFrame()->LoadURL(url);
+                if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possiböe, that MainFrame is null?
+                    currentBrowser->GetMainFrame()->LoadURL(url);
+                }
+
                 res.set_content("ok", "text/plain");
             }
         }
@@ -147,7 +152,10 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 stringStream << "window.cefKeyPress('" << key << "');";
                 auto script = stringStream.str();
                 auto frame = currentBrowser->GetMainFrame();
-                frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+
+                if (frame != nullptr) { // Why is it possiböe, that MainFrame is null?
+                    frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+                }
             } else {
                 // send key event via code
                 // FIXME: Was ist mit keyCodes, die nicht existieren?
@@ -210,7 +218,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     });
 
     // called by VDR
-    svr.Post("/InsertChannel", [](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/InsertChannel", [&transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         const std::string body = req.body;
@@ -219,6 +227,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
             res.status = 404;
         } else {
             // TRACE("InsertChannel: {}", body);
+            // in case of channel switch always stop playing videos
+            transcoderRemoteClient.Stop();
             database.insertChannel(body);
 
             res.set_content("ok", "text/plain");

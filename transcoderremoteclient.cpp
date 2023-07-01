@@ -1,4 +1,5 @@
 #include "transcoderremoteclient.h"
+#include "logger.h"
 
 TranscoderRemoteClient::TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
                                     : transcoderIp(transcoderIp), transcoderPort(transcoderPort),  browserIp(browserIp), browserPort(browserPort) {
@@ -17,12 +18,12 @@ bool TranscoderRemoteClient::StreamUrl(std::string url) {
 
     if (auto res = client->Post("/StreamUrl", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            TRACE("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        ERROR("Http result: {}", res->status);
         return false;
     }
 
@@ -36,12 +37,12 @@ bool TranscoderRemoteClient::Pause() {
 
     if (auto res = client->Post("/Pause", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            TRACE("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        ERROR("Http result: {}", res->status);
         return false;
     }
 
@@ -55,12 +56,12 @@ bool TranscoderRemoteClient::Seek(std::string seekTo) {
 
     if (auto res = client->Post("/SeekTo", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            TRACE("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        ERROR("Http result: {}", res->status);
         return false;
     }
 
@@ -74,12 +75,12 @@ bool TranscoderRemoteClient::Resume(std::string position) {
 
     if (auto res = client->Post("/Resume", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            TRACE("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        ERROR("Http result: {}", res->status);
         return false;
     }
 
@@ -92,12 +93,12 @@ bool TranscoderRemoteClient::Stop() const {
 
     if (auto res = client->Post("/Stop", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            TRACE("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error: " << httplib::to_string(err) << std::endl;
+        ERROR("Http result: {}", res->status);
         return false;
     }
 

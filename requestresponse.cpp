@@ -12,14 +12,6 @@ std::string preCSS;
 
 std::string lastContentType;
 
-std::string urlBlockList[5] {
-    ".block.this",
-    ".nmrodam.com",
-    ".ioam.de",
-    ".xiti.com",
-    ".sensic.net"
-};
-
 bool isVideoOrAudio(std::string& data) {
     std::string type;
     std::string mime;
@@ -64,14 +56,14 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
     _dynamic << result << std::endl;
     _dynamic.close();
 
-    return "\n<link rel=\"stylesheet\" type=\"text/css\" href=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/css/_dynamic.css\"></link>";
+    return "\n<link rel=\"stylesheet\" type=\"text/css\" href=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/css/_dynamic.css\"></link>\n";
 
     // return "\n<style>\n" + result + "</style>\n";
 }
 
 std::string readPostJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[3] = { "initlast.js", "videoobserver.js", "hbbtv.js" };
+    std::string files[4] = { "video_quirks.js", "initlast.js", "videoobserver.js", "hbbtv.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());
@@ -82,7 +74,7 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     _dynamic << result << std::endl;
     _dynamic.close();
 
-    std::string post = "<div id=\"_video_color_overlay_\" style=\"visibility:hidden;position: absolute; background-color: rgb(254, 46, 154); z-index: 999;\"></div>\n";
+    std::string post = "\n<div id=\"_video_color_overlay_\" style=\"visibility:hidden;position: absolute; background-color: rgb(254, 46, 154); z-index: 999;\"></div>\n";
     post += "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
 
     return post;
@@ -116,19 +108,11 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     TRACE("RequestResponse::OnBeforeResourceLoad: {}", request->GetURL().ToString());
 
     // check URL against blocklist
-    std::string url = request->GetURL();
-    size_t found = url.find_first_of(':');
-    size_t found2 = url.substr(found + 3).find_first_of('/');
-
-    /*
-    for (const auto & block : urlBlockList) {
-        if (url.substr(found + 3, found2).find(block) != std::string::npos) {
-            TRACE("Url {} is on the block list", url);
-            // block
-            return RV_CANCEL;
-        }
+    if (blockThis) {
+        return RV_CANCEL;
     }
-    */
+
+    std::string url = request->GetURL();
 
     // check file extension and block all known binary formats.
     auto toBlock = endsWith(url,"view-source:'") ||
@@ -239,11 +223,15 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
 RequestResponse::RequestResponse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                                  CefRefPtr<CefRequest> request, bool is_navigation, bool is_download,
                                  const CefString &request_initiator, bool &disable_default_handling,
-                                 std::string browserIp, int browserPort) {
+                                 std::string browserIp, int browserPort, bool blockThis) {
     DEBUG("RequestResponse::RequestResponse: {}, {}, {}, {}", is_navigation, is_download, request->GetURL().ToString(), (int)request->GetResourceType());
-    preJavascript = readPreJavascript(browserIp, browserPort);
-    postJavascript = readPostJavascript(browserIp, browserPort);
-    preCSS = readPreCSS(browserIp, browserPort);
+    if (!blockThis) {
+        preJavascript = readPreJavascript(browserIp, browserPort);
+        postJavascript = readPostJavascript(browserIp, browserPort);
+        preCSS = readPreCSS(browserIp, browserPort);
+    }
+
+    this->blockThis = blockThis;
 }
 
 bool RequestResponse::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {

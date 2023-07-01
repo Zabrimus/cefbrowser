@@ -2,6 +2,16 @@
 #include "sharedmemory.h"
 #include "database.h"
 
+std::string urlBlockList[7] {
+        ".block.this",
+        ".nmrodam.com",
+        ".ioam.de",
+        ".xiti.com",
+        ".sensic.net",
+        ".tvping.com",
+        "tracking.redbutton.de"
+};
+
 BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
                     : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort) {
     LOG_CURRENT_THREAD();
@@ -178,7 +188,20 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return nullptr;
     }
 
-    TRACE("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation, request->GetURL().ToString(), request_initiator.ToString());
+    // check if URL has to be blocked
+    bool blockThis = false;
+    size_t found = url.find_first_of(':');
+    size_t found2 = url.substr(found + 3).find_first_of('/');
+
+    for (const auto & block : urlBlockList) {
+        if (url.substr(found + 3, found2).find(block) != std::string::npos) {
+            TRACE("Url {} is on the block list", url);
+            // block
+            blockThis = true;
+        }
+    }
+
+    TRACE("GetResourceRequestHandler: is_navigation:{}, blockThis:{}, URL:{}, Initiator:{}", is_navigation, blockThis, request->GetURL().ToString(), request_initiator.ToString());
     TRACE("GetResourceRequestHandler: Method:{}, Referrer:{}", request->GetMethod().ToString(), request->GetReferrerURL().ToString());
     if (logger->isTraceEnabled()) {
         switch(request->GetResourceType()) {
@@ -245,11 +268,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         }
     }
 
-    if ((is_navigation && request->GetResourceType() != RT_SUB_FRAME) || (request->GetResourceType() == RT_SUB_RESOURCE)) {
+    if ((is_navigation && request->GetResourceType() != RT_SUB_FRAME) || (request->GetResourceType() == RT_SUB_RESOURCE) || blockThis) {
         DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
               request->GetURL().ToString(), request_initiator.ToString());
         return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
-                                   disable_default_handling, browserIp, browserPort);
+                                   disable_default_handling, browserIp, browserPort, blockThis);
     }
 
     return nullptr;

@@ -23,14 +23,14 @@ bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
 
     if (auto res = client->Post("/ProcessOsdUpdate", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         } else {
-            std::cout << "Http result: " << res->status << std::endl;
+            TRACE("Http result: {}", res->status);
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (ProcessOsdUpdate): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (ProcessOsdUpdate): {}", httplib::to_string(err));
         return false;
     }
 
@@ -42,12 +42,12 @@ bool VdrRemoteClient::ProcessTSPacket(std::string packets) const {
 
     if (auto res = client->Post("/ProcessTSPacket", packets, "text/plain")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (ProcessTSPacket): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (ProcessTSPacket): {}", httplib::to_string(err));
         return false;
     }
 
@@ -59,12 +59,12 @@ bool VdrRemoteClient::StartVideo() {
 
     if (auto res = client->Get("/StartVideo")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (StartVideo): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (StartVideo): {}", httplib::to_string(err));
         return false;
     }
 
@@ -76,12 +76,12 @@ bool VdrRemoteClient::StopVideo() {
 
     if (auto res = client->Get("/StopVideo")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (StopVideo): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (StopVideo): {}", httplib::to_string(err));
         return false;
     }
 
@@ -93,12 +93,12 @@ bool VdrRemoteClient::Pause() {
 
     if (auto res = client->Get("/PauseVideo")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (PauseVideo): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (PauseVideo): {}", httplib::to_string(err));
         return false;
     }
 
@@ -110,12 +110,12 @@ bool VdrRemoteClient::Resume() {
 
     if (auto res = client->Get("/ResumeVideo")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (ResumeVideo): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (ResumeVideo): {}", httplib::to_string(err));
         return false;
     }
 
@@ -133,12 +133,12 @@ bool VdrRemoteClient::VideoSize(int x, int y, int w, int h) {
 
     if (auto res = client->Post("/VideoSize", params)) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (VideoSize): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (VideoSize): {}", httplib::to_string(err));
         return false;
     }
 
@@ -150,12 +150,12 @@ bool VdrRemoteClient::VideoFullscreen() {
 
     if (auto res = client->Get("/VideoFullscreen")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (VideoFullscreen): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (VideoFullscreen): {}", httplib::to_string(err));
         return false;
     }
 
@@ -167,12 +167,12 @@ bool VdrRemoteClient::SendHello() {
 
     if (auto res = client->Get("/Hello")) {
         if (res->status != 200) {
-            std::cout << "Http result: " << res->status << std::endl;
+            ERROR("Http result: {}", res->status);
             return false;
         }
     } else {
         auto err = res.error();
-        std::cout << "HTTP error (SendHello): " << httplib::to_string(err) << std::endl;
+        ERROR("HTTP error (SendHello): {}", httplib::to_string(err));
         return false;
     }
 
