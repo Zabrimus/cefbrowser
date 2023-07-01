@@ -19,6 +19,12 @@ window.promoteVideoSize = (node, considerLayer) => {
     console.log("In PromoteVideoSize: Fullscreen: " + ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)));
     */
 
+    // if width or height of body is 0, then set values to the maximum size
+    if (bodyPos.width == 0 || bodyPos.height == 0) {
+        bodyPos.width = 1280;
+        bodyPos.height = 720;
+    }
+
     if ((position.width == 300) && (position.height == 150)) {
         // sometimes the wrong size is requested. Ignore this to prevent flickering
         // console.log("Size 300x150 requested");

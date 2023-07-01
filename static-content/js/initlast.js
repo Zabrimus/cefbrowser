@@ -36,3 +36,4 @@ function prepareElements() {
 prepareElements();
 
 document.body.style["font-family"] = "Tiresias";
+document.body.style["overflow"] = "hidden";
