@@ -58,13 +58,13 @@ Log entries will be written to stdout/stderr.
 ## Releases
 The binary releases can be used in VDR*ELEC.
 
-| Distro     | Version   | Release                             |
-|------------|-----------|-------------------------------------|
-| CoreELEC   | 19/Docker | cefbrowser-armhf-openssl-3.tar.gz   |
-| CoreELEC   | 20        | cefbrowser-armhf-openssl-3.tar.gz   |
-| CoreELEC   | 21-ng     | cefbrowser-armhf-openssl-3.tar.gz   |
-| CoreELEC   | 21-ne     | cefbrowser-arm64-openssl-3.tar.gz   |
-| LibreELEC  | all       | cefbrowser-arm64-openssl-3.tar.gz   |
+| Distro     | Version | Release                             |
+|------------|---------|-------------------------------------|
+| CoreELEC   | 19      | cefbrowser-armhf-openssl-3.tar.gz   |
+| CoreELEC   | 20      | cefbrowser-armhf-openssl-3.tar.gz   |
+| CoreELEC   | 21-ng   | cefbrowser-armhf-openssl-3.tar.gz   |
+| CoreELEC   | 21-ne   | cefbrowser-arm64-openssl-3.tar.gz   |
+| LibreELEC  | all     | cefbrowser-arm64-openssl-3.tar.gz   |
 
 ## VDR*ELEC, CoreELEC-19 (sample installation/configuration) 
 - Install Kodi docker addon
@@ -85,17 +85,46 @@ The binary releases can be used in VDR*ELEC.
     ```
   reboot
 
+#### Tested installation of cefbrowser in VDR*ELEC/CE-19
+- Pull latest docker base runtime image of the cefbrowser
+  ```
+  /storage/.kodi/addons/service.system.docker/bin/docker pull ghcr.io/zabrimus/cefbrowser-base:latest
+  ```
 - Get and install cefbrowser binary (adapt version if desired)
     ```
-    mkdir -p /opt/cefbrowser
-    cd /opt/cefbrowser
-    wget https://github.com/Zabrimus/cefbrowser/releases/download/2023-06-19/cefbrowser-armhf-openssl-3-2c14cfa.tar.gz
-    tar -xf cefbrowser-armhf-openssl-3-2c14cfa.tar.gz
+    mkdir -p /storage/browser
+    cd /storage/browser
+    wget https://github.com/Zabrimus/cefbrowser/releases/download/2023-07-01/cefbrowser-armhf-openssl-3-5ab33f2.tar.gz
+    tar -xf cefbrowser-armhf-openssl-3-5ab33f2.tar.gz
+    ln -s cefbrowser-armhf-openssl-3-5ab33f2 cefbrowser
     ```
 
-- Adapt sockets.ini accordingly and copy sockets.ini to ```/opt/cefbrowser/cefbrowser-armhf-openssl-3-2c14cfa```
-- start the browser via docker
+- Adapt sockets.ini accordingly and copy sockets.ini to ```/storage/browser/cefbrowser```
+  sample sockets.ini can be found in the repository ```/config/sockets.ini```
   ```
-    cd /opt/cefbrowser/cefbrowser-armhf-openssl-3-2c14cfa
-    docker run -it --rm -v `pwd`:/app -v /dev/shm:/dev/shm --ipc="host" --net=host ghcr.io/zabrimus/cefbrowser-base -ini sockets.ini
+  [vdr]
+  http_ip = 192.168.178.12
+  http_port = 50000
+
+  [browser]
+  http_ip = 192.168.178.12
+  http_port = 50001
+
+  [transcoder]
+  http_ip = 192.168.178.20
+  http_port = 50002
   ```
+- Optional: hbbtv sqllite3 database
+
+   For Vodafone West user a prefilled database exists in /storage/browser/cefbrowser/database/.
+   ```
+   cp /storage/browser/cefbrowser/database/Vodafone_West_hbbtv_urls.db /storage/browser/cefbrowser/database/hbbtv_urls.db
+   ```
+   All others needs to copy an already existing database or have to prefill the database. 
+   A channel switch to the desired channel and wait some minutes is sufficient.
+- start the browser via docker (first test, manual start)
+  ```
+    cd /storage/browser/cefbrowser
+    /storage/.kodi/addons/service.system.docker/bin/docker run -d  --rm -v /storage/browser/cefbrowser:/app -v /dev/shm:/dev/shm --ipc="host" --net=host ghcr.io/zabrimus/cefbrowser-base:latest -ini sockets.ini &> /storage/browser/browser.log
+  ```
+- Choose a channel in VDR and goto Menu/Web. Wait or press directly the red button.
