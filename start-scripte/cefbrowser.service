@@ -1,14 +1,15 @@
 [Unit]
 Description=cefbrowser
-After=docker.service
-Requires=docker.service
+Requires=network-online.target graphical.target docker.service
+StartLimitIntervalSec=400
+StartLimitBurst=5
 
 [Service]
-TimeoutStartSec=2
+RestartSec=30
+Restart=always
 StandardOutput=file:/storage/browser/cefbrowser/browser.log
 StandardError=file:/storage/browser/cefbrowser/browser-error.log
 TimeoutStartSec=0
-Restart=always
 ExecStop=/storage/.kodi/addons/service.system.docker/bin/docker container stop --time=2 cefbrowser
 ExecStartPre=-/storage/.kodi/addons/service.system.docker/bin/docker exec cefbrowser stop
 ExecStartPre=-/storage/.kodi/addons/service.system.docker/bin/docker rm cefbrowser

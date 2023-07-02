@@ -127,4 +127,47 @@ The binary releases can be used in VDR*ELEC.
     cd /storage/browser/cefbrowser
     /storage/.kodi/addons/service.system.docker/bin/docker run -d  --rm -v /storage/browser/cefbrowser:/app -v /dev/shm:/dev/shm --ipc="host" --net=host ghcr.io/zabrimus/cefbrowser-base:latest -ini sockets.ini &> /storage/browser/browser.log
   ```
+- start the browser automatically via systemd
+The systemd service ```start-scripte/cefbrowser.service``` contains a sample service configuration which i use on my system.
+  ```
+  [Unit]
+  Description=cefbrowser
+  Requires=network-online.target graphical.target docker.service
+  StartLimitIntervalSec=400
+  StartLimitBurst=5
+  
+  [Service]
+  RestartSec=30
+  Restart=always
+  StandardOutput=file:/storage/browser/cefbrowser/browser.log
+  StandardError=file:/storage/browser/cefbrowser/browser-error.log
+  TimeoutStartSec=0
+  ExecStop=/storage/.kodi/addons/service.system.docker/bin/docker container stop --time=2 cefbrowser
+  ExecStartPre=-/storage/.kodi/addons/service.system.docker/bin/docker exec cefbrowser stop
+  ExecStartPre=-/storage/.kodi/addons/service.system.docker/bin/docker rm cefbrowser
+  ExecStartPre=/storage/.kodi/addons/service.system.docker/bin/docker pull ghcr.io/zabrimus/cefbrowser-base:latest
+  ExecStart=/storage/.kodi/addons/service.system.docker/bin/docker run --rm --name cefbrowser \
+  -v /storage/browser/cefbrowser:/app \
+  -v /dev/shm:/dev/shm \
+  --ipc="host" \
+  --net=host \
+  ghcr.io/zabrimus/cefbrowser-base:latest \
+  -ini sockets.ini
+  
+  [Install]
+  WantedBy=multi-user.target
+  ```
+  which can be copied to ```/storage/.config/system.d/cefbrowser.service```
+  An important configuration is ```RestartSec=30```, otherwise the browser will be started, before docker is up and running.
+- In VDR*ELEC i've added a configuration in ```/storage/.profile``` 
+  ```
+  START_CEFBROWSER=yes
+  ```
+  and in ```/storage/.config/autostart.sh``` i've added the following entries
+  ```
+  . /storage/.profile
+  if [ "${START_CEFBROWSER}" = "yes" ]; then
+      systemctl start cefbrowser
+  fi
+  ```
 - Choose a channel in VDR and goto Menu/Web. Wait or press directly the red button.
