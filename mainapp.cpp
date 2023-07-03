@@ -12,6 +12,8 @@ scoped_refptr<CefBrowser> currentBrowser;
 httplib::Server svr;
 std::mutex httpServerMutex;
 
+std::string lastInsertChannel = "";
+
 void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort) {
     int _browserPort = browserPort;
     std::string _browserIp = browserIp;
@@ -227,8 +229,13 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
             res.status = 404;
         } else {
             // TRACE("InsertChannel: {}", body);
-            // in case of channel switch always stop playing videos
-            transcoderRemoteClient.Stop();
+
+            if (body != lastInsertChannel) {
+                // in case of channel switch always stop playing videos
+                transcoderRemoteClient.Stop();
+                lastInsertChannel = body;
+            }
+
             database.insertChannel(body);
 
             res.set_content("ok", "text/plain");
