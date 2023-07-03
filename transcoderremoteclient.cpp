@@ -23,7 +23,7 @@ bool TranscoderRemoteClient::StreamUrl(std::string url) {
         }
     } else {
         auto err = res.error();
-        ERROR("Http result: {}", res->status);
+        ERROR("Http error: {}", httplib::to_string(err));
         return false;
     }
 
@@ -42,7 +42,7 @@ bool TranscoderRemoteClient::Pause() {
         }
     } else {
         auto err = res.error();
-        ERROR("Http result: {}", res->status);
+        ERROR("Http error: {}", httplib::to_string(err));
         return false;
     }
 
@@ -61,7 +61,7 @@ bool TranscoderRemoteClient::Seek(std::string seekTo) {
         }
     } else {
         auto err = res.error();
-        ERROR("Http result: {}", res->status);
+        ERROR("Http error: {}", httplib::to_string(err));
         return false;
     }
 
@@ -80,7 +80,7 @@ bool TranscoderRemoteClient::Resume(std::string position) {
         }
     } else {
         auto err = res.error();
-        ERROR("Http result: {}", res->status);
+        ERROR("Http error: {}", httplib::to_string(err));
         return false;
     }
 
@@ -98,7 +98,7 @@ bool TranscoderRemoteClient::Stop() const {
         }
     } else {
         auto err = res.error();
-        ERROR("Http result: {}", res->status);
+        ERROR("Http error: {}", httplib::to_string(err));
         return false;
     }
 
