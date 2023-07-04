@@ -134,6 +134,8 @@ function watchAndHandleVideoObjectMutations() {
         }
 
         video && video.addEventListener && video.addEventListener('playing', function () {
+            console.log("Video event playing");
+
             node.playState = PLAY_STATES.playing;
             if (node.onPlayStateChange) {
                 node.onPlayStateChange(node.playState);
@@ -148,6 +150,8 @@ function watchAndHandleVideoObjectMutations() {
         }, false);
 
         video && video.addEventListener && video.addEventListener('pause', function () {
+            console.log("Video event pause");
+
             node.playState = PLAY_STATES.paused;
             if (node.onPlayStateChange) {
                 node.onPlayStateChange(node.playState);
@@ -159,6 +163,8 @@ function watchAndHandleVideoObjectMutations() {
         }, false);
 
         video && video.addEventListener && video.addEventListener('ended', function () {
+            console.log("Video event ended");
+
             node.playState = PLAY_STATES.finished;
             if (node.onPlayStateChange) {
                 node.onPlayStateChange(node.playState);
@@ -173,6 +179,8 @@ function watchAndHandleVideoObjectMutations() {
         }, false);
 
         video && video.addEventListener && video.addEventListener('error', function (e) {
+            console.log("Video event error");
+
             node.playState = PLAY_STATES.error;
             if (node.onPlayStateChange) {
                 node.onPlayStateChange(node.playState);
@@ -185,13 +193,13 @@ function watchAndHandleVideoObjectMutations() {
         }, false);
 
         video && video.addEventListener && video.addEventListener('durationchange', () => {
+            console.log("Video event durationchange");
             node.duration = video.duration * 1000;
         }, false);
 
         video && video.addEventListener && video.addEventListener('timeupdate', function () {
             // console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
-
-            console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
+            // console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
 
             var pos = Math.floor(video.currentTime * 1000);
             node.playPostion = pos;
@@ -230,6 +238,7 @@ function watchAndHandleVideoObjectMutations() {
 
         node.playTime = video.duration * 1000;
         node.error = -1;
+        node.type = "video/webm";
 
         video.autoplay = true;
         video.src = url;
@@ -276,15 +285,6 @@ function watchAndHandleVideoObjectMutations() {
 
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
             console.log("Found TV on node: " + node);
-
-            /*
-            let div = document.createElement('div');
-            div.style.width = "100%";
-            div.style.height = "100%";
-            div.style.backgroundColor = "rgb(254, 46, 154)";
-            node.appendChild(div);
-            node.style.visibility = "visible";
-            */
             considerLayer = false;
         } else if (mimeType.lastIndexOf('video/mpeg4', 0) === 0 ||          // mpeg4 video
                    mimeType.lastIndexOf('video/mp4', 0) === 0 ||            // h.264 video
@@ -294,6 +294,7 @@ function watchAndHandleVideoObjectMutations() {
                    mimeType.lastIndexOf('video/mpeg', 0) === 0) {           // mpeg-ts
 
             console.log("Found Video on node: " + node + " -> " + node.data);
+            console.log("All Cookies: " + document.cookie);
 
             let newUrl = window.cefStreamVideo(node.data);
             addVideoNode(node, newUrl);

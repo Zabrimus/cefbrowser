@@ -2,7 +2,7 @@
 #include "sharedmemory.h"
 #include "database.h"
 
-std::string urlBlockList[7] {
+std::string urlBlockList[] {
         ".block.this",
         ".nmrodam.com",
         ".ioam.de",
