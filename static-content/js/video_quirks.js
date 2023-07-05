@@ -14,6 +14,17 @@ const quirks = {
         ]
     },
 
+    "www.arte.tv": {
+        start: [
+            { visible_id: { name: [ "_video_color_overlay_" ], value: "hidden" } },
+            { visible_id: { name: [ "player" ], value: "hidden" } }
+        ],
+        stop: [
+            { visible_id: { name: [ "_video_color_overlay_" ], value: "visible" } },
+            { visible_id: { name: [ "player" ], value: "visible" } }
+        ]
+    },
+
     /*
     "hbbtv-tatort.daserste.de": {
         start: [
@@ -78,17 +89,6 @@ const quirks = {
             { body_background: "visible" },
             { visible_class: { index: 0, class: "playerwin", value: "hidden" } }
         ],
-    },
-
-    "www.arte.tv": {
-        start: [
-            { body_background: "hidden" },
-            { visible_id: { name: [ "videoOverlay" ], value: "visible" } }
-        ],
-        stop: [
-            { body_background: "visible" },
-            { visible_id: { name: [ "videoOverlay" ], value: "hidden" } }
-        ]
     },
 
     "-digitaltext.rtl-hbbtv.de": {

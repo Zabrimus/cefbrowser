@@ -401,9 +401,9 @@ watchAndHandleVideoObjectMutations();
 setTimeout(function() {
     const objects = document.getElementsByTagName("object");
 
-    console.log("===> In TIMEOUT");
-
     for (let i = 0; i < objects.length; i++) {
+        objects[i].style.visibility = 'hidden';
+
         let mimeType = objects[i].type;
         if (!objects[i].type) {
             continue;
@@ -411,8 +411,6 @@ setTimeout(function() {
 
         mimeType = mimeType.toLowerCase();
         if (mimeType.lastIndexOf('video/broadcast', 0) === 0) { // TV
-            console.log("===> Video PromoteSize");
-
             window.promoteVideoSize(objects[i], true);
         }
     }
