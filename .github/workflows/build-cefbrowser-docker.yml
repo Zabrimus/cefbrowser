@@ -54,6 +54,7 @@ jobs:
           pip3 install --user "meson==0.63"
 
       - name: Install Cross-Compile Support
+        if:  ( github.event.inputs.arch == 'armhf-19' || github.event.inputs.arch == 'arm64')
         run: |
             dpkg --add-architecture ${{ inputs.arch }}
             bash -c "echo -e '\
@@ -69,6 +70,7 @@ jobs:
             apt install -y gcc-${{ inputs.compiler_version }}-${{ inputs.compiler }} g++-${{ inputs.compiler_version }}-${{ inputs.compiler }} libstdc++-${{ inputs.compiler_version }}-dev-${{ inputs.arch }}-cross libstdc++-${{ inputs.compiler_version }}-dev:${{ inputs.arch }}
 
       - name: Set Cross-Compile Links
+        if:  ( github.event.inputs.arch == 'armhf-19' || github.event.inputs.arch == 'arm64')
         run: |
             cd /usr/bin
             ln -s ${{ inputs.compiler }}-gcc-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcc || true
@@ -80,6 +82,12 @@ jobs:
             ln -s ${{ inputs.compiler }}-gcov-tool-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcov-tool || true
             ln -s ${{ inputs.compiler }}-ld.bfd ${{ inputs.compiler }}-ld || true
             ln -s /usr/share/pkg-config-crosswrapper /usr/bin/${{ inputs.compiler }}-pkg-config || true
+
+      - name: Install Compile Support
+        if:  ( github.event.inputs.arch == 'amd64')
+        run: |
+          apt update || true
+          apt install -y build-essentials
 
       - name: Install dependencies
         run: |
