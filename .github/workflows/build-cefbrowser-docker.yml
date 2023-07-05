@@ -139,7 +139,7 @@ jobs:
           apt install gh -y
           
           cd cefbrowser/build
-          gh release create "$TAG" -R Zabrimus/cefbrowser || true
-          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
+          # gh release create "$TAG" -R Zabrimus/cefbrowser || true
+          # gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
