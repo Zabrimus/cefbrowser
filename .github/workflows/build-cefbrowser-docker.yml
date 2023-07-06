@@ -152,6 +152,6 @@ jobs:
           
           cd cefbrowser/build
           gh release create "$TAG" -R Zabrimus/cefbrowser || true
-          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
+          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
