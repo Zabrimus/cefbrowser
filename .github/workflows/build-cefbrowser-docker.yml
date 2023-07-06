@@ -54,7 +54,7 @@ jobs:
           pip3 install --user "meson==0.63"
 
       - name: Install Cross-Compile Support
-        if:  ( github.event.inputs.arch == 'armhf' || github.event.inputs.arch == 'arm64')
+        if:  ( inputs.arch == 'armhf' || inputs.arch == 'arm64')
         run: |
             dpkg --add-architecture ${{ inputs.arch }}
             bash -c "echo -e '\
@@ -70,7 +70,7 @@ jobs:
             apt install -y gcc-${{ inputs.compiler_version }}-${{ inputs.compiler }} g++-${{ inputs.compiler_version }}-${{ inputs.compiler }} libstdc++-${{ inputs.compiler_version }}-dev-${{ inputs.arch }}-cross libstdc++-${{ inputs.compiler_version }}-dev:${{ inputs.arch }}
 
       - name: Set Cross-Compile Links
-        if:  ( github.event.inputs.arch == 'armhf' || github.event.inputs.arch == 'arm64')
+        if:  ( inputs.arch == 'armhf' || inputs.arch == 'arm64')
         run: |
             cd /usr/bin
             ln -s ${{ inputs.compiler }}-gcc-${{ inputs.compiler_version }} ${{ inputs.compiler }}-gcc || true
@@ -84,10 +84,10 @@ jobs:
             ln -s /usr/share/pkg-config-crosswrapper /usr/bin/${{ inputs.compiler }}-pkg-config || true
 
       - name: Install Compile Support
-        if:  ( github.event.inputs.arch == 'amd64')
+        if:  ( inputs.arch == 'amd64')
         run: |
           apt update || true
-          apt install -y build-essentials
+          apt install -y build-essential
 
       - name: Install dependencies
         run: |
@@ -151,7 +151,7 @@ jobs:
           apt install gh -y
           
           cd cefbrowser/build
-          # gh release create "$TAG" -R Zabrimus/cefbrowser || true
-          # gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
+          gh release create "$TAG" -R Zabrimus/cefbrowser || true
+          gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
