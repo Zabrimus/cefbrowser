@@ -9,7 +9,8 @@ std::string urlBlockList[] {
         ".xiti.com",
         ".sensic.net",
         ".tvping.com",
-        "tracking.redbutton.de"
+        "tracking.redbutton.de",
+        "px.moatads.com"
 };
 
 BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
