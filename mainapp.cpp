@@ -190,7 +190,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         if (body.empty()) {
             res.status = 404;
         } else {
-            TRACE("ProcessTSPacket, length {}", body.length());
+            // TRACE("ProcessTSPacket, length {}", body.length());
 
             if (!vdrRemoteClient.ProcessTSPacket(std::string(body.c_str(), body.length()))) {
                 // vdr is not running? stop transcoder

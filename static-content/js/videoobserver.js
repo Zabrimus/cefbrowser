@@ -294,7 +294,7 @@ function watchAndHandleVideoObjectMutations() {
                    mimeType.lastIndexOf('video/mpeg', 0) === 0) {           // mpeg-ts
 
             console.log("Found Video on node: " + node + " -> " + node.data);
-            console.log("All Cookies: " + document.cookie);
+            // console.log("All Cookies: " + document.cookie);
 
             let newUrl = window.cefStreamVideo(node.data);
             addVideoNode(node, newUrl);

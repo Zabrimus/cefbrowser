@@ -1,3 +1,6 @@
+#include <chrono>
+#include <thread>
+
 #include "v8handler.h"
 #include "logger.h"
 
@@ -69,6 +72,9 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
     } else if (name == "StopVideo") {
         vdrRemoteClient->StopVideo();
         transcoderRemoteClient->Stop();
+
+        // TEST: wait some seconds to give transcoder and VDR to change to stop everything
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 4));
 
         retval = CefV8Value::CreateBool(true);
         return true;
