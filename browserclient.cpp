@@ -64,7 +64,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         return;
     }
 
-    TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
+    // TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
 
     SharedMemory sharedMemory;
     sharedMemory.Write((uint8_t *)buffer, width * height * 4);
@@ -73,7 +73,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
     // rgb(254, 46, 154) = #fe2e9a
     // fffe2e9a => 00fe2e9a
 
-    TRACE("BrowserClient::OnPaint, final width: {}, height: {}", width, height);
+    // TRACE("BrowserClient::OnPaint, final width: {}, height: {}", width, height);
 
     // delete parts of the OSD where a video shall be visible
     uint32_t* buf = (uint32_t*)sharedMemory.Get();
@@ -83,7 +83,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         }
     }
 
-    TRACE("BrowserClient::OnPaint, send to browser");
+    // TRACE("BrowserClient::OnPaint, send to browser");
     vdrRemoteClient->ProcessOsdUpdate(width, height);
 }
 

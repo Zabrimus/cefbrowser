@@ -23,10 +23,10 @@ bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
 
     if (auto res = client->Post("/ProcessOsdUpdate", params)) {
         if (res->status != 200) {
-            ERROR("Http result: {}", res->status);
+            // ERROR("Http result: {}", res->status);
             return false;
         } else {
-            TRACE("Http result: {}", res->status);
+            // TRACE("Http result: {}", res->status);
         }
     } else {
         auto err = res.error();

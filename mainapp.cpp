@@ -317,7 +317,7 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     // register all native JS functions
     CefRefPtr<CefV8Value> object = context->GetGlobal();
-    CefRefPtr<CefV8Handler> handler = new V8Handler(browserIp, browserPort, transcoderIp, transcoderPort, vdrIp, vdrPort);
+    handler = new V8Handler(browserIp, browserPort, transcoderIp, transcoderPort, vdrIp, vdrPort);
 
     CefRefPtr<CefV8Value> streamVideo = CefV8Value::CreateFunction("StreamVideo", handler);
     object->SetValue("cefStreamVideo", streamVideo, V8_PROPERTY_ATTRIBUTE_NONE);
@@ -352,6 +352,7 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
 void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
     TRACE("BrowserApp::OnContextReleased");
+    handler = nullptr;
     svr.stop();
 }
 

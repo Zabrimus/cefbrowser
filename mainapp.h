@@ -2,6 +2,7 @@
 
 #include "cef_includes.h"
 #include "httplib.h"
+#include "v8handler.h"
 
 class BrowserApp : public CefApp,
                    public CefBrowserProcessHandler,
@@ -35,6 +36,8 @@ private:
 
     std::string vdrIp;
     int vdrPort;
+
+    CefRefPtr<V8Handler> handler;
 
 private:
     IMPLEMENT_REFCOUNTING(BrowserApp);
