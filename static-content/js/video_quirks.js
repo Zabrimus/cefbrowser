@@ -1,214 +1,58 @@
-const quirks = {
-    "hbbtv.redbutton.de/extern/redorbit/hbbtv/apps/": {
-        start: [
-            { backgroundColor: "transparent" },
-            { visible_id: { name: [ "screen" ], value: "hidden" } },
-            { display_class: { index: 0, class: "slider", value: "none" } },
-            { display_class: { index: 1, class: "slider", value: "none" } }
-        ],
-        stop: [
-            { backgroundColor: "#2c2c2c" },
-            { visible_id: { name: [ "screen" ], value: "visible" } },
-            { display_class: { index: 0, class: "slider", value: "block" } },
-            { display_class: { index: 1, class: "slider", value: "block" } }
-        ]
-    },
-
-    "www.arte.tv": {
-        start: [
-            { visible_id: { name: [ "_video_color_overlay_" ], value: "hidden" } },
-            { visible_id: { name: [ "player" ], value: "hidden" } }
-        ],
-        stop: [
-            { visible_id: { name: [ "_video_color_overlay_" ], value: "visible" } },
-            { visible_id: { name: [ "player" ], value: "visible" } }
-        ]
-    },
-
-    /*
-    "hbbtv-tatort.daserste.de": {
-        start: [
-            { body_background: "hidden" },
-            { visible_class: { index: 0, class: "playerbar", value: "visible"} },
-        ],
-        stop: [
-            { body_background: "visible" },
-            { visible_class: { index: 0, class: "playerbar", value: "hidden"} }
-        ]
-    },
-
-    "hbbtv.daserste.de": {
-        start: [
-            { body_background: "hidden" },
-            { visible_class: { index: 0, parent: true, class: "playerbar", value: "visible" } },
-            { visible_class: { index: 0, class: "playerbar", value: "visible" } }
-        ],
-        stop: [
-            { body_background: "visible" },
-            { visible_class: { index: 0, class: "playerbar", value: "hidden" }}
-        ]
-    },
-
-    "tv.ardmediathek.de": {
-        start: [
-            { body_background: "hidden" },
-            { visible_id: { name: [ "player" ], value: "visible" } }
-        ],
-        stop: [
-            { body_background: "visible" },
-            { visible_id: { name: [ "player" ], value: "hidden" } }
-        ]
-    },
-
-    "itv.ard.de/replay": {
-        start: [
-            { backgroundColor: "transparent" }
-        ],
-        stop: [
-            { backgroundColor: "black" }
-        ]
-    },
-
-    "hbbtv.zdf.de": {
-        start: [
-            { body_background: "hidden" },
-            { visible_id: { name: [ "player" ], value: "visible" }}
-        ],
-        stop: [
-            { body_background: "visible" },
-            { visible_id: { name: [ "player" ], value: "hidden" } }
-        ],
-    },
-
-    "hbbtv-mediathek-ard-alpha.br.de": {
-        start: [
-            { body_background: "hidden" },
-            { visible_class: { index: 0, class: "playerwin", value: "visible" } }
-        ],
-        stop: [
-            { body_background: "visible" },
-            { visible_class: { index: 0, class: "playerwin", value: "hidden" } }
-        ],
-    },
-
-    "-digitaltext.rtl-hbbtv.de": {
-        start: [
-            { body_background: "hidden" },
-        ],
-        stop: [
-            { body_background: "visible" },
-        ]
-    },
-
-    "specials.rtl-hbbtv.de": {
-        start: [
-            { body_background: "hidden" }
-        ],
-        stop: [
-            { body_background: "visible" }
-        ]
-    },
-
-    "cdn.specials.digitaltext.rtl.de": {
-        start: [
-            { body_background: "hidden" }
-        ],
-        stop: [
-            { body_background: "visible" }
-        ]
-    },
-
-    "cdn.digitaltext.rtl.de": {
-        start: [
-            { body_background: "hidden" }
-        ],
-        stop: [
-            { body_background: "visible" }
-        ]
-    },
-
-    "bibeltv.c.nmdn.net": {
-        start: [
-            { visible_id: { name: [ "application" ], value: "hidden" } },
-        ],
-        stop: [
-            { visible_id: { name: [ "application" ], value: "visible" } },
-        ]
-    }
-   */
+function _quirk_body_background(value) {
+    document.body.style.backgroundColor = value;
 }
 
-
-function visible_class(config) {
-    let cfg = config.visible_class;
-    let index = cfg.index;
-    let clazz = cfg.class;
-    let value = cfg.value;
-    let parent = (typeof cfg.parent !== 'undefined') ? cfg.parent : false;
-
-    if (parent === true) {
-        document.getElementsByClassName(clazz)[index].parentElement.style.visibility = value;
-    } else {
-        console.log("Search: " + clazz);
-        if (typeof document.getElementsByClassName(clazz) !== 'undefined' && document.getElementsByClassName(clazz).length > 0) {
-            document.getElementsByClassName(clazz)[index].style.visibility = value;
+function  _quirk_style_id(id, key, value) {
+    let el = document.querySelectorAll('#' + id);
+    if (typeof el !== 'undefined' && el != null && el.length > 0) {
+        for (let i = 0; i < el.length; ++i) {
+            el[i].style[key] = value;
         }
     }
 }
 
-function visible_id(config) {
-    let cfg = config.visible_id;
-    let value = cfg.value;
-    for (let i in cfg.name) {
-        let el = document.getElementById(cfg.name[i]);
-        if (typeof el !== 'undefined' && el != null) {
-            el.style.visibility = value;
+function _quirk_save_set(name, id, key, value) {
+    let el = document.querySelectorAll('#' + id);
+    if (typeof el !== 'undefined' && el != null && el.length > 0) {
+        for (let i = 0; i < el.length; ++i) {
+            document[name + '_' + i] = el[i].style[key];
+            el[i].style[key] = value;
         }
     }
 }
 
-function backgroundColor(config) {
-    let cfg = config.backgroundColor;
-    document.body.style.backgroundColor = cfg;
-}
-
-function displayClass(config) {
-    let cfg = config.display_class;
-    let clazz = cfg.class;
-    let index = cfg.index;
-    let value = cfg.value;
-
-    let el = document.getElementsByClassName(clazz)[index];
-    if (el) {
-        el.style.display = value;
+function _quirk_restore_set(name, id, key) {
+    let el = document.querySelectorAll('#' + id);
+    if (typeof el !== 'undefined' && el != null && el.length > 0) {
+        for (let i = 0; i < el.length; ++i) {
+            el[i].style[key] = document[name + '_' + i];
+        }
     }
-}
-
-function body_background(config) {
-    let cfg = config.body_background;
-    document.body.style.visibility = cfg;
 }
 
 function activate_quirks(isStart) {
-    let s, q, i;
-    for (s in quirks) {
-        if (document.location.href.search(s) > 0) {
-            let config = isStart ? quirks[s].start : quirks[s].stop;
-            if (typeof config !== 'undefined') {
-                for (q in config) {
-                    if (config[q].hasOwnProperty('body_background')) {
-                        body_background(config[q]);
-                    } else if (config[q].hasOwnProperty('visible_class')) {
-                        visible_class(config[q]);
-                    } else if (config[q].hasOwnProperty('visible_id')) {
-                        visible_id(config[q]);
-                    } else if (config[q].hasOwnProperty('backgroundColor')) {
-                        backgroundColor(config[q]);
-                    } else if (config[q].hasOwnProperty('display_class')) {
-                        displayClass(config[q]);
-                    }
-                }
-            }
+    // Arte.tv
+    if (document.location.href.search("www.arte.tv") > 0) {
+        if (isStart) {
+            _quirk_style_id('_video_color_overlay_', 'visibility', 'hidden');
+            _quirk_style_id('player', 'visibility', 'hidden');
+        } else {
+            _quirk_style_id('_video_color_overlay_', 'visibility', 'visible');
+            _quirk_style_id('player', 'visibility', 'visible');
+        }
+    } else if (document.location.href.search("hbbtv.redbutton.de/extern/redorbit/hbbtv/apps/") > 0) {
+        if (isStart) {
+            _quirk_style_id('content', 'visibility', 'hidden');
+            _quirk_style_id('footer', 'visibility', 'hidden');
+            _quirk_body_background('transparent');
+            _quirk_save_set('HBBTV_SAVE_CONTENT_HUB_HOME', 'contentHub-home', 'background', 'transparent');
+            _quirk_save_set('HBBTV_SAVE_SCREEN', 'screen', 'background', 'transparent');
+        } else {
+            _quirk_style_id('content', 'visibility', 'visible');
+            _quirk_style_id('footer', 'visibility', 'visible');
+            _quirk_body_background('#2c2c2c');
+            _quirk_restore_set('HBBTV_SAVE_CONTENT_HUB_HOME', 'contentHub-home', 'background');
+            _quirk_restore_set('HBBTV_SAVE_SCREEN', 'screen', 'background');
         }
     }
 }

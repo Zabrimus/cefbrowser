@@ -146,6 +146,12 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto w = arguments.at(2)->GetIntValue();
             const auto h = arguments.at(3)->GetIntValue();
 
+            // sanity check. A video size of 0/0 is will be ignored
+            if (x == 0 && y == 0 && w == 0 && h == 0) {
+                retval = CefV8Value::CreateBool(true);
+                return true;
+            }
+
             std::vector<std::string> params;
             params.push_back(std::to_string(x));
             params.push_back(std::to_string(y));
