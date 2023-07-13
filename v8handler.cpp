@@ -147,7 +147,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto h = arguments.at(3)->GetIntValue();
 
             // sanity check. A too small video size will be ignored
-            if (w <= 320 || h <= 200) {
+            if (w <= 160 || h <= 100) {
                 retval = CefV8Value::CreateBool(true);
                 return true;
             }
