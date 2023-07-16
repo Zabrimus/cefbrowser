@@ -290,6 +290,7 @@ void BrowserApp::OnContextInitialized() {
     extra_info->SetInt("transcoderPort", transcoderPort);
     extra_info->SetString("vdrIp", vdrIp);
     extra_info->SetInt("vdrPort", vdrPort);
+    extra_info->SetInt("LogLevel", logger->level());
 
     CefRefPtr<BrowserClient> client = new BrowserClient(false, 1280, 720, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort);
     currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
@@ -310,6 +311,9 @@ void BrowserApp::OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDi
     transcoderPort = extra_info->GetInt("transcoderPort");
     vdrIp = extra_info->GetString("vdrIp");
     vdrPort = extra_info->GetInt("vdrPort");
+
+    int logLevel = extra_info->GetInt("LogLevel");
+    logger->set_level(static_cast<spdlog::level::level_enum>(logLevel));
 }
 
 void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
