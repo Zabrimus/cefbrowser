@@ -1,6 +1,16 @@
+#include <chrono>
 #include "browserclient.h"
 #include "sharedmemory.h"
 #include "database.h"
+
+#define USE_QOI 0
+
+#if USE_QOI == 1
+#define QOI_IMPLEMENTATION
+#include "qoi.h"
+
+#define ONPAINT_MEASURE_TIME = 1
+#endif
 
 std::string urlBlockList[] {
         ".block.this",
@@ -64,16 +74,12 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         return;
     }
 
-    // TRACE("BrowserClient::OnPaint, width: {}, height: {}", width, height);
-
     SharedMemory sharedMemory;
     sharedMemory.Write((uint8_t *)buffer, width * height * 4);
 
     // hex = 0xAARRGGBB.
     // rgb(254, 46, 154) = #fe2e9a
     // fffe2e9a => 00fe2e9a
-
-    // TRACE("BrowserClient::OnPaint, final width: {}, height: {}", width, height);
 
     // delete parts of the OSD where a video shall be visible
     uint32_t* buf = (uint32_t*)sharedMemory.Get();
@@ -83,8 +89,43 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         }
     }
 
-    // TRACE("BrowserClient::OnPaint, send to browser");
+#if USE_QOI == 1
+    // encode qoi image
+    for (int i = 0; i < width * height; ++i) {
+        // Source: BGRA = 0xAARRGGBB
+        // Dest:   RGBA = 0xAABBGGRR
+        buf[i] =
+                ((buf[i] & 0xFF00FF00)      ) | // AA__GG__
+                ((buf[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
+                ((buf[i] & 0x000000FF) << 16);  // ______BB -> __BB____
+    }
+
+#ifdef ONPAINT_MEASURE_TIME
+    auto begin = std::chrono::high_resolution_clock::now();
+#endif
+
+    qoi_desc desc {
+            .width = static_cast<unsigned int>(width),
+            .height = static_cast<unsigned int>(height),
+            .channels = 4,
+            .colorspace = QOI_LINEAR
+    };
+
+    int out_len;
+    char* encoded_image = static_cast<char *>(qoi_encode(buf, &desc, &out_len));
+
+#ifdef ONPAINT_MEASURE_TIME
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "OnPaint Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << "ms" << std::endl;
+#endif
+
+    vdrRemoteClient->ProcessOsdUpdateQoi(std::string(encoded_image, out_len));
+
+    free(encoded_image);
+
+#else
     vdrRemoteClient->ProcessOsdUpdate(width, height);
+#endif
 }
 
 void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {

@@ -96,8 +96,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "SeekVideo") {
-        DEBUG("V8Handler::Execute SeekVideo");
-
         if (!arguments.empty()) {
             const auto& param = arguments.at(0);
             auto position = param.get()->GetStringValue().ToString();
@@ -110,8 +108,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "RedButton") {
-        DEBUG("V8Handler::Execute RedButton");
-
         if (!arguments.empty()) {
             const auto& param = arguments.at(0);
             auto channelId = param.get()->GetStringValue().ToString();
@@ -124,8 +120,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "LoadUrl") {
-        DEBUG("V8Handler::Execute LoadUrl");
-
         if (!arguments.empty()) {
             const auto& param = arguments.at(0);
             auto url = param.get()->GetStringValue().ToString();
@@ -138,8 +132,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     }  else if (name == "VideoSize") {
-        DEBUG("V8Handler::Execute VideoSize");
-
         if (!arguments.empty()) {
             const auto x = arguments.at(0)->GetIntValue();
             const auto y = arguments.at(1)->GetIntValue();
@@ -164,15 +156,11 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "VideoFullscreen") {
-        DEBUG("V8Handler::Execute VideoFullscreen");
-
         vdrRemoteClient->VideoFullscreen();
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "StartApp") {
-        DEBUG("V8Handler::Execute StartApp");
-
         if (!arguments.empty()) {
             const auto channelId = arguments.at(0)->GetStringValue();
             const auto appId = arguments.at(1)->GetStringValue();
