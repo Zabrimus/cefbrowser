@@ -27,6 +27,8 @@ int transcoderPort;
 std::string vdrIp;
 int vdrPort;
 
+bool osdqoi;
+
 enum ProcessType {
     PROCESS_TYPE_BROWSER,
     PROCESS_TYPE_RENDERER,
@@ -67,13 +69,15 @@ void parseCommandLine(int argc, char *argv[]) {
     static struct option long_options[] = {
             { "config",      required_argument, nullptr, 'c' },
             { "loglevel",    optional_argument, nullptr, 'l' },
+            { "osdqoi",      optional_argument, nullptr, 'q' },
             {nullptr }
     };
 
     int c, option_index = 0;
     opterr = 0;
     loglevel = 1;
-    while ((c = getopt_long(argc, argv, "c:l:", long_options, &option_index)) != -1)
+    osdqoi = false;
+    while ((c = getopt_long(argc, argv, "qc:l:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -83,6 +87,10 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 'l':
                 loglevel = atoi(optarg);
+                break;
+
+            case 'q':
+                osdqoi = true;
                 break;
 
             default:
@@ -170,7 +178,7 @@ int main(int argc, char *argv[]) {
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort), nullptr);
+    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi), nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
@@ -180,7 +188,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Main browser process
-    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort);
+    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi);
     CefRefPtr<BrowserApp> app(browserApp);
 
     // Specify CEF global settings here.

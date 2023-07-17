@@ -3,14 +3,10 @@
 #include "sharedmemory.h"
 #include "database.h"
 
-#define USE_QOI 0
-
-#if USE_QOI == 1
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
 
-#define ONPAINT_MEASURE_TIME = 1
-#endif
+#define ONPAINT_MEASURE_TIME 0
 
 std::string urlBlockList[] {
         ".block.this",
@@ -23,8 +19,8 @@ std::string urlBlockList[] {
         "px.moatads.com"
 };
 
-BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
-                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort) {
+BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, bool osdqoi)
+                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi) {
     LOG_CURRENT_THREAD();
 
     this->renderWidth = width;
@@ -89,43 +85,43 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         }
     }
 
-#if USE_QOI == 1
-    // encode qoi image
-    for (int i = 0; i < width * height; ++i) {
-        // Source: BGRA = 0xAARRGGBB
-        // Dest:   RGBA = 0xAABBGGRR
-        buf[i] =
-                ((buf[i] & 0xFF00FF00)      ) | // AA__GG__
-                ((buf[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
-                ((buf[i] & 0x000000FF) << 16);  // ______BB -> __BB____
+    if (osdqoi) {
+        // encode qoi image
+        for (int i = 0; i < width * height; ++i) {
+            // Source: BGRA = 0xAARRGGBB
+            // Dest:   RGBA = 0xAABBGGRR
+            buf[i] =
+                    ((buf[i] & 0xFF00FF00)) | // AA__GG__
+                    ((buf[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
+                    ((buf[i] & 0x000000FF) << 16);  // ______BB -> __BB____
+        }
+
+#if ONPAINT_MEASURE_TIME == 1
+        auto begin = std::chrono::high_resolution_clock::now();
+#endif
+
+        qoi_desc desc{
+                .width = static_cast<unsigned int>(width),
+                .height = static_cast<unsigned int>(height),
+                .channels = 4,
+                .colorspace = QOI_LINEAR
+        };
+
+        int out_len;
+        char *encoded_image = static_cast<char *>(qoi_encode(buf, &desc, &out_len));
+
+#if ONPAINT_MEASURE_TIME == 1
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "OnPaint Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                  << "ms" << std::endl;
+#endif
+
+        vdrRemoteClient->ProcessOsdUpdateQoi(std::string(encoded_image, out_len));
+
+        free(encoded_image);
+    } else {
+        vdrRemoteClient->ProcessOsdUpdate(width, height);
     }
-
-#ifdef ONPAINT_MEASURE_TIME
-    auto begin = std::chrono::high_resolution_clock::now();
-#endif
-
-    qoi_desc desc {
-            .width = static_cast<unsigned int>(width),
-            .height = static_cast<unsigned int>(height),
-            .channels = 4,
-            .colorspace = QOI_LINEAR
-    };
-
-    int out_len;
-    char* encoded_image = static_cast<char *>(qoi_encode(buf, &desc, &out_len));
-
-#ifdef ONPAINT_MEASURE_TIME
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "OnPaint Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end-begin).count() << "ms" << std::endl;
-#endif
-
-    vdrRemoteClient->ProcessOsdUpdateQoi(std::string(encoded_image, out_len));
-
-    free(encoded_image);
-
-#else
-    vdrRemoteClient->ProcessOsdUpdate(width, height);
-#endif
 }
 
 void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {

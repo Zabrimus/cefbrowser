@@ -8,7 +8,7 @@ class BrowserApp : public CefApp,
                    public CefBrowserProcessHandler,
                    public CefRenderProcessHandler {
 public:
-    BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort);
+    BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, bool osdqoi);
 
     // CefApp
     CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override;
@@ -36,6 +36,8 @@ private:
 
     std::string vdrIp;
     int vdrPort;
+
+    bool osdqoi;
 
     CefRefPtr<V8Handler> handler;
 

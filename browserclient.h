@@ -16,7 +16,8 @@ public:
     explicit BrowserClient(bool fullscreen, int width, int height,
                            std::string vdrIp, int vdrPort,
                            std::string transcoderIp, int transcoderPort,
-                           std::string browserIp, int browserPort);
+                           std::string browserIp, int browserPort,
+                           bool osdqoi);
 
     ~BrowserClient() override;
 
@@ -83,6 +84,8 @@ private:
 
     std::string browserIp;
     int browserPort;
+
+    bool osdqoi;
 
     VdrRemoteClient* vdrRemoteClient;
     TranscoderRemoteClient *transcoderRemoteClient;

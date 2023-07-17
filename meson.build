@@ -1,9 +1,9 @@
 project('cefbrowser', 'cpp', 'c',
   version : '0.1',
-  default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static' ],
+  default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static', 'optimization=3' ],
   meson_version: '>=0.63.0')
 
-add_global_arguments(language : 'cpp')
+add_global_arguments('-O3', language : 'cpp')
 
 arch=get_option('arch')
 
