@@ -254,8 +254,6 @@ BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp,
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
     config.js_cancel_function = "cefQueryCancel";
-
-    printf("===> EXTRA 0: %s\n", (osdqoi ? "Ja" : "Nein"));
 }
 
 CefRefPtr<CefBrowserProcessHandler> BrowserApp::GetBrowserProcessHandler() {
