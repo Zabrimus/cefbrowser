@@ -4,6 +4,24 @@
 #include "v8handler.h"
 #include "logger.h"
 
+bool startVideo;
+
+void V8Handler::stopVdrVideo() {
+    int waitTime = 5; // ms
+    int count = 2000 / waitTime;
+    startVideo = false;
+
+    while (count-- > 0 && !startVideo) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(waitTime));
+    }
+
+    if (startVideo) {
+        vdrRemoteClient->ResetVideo();
+    } else {
+        vdrRemoteClient->StopVideo();
+    }
+}
+
 V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std::string vdrIp, int vdrPort)
         : browserIp(bIp), browserPort(bPort), transcoderIp(tIp), transcoderPort(tPort), vdrIp(vdrIp), vdrPort(vdrPort)
 {
@@ -49,12 +67,13 @@ void V8Handler::sendMessageToBrowser(std::string message, std::vector<std::strin
     browser->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
 }
 
-
 bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, const CefV8ValueList &arguments, CefRefPtr<CefV8Value> &retval, CefString &exception) {
     DEBUG("V8Handler::Execute: {}", name.ToString());
 
     if (name == "StreamVideo") {
         if (!arguments.empty()) {
+            startVideo = true;
+
             const auto& urlParam = arguments.at(0);
             auto url = urlParam.get()->GetStringValue();
 
@@ -70,11 +89,16 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateString("http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
         return true;
     } else if (name == "StopVideo") {
-        vdrRemoteClient->StopVideo();
         transcoderRemoteClient->Stop();
 
+        std::thread stopThread(&V8Handler::stopVdrVideo, this);
+        stopThread.detach();
+
+        /*
+        vdrRemoteClient->StopVideo();
         // TEST: wait some seconds to give transcoder and VDR to change to stop everything
         std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 4));
+        */
 
         retval = CefV8Value::CreateBool(true);
         return true;

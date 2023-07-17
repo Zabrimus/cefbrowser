@@ -197,3 +197,20 @@ bool VdrRemoteClient::SendHello() {
 
     return true;
 }
+
+bool VdrRemoteClient::ResetVideo() {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
+    if (auto res = client->Get("/ResetVideo")) {
+        if (res->status != 200) {
+            ERROR("Http result: {}", res->status);
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        ERROR("HTTP error (ResetVideo): {}", httplib::to_string(err));
+        return false;
+    }
+
+    return true;
+}

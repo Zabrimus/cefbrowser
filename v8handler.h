@@ -29,5 +29,7 @@ private:
     void sendMessageToBrowser(std::string message, std::string parameter);
     void sendMessageToBrowser(std::string message, std::vector<std::string>& parameter);
 
+    void stopVdrVideo();
+
     IMPLEMENT_REFCOUNTING(V8Handler);
 };
