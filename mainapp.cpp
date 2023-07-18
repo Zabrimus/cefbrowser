@@ -42,16 +42,21 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     }
 
     // called by VDR
-    svr.Post("/LoadUrl", [](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/LoadUrl", [&transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         auto url = req.get_param_value("url");
         INFO("Load URL: {}", url);
 
+        if (url == "about:blank") {
+            // special case
+            transcoderRemoteClient.Stop();
+        }
+
         if (url.empty()) {
             res.status = 404;
         } else {
-            if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possiböe, that MainFrame is null?
+            if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possible, that MainFrame is null?
                 currentBrowser->GetMainFrame()->LoadURL(url);
             }
             res.set_content("ok", "text/plain");
