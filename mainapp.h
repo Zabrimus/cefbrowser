@@ -3,12 +3,13 @@
 #include "cef_includes.h"
 #include "httplib.h"
 #include "v8handler.h"
+#include "tools.h"
 
 class BrowserApp : public CefApp,
                    public CefBrowserProcessHandler,
                    public CefRenderProcessHandler {
 public:
-    BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, bool osdqoi);
+    BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi);
 
     // CefApp
     CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override;
@@ -37,7 +38,7 @@ private:
     std::string vdrIp;
     int vdrPort;
 
-    bool osdqoi;
+    image_type_enum osdqoi;
 
     CefRefPtr<V8Handler> handler;
 

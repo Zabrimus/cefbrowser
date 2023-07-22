@@ -2,11 +2,15 @@
 #include "browserclient.h"
 #include "sharedmemory.h"
 #include "database.h"
+#include "tools.h"
 
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
 
-#define ONPAINT_MEASURE_TIME 0
+#define QOIR_IMPLEMENTATION
+#include "qoir.h"
+
+#define ONPAINT_MEASURE_TIME 1
 
 std::string urlBlockList[] {
         ".block.this",
@@ -19,7 +23,7 @@ std::string urlBlockList[] {
         "px.moatads.com"
 };
 
-BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, bool osdqoi)
+BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi)
                     : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi) {
     LOG_CURRENT_THREAD();
 
@@ -85,7 +89,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         }
     }
 
-    if (osdqoi) {
+    if (osdqoi == QOI) {
         // encode qoi image
         for (int i = 0; i < width * height; ++i) {
             // Source: BGRA = 0xAARRGGBB
@@ -112,13 +116,43 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
 #if ONPAINT_MEASURE_TIME == 1
         auto end = std::chrono::high_resolution_clock::now();
-        std::cout << "OnPaint Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                  << "ms" << std::endl;
+        std::cout << "OnPaint QOI Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                  << "ms, size " << out_len << std::endl;
 #endif
 
         vdrRemoteClient->ProcessOsdUpdateQoi(std::string(encoded_image, out_len));
 
         free(encoded_image);
+
+    } else if (osdqoi == QOIR) {
+        // encode qoir image
+
+#if ONPAINT_MEASURE_TIME == 1
+        auto begin = std::chrono::high_resolution_clock::now();
+#endif
+        qoir_pixel_buffer src_pixbuf;
+        // src_pixbuf.pixcfg.pixfmt = QOIR_PIXEL_FORMAT__BGRA_NONPREMUL;
+        src_pixbuf.pixcfg.pixfmt = QOIR_PIXEL_FORMAT__RGBA_NONPREMUL;
+        src_pixbuf.pixcfg.width_in_pixels = width;
+        src_pixbuf.pixcfg.height_in_pixels = height;
+        src_pixbuf.data = (uint8_t*)buf;
+        src_pixbuf.stride_in_bytes = 4 * (size_t)width;
+
+        qoir_encode_result enc = qoir_encode(&src_pixbuf, nullptr);
+        if (enc.status_message != nullptr) {
+            ERROR("Unable to encode QOIR image");
+            return;
+        }
+
+#if ONPAINT_MEASURE_TIME == 1
+        auto end = std::chrono::high_resolution_clock::now();
+        std::cout << "OnPaint QOIR Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                  << "ms, size " << enc.dst_len << std::endl;
+#endif
+
+        vdrRemoteClient->ProcessOsdUpdateQoir(std::string((char*)enc.owned_memory, enc.dst_len));
+
+        free(enc.owned_memory);
     } else {
         vdrRemoteClient->ProcessOsdUpdate(width, height);
     }

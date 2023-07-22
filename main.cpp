@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "mini/ini.h"
 #include "database.h"
+#include "tools.h"
 
 const char kProcessType[] = "type";
 const char kRendererProcess[] = "renderer";
@@ -27,7 +28,7 @@ int transcoderPort;
 std::string vdrIp;
 int vdrPort;
 
-bool osdqoi;
+image_type_enum image_type;
 
 enum ProcessType {
     PROCESS_TYPE_BROWSER,
@@ -70,14 +71,15 @@ void parseCommandLine(int argc, char *argv[]) {
             { "config",      required_argument, nullptr, 'c' },
             { "loglevel",    optional_argument, nullptr, 'l' },
             { "osdqoi",      optional_argument, nullptr, 'q' },
+            { "osdqoir",     optional_argument, nullptr, 'r' },
             {nullptr }
     };
 
     int c, option_index = 0;
     opterr = 0;
     loglevel = 1;
-    osdqoi = false;
-    while ((c = getopt_long(argc, argv, "qc:l:", long_options, &option_index)) != -1)
+    image_type = NONE;
+    while ((c = getopt_long(argc, argv, "qrc:l:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -90,7 +92,11 @@ void parseCommandLine(int argc, char *argv[]) {
                 break;
 
             case 'q':
-                osdqoi = true;
+                image_type = QOI;
+                break;
+
+            case 'r':
+                image_type = QOIR;
                 break;
 
             default:
@@ -178,7 +184,7 @@ int main(int argc, char *argv[]) {
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi), nullptr);
+    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type), nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
@@ -188,7 +194,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Main browser process
-    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi);
+    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type);
     CefRefPtr<BrowserApp> app(browserApp);
 
     // Specify CEF global settings here.

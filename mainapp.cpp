@@ -251,7 +251,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 }
 
 // BrowserApp
-BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, bool osdqoi) :
+BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi) :
         browserIp(browserIp), browserPort(browserPort),
         transcoderIp(transcoderIp), transcoderPort(transcoderPort),
         vdrIp(vdrIp), vdrPort(vdrPort), osdqoi(osdqoi) {
@@ -296,7 +296,7 @@ void BrowserApp::OnContextInitialized() {
     extra_info->SetString("vdrIp", vdrIp);
     extra_info->SetInt("vdrPort", vdrPort);
     extra_info->SetInt("LogLevel", logger->level());
-    extra_info->SetBool("osdqoi", osdqoi);
+    extra_info->SetInt("osdqoi", (int)osdqoi);
 
     CefRefPtr<BrowserClient> client = new BrowserClient(false, 1280, 720, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi);
     currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
@@ -317,7 +317,7 @@ void BrowserApp::OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDi
     transcoderPort = extra_info->GetInt("transcoderPort");
     vdrIp = extra_info->GetString("vdrIp");
     vdrPort = extra_info->GetInt("vdrPort");
-    osdqoi = extra_info->GetBool("osdqoi");
+    osdqoi = (image_type_enum)extra_info->GetInt("osdqoi");
 
     int logLevel = extra_info->GetInt("LogLevel");
     logger->set_level(static_cast<spdlog::level::level_enum>(logLevel));

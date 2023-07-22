@@ -17,7 +17,7 @@ public:
                            std::string vdrIp, int vdrPort,
                            std::string transcoderIp, int transcoderPort,
                            std::string browserIp, int browserPort,
-                           bool osdqoi);
+                           image_type_enum osdqoi);
 
     ~BrowserClient() override;
 
@@ -85,7 +85,7 @@ private:
     std::string browserIp;
     int browserPort;
 
-    bool osdqoi;
+    image_type_enum osdqoi;
 
     VdrRemoteClient* vdrRemoteClient;
     TranscoderRemoteClient *transcoderRemoteClient;
