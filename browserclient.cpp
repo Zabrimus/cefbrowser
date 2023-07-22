@@ -10,7 +10,7 @@
 #define QOIR_IMPLEMENTATION
 #include "qoir.h"
 
-#define ONPAINT_MEASURE_TIME 1
+#define ONPAINT_MEASURE_TIME 0
 
 std::string urlBlockList[] {
         ".block.this",
