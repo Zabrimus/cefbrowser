@@ -4,8 +4,7 @@
 
 enum image_type_enum {
     NONE = 0,
-    QOI = 1,
-    QOIR = 2
+    QOI = 1
 };
 
 bool endsWith(const std::string& str, const std::string& suffix);

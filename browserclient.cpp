@@ -7,10 +7,7 @@
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
 
-#define QOIR_IMPLEMENTATION
-#include "qoir.h"
-
-#define ONPAINT_MEASURE_TIME 0
+#define ONPAINT_MEASURE_TIME 1
 
 std::string urlBlockList[] {
         ".block.this",
@@ -74,87 +71,74 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         return;
     }
 
-    SharedMemory sharedMemory;
-    sharedMemory.Write((uint8_t *)buffer, width * height * 4);
+    // iterate overall dirty recs
+    for (auto r : dirtyRects) {
+        uint32_t* outbuffer = new uint32_t[4 * r.width * r.height];
 
-    // hex = 0xAARRGGBB.
-    // rgb(254, 46, 154) = #fe2e9a
-    // fffe2e9a => 00fe2e9a
+        // copy the region
+        uint32_t* ci = (uint32_t *)buffer + (r.y * width + r.x);
+        uint32_t* co = (uint32_t *) outbuffer;
 
-    // delete parts of the OSD where a video shall be visible
-    uint32_t* buf = (uint32_t*)sharedMemory.Get();
-    for (uint32_t i = 0; i < (uint32_t)(width * height); ++i) {
-        if (buf[i] == 0xfffe2e9a) {
-            buf[i] = 0x00fe2e9a;
-        }
-    }
-
-    if (osdqoi == QOI) {
-        // encode qoi image
-        for (int i = 0; i < width * height; ++i) {
-            // Source: BGRA = 0xAARRGGBB
-            // Dest:   RGBA = 0xAABBGGRR
-            buf[i] =
-                    ((buf[i] & 0xFF00FF00)) | // AA__GG__
-                    ((buf[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
-                    ((buf[i] & 0x000000FF) << 16);  // ______BB -> __BB____
+        for (int dry = 0; dry < r.height; ++dry) {
+            memcpy(co, ci, r.width * 4);
+            ci += width;
+            co += r.width;
         }
 
-#if ONPAINT_MEASURE_TIME == 1
-        auto begin = std::chrono::high_resolution_clock::now();
-#endif
+        // hex = 0xAARRGGBB.
+        // rgb(254, 46, 154) = #fe2e9a
+        // fffe2e9a => 00fe2e9a
 
-        qoi_desc desc{
-                .width = static_cast<unsigned int>(width),
-                .height = static_cast<unsigned int>(height),
-                .channels = 4,
-                .colorspace = QOI_LINEAR
-        };
-
-        int out_len;
-        char *encoded_image = static_cast<char *>(qoi_encode(buf, &desc, &out_len));
-
-#if ONPAINT_MEASURE_TIME == 1
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cout << "OnPaint QOI Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                  << "ms, size " << out_len << std::endl;
-#endif
-
-        vdrRemoteClient->ProcessOsdUpdateQoi(std::string(encoded_image, out_len));
-
-        free(encoded_image);
-
-    } else if (osdqoi == QOIR) {
-        // encode qoir image
-
-#if ONPAINT_MEASURE_TIME == 1
-        auto begin = std::chrono::high_resolution_clock::now();
-#endif
-        qoir_pixel_buffer src_pixbuf;
-        // src_pixbuf.pixcfg.pixfmt = QOIR_PIXEL_FORMAT__BGRA_NONPREMUL;
-        src_pixbuf.pixcfg.pixfmt = QOIR_PIXEL_FORMAT__RGBA_NONPREMUL;
-        src_pixbuf.pixcfg.width_in_pixels = width;
-        src_pixbuf.pixcfg.height_in_pixels = height;
-        src_pixbuf.data = (uint8_t*)buf;
-        src_pixbuf.stride_in_bytes = 4 * (size_t)width;
-
-        qoir_encode_result enc = qoir_encode(&src_pixbuf, nullptr);
-        if (enc.status_message != nullptr) {
-            ERROR("Unable to encode QOIR image");
-            return;
+        // delete parts of the OSD where a video shall be visible
+        for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
+            if (outbuffer[i] == 0xfffe2e9a) {
+                outbuffer[i] = 0x00fe2e9a;
+            }
         }
 
+        if (osdqoi == QOI) {
+            // encode qoi image
+            for (int i = 0; i < r.width * r.height; ++i) {
+                // Source: BGRA = 0xAARRGGBB
+                // Dest:   RGBA = 0xAABBGGRR
+                outbuffer[i] =
+                        ((outbuffer[i] & 0xFF00FF00)) | // AA__GG__
+                        ((outbuffer[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
+                        ((outbuffer[i] & 0x000000FF) << 16);  // ______BB -> __BB____
+            }
+
 #if ONPAINT_MEASURE_TIME == 1
-        auto end = std::chrono::high_resolution_clock::now();
-        std::cout << "OnPaint QOIR Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                  << "ms, size " << enc.dst_len << std::endl;
+            auto begin = std::chrono::high_resolution_clock::now();
 #endif
 
-        vdrRemoteClient->ProcessOsdUpdateQoir(std::string((char*)enc.owned_memory, enc.dst_len));
+            qoi_desc desc{
+                    .width = static_cast<unsigned int>(r.width),
+                    .height = static_cast<unsigned int>(r.height),
+                    .channels = 4,
+                    .colorspace = QOI_LINEAR
+            };
 
-        free(enc.owned_memory);
-    } else {
-        vdrRemoteClient->ProcessOsdUpdate(width, height);
+            int out_len;
+            char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
+
+#if ONPAINT_MEASURE_TIME == 1
+            auto end = std::chrono::high_resolution_clock::now();
+            std::cout << "OnPaint QOI Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                      << "ms, size " << out_len << std::endl;
+#endif
+
+            vdrRemoteClient->ProcessOsdUpdateQoi(r.x, r.y, std::string(encoded_image, out_len));
+
+            free(encoded_image);
+
+        } else {
+            SharedMemory sharedMemory;
+            sharedMemory.Write((uint8_t *)buffer, width * height * 4);
+
+            vdrRemoteClient->ProcessOsdUpdate(width, height);
+        }
+
+        delete[] outbuffer;
     }
 }
 

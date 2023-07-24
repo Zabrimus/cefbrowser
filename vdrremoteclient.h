@@ -9,8 +9,7 @@ public:
     ~VdrRemoteClient();
 
     bool ProcessOsdUpdate(int width, int height);
-    bool ProcessOsdUpdateQoi(const std::string& imageQoi);
-    bool ProcessOsdUpdateQoir(const std::string& imageQoi);
+    bool ProcessOsdUpdateQoi(int x, int y, const std::string& imageQoi);
     bool ProcessTSPacket(std::string packets) const;
 
     bool StartVideo();

@@ -71,7 +71,6 @@ void parseCommandLine(int argc, char *argv[]) {
             { "config",      required_argument, nullptr, 'c' },
             { "loglevel",    optional_argument, nullptr, 'l' },
             { "osdqoi",      optional_argument, nullptr, 'q' },
-            { "osdqoir",     optional_argument, nullptr, 'r' },
             {nullptr }
     };
 
@@ -93,10 +92,6 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 'q':
                 image_type = QOI;
-                break;
-
-            case 'r':
-                image_type = QOIR;
                 break;
 
             default:

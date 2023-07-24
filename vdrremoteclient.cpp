@@ -37,29 +37,10 @@ bool VdrRemoteClient::ProcessOsdUpdate(int width, int height) {
     return true;
 }
 
-bool VdrRemoteClient::ProcessOsdUpdateQoi(const std::string& imageQoi) {
+bool VdrRemoteClient::ProcessOsdUpdateQoi(int x, int y, const std::string& imageQoi) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
-    if (auto res = client->Post("/ProcessOsdUpdateQOI", imageQoi, "text/plain")) {
-        if (res->status != 200) {
-            // ERROR("Http result: {}", res->status);
-            return false;
-        } else {
-            // TRACE("Http result: {}", res->status);
-        }
-    } else {
-        auto err = res.error();
-        ERROR("HTTP error (ProcessOsdUpdate): {}", httplib::to_string(err));
-        return false;
-    }
-
-    return true;
-}
-
-bool VdrRemoteClient::ProcessOsdUpdateQoir(const std::string& imageQoi) {
-    const std::lock_guard<std::mutex> lock(httpMutex);
-
-    if (auto res = client->Post("/ProcessOsdUpdateQOIR", imageQoi, "text/plain")) {
+    if (auto res = client->Post("/ProcessOsdUpdateQOI", std::to_string(x) + ":" + std::to_string(y) + ":" + imageQoi, "text/plain")) {
         if (res->status != 200) {
             // ERROR("Http result: {}", res->status);
             return false;
