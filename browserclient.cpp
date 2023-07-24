@@ -135,8 +135,6 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             SharedMemory sharedMemory;
             sharedMemory.Write((uint8_t *)outbuffer, r.width * r.height * 4);
 
-            DEBUG("===> SHM: {}, {}, {}, {}", r.x, r.y, r.width, r.height);
-
             vdrRemoteClient->ProcessOsdUpdate(r.x, r.y, r.width, r.height);
         }
 
