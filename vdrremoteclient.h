@@ -8,7 +8,7 @@ public:
     explicit VdrRemoteClient(std::string vdrIp, int vdrPort);
     ~VdrRemoteClient();
 
-    bool ProcessOsdUpdate(int width, int height);
+    bool ProcessOsdUpdate(int x, int y, int width, int height);
     bool ProcessOsdUpdateQoi(int x, int y, const std::string& imageQoi);
     bool ProcessTSPacket(std::string packets) const;
 

@@ -76,7 +76,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         uint32_t* outbuffer = new uint32_t[4 * r.width * r.height];
 
         // copy the region
-        uint32_t* ci = (uint32_t *)buffer + (r.y * width + r.x);
+        uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
         uint32_t* co = (uint32_t *) outbuffer;
 
         for (int dry = 0; dry < r.height; ++dry) {
@@ -133,9 +133,11 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
         } else {
             SharedMemory sharedMemory;
-            sharedMemory.Write((uint8_t *)buffer, width * height * 4);
+            sharedMemory.Write((uint8_t *)outbuffer, r.width * r.height * 4);
 
-            vdrRemoteClient->ProcessOsdUpdate(width, height);
+            DEBUG("===> SHM: {}, {}, {}, {}", r.x, r.y, r.width, r.height);
+
+            vdrRemoteClient->ProcessOsdUpdate(r.x, r.y, r.width, r.height);
         }
 
         delete[] outbuffer;
