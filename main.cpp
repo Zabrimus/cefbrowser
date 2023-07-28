@@ -30,6 +30,10 @@ int vdrPort;
 
 image_type_enum image_type;
 
+int zoom_width;
+int zoom_height;
+double zoom_level;
+
 enum ProcessType {
     PROCESS_TYPE_BROWSER,
     PROCESS_TYPE_RENDERER,
@@ -71,6 +75,7 @@ void parseCommandLine(int argc, char *argv[]) {
             { "config",      required_argument, nullptr, 'c' },
             { "loglevel",    optional_argument, nullptr, 'l' },
             { "osdqoi",      optional_argument, nullptr, 'q' },
+            { "zoom",        optional_argument, nullptr, 'z' },
             {nullptr }
     };
 
@@ -78,7 +83,10 @@ void parseCommandLine(int argc, char *argv[]) {
     opterr = 0;
     loglevel = 1;
     image_type = NONE;
-    while ((c = getopt_long(argc, argv, "qrc:l:", long_options, &option_index)) != -1)
+    zoom_width = 1280;
+    zoom_width = 720;
+
+    while ((c = getopt_long(argc, argv, "qc:l:z:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -94,8 +102,39 @@ void parseCommandLine(int argc, char *argv[]) {
                 image_type = QOI;
                 break;
 
+            case 'z':
+                zoom_width = atoi(optarg);
+                switch (zoom_width) {
+                    case 1280:
+                        zoom_height = 720;
+                        zoom_level = 1.0f;
+                        break;
+
+                    case 1920:
+                        zoom_height = 1080;
+                        zoom_level = 1.5f;
+                        break;
+
+                    case 2560:
+                        zoom_height = 1440;
+                        zoom_level = 2.0f;
+                        break;
+
+                    case 3840:
+                        zoom_height = 2160;
+                        zoom_level = 3.0f;
+                        break;
+
+                    default: // illegal value
+                        ERROR("zoom value {} is not defined.", zoom_width);
+                        zoom_height = 720;
+                        zoom_level = 1.0f;
+                        break;
+                }
+
             default:
-                return;
+                // return;
+                break;
         }
     }
 }
@@ -179,7 +218,7 @@ int main(int argc, char *argv[]) {
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type), nullptr);
+    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height), nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
@@ -189,7 +228,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Main browser process
-    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type);
+    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height);
     CefRefPtr<BrowserApp> app(browserApp);
 
     // Specify CEF global settings here.
@@ -225,6 +264,12 @@ int main(int argc, char *argv[]) {
         logger->shutdown();
         return -1;
     }
+
+    // write zoom level script
+    std::ofstream _zoom_level;
+    _zoom_level.open ("js/_zoom_level.js", std::ios_base::trunc);
+    _zoom_level << "\ndocument.body.style[\"zoom\"] = " << zoom_level << ";\n" << std::endl;
+    _zoom_level.close();
 
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.
     CefRunMessageLoop();

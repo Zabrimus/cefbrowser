@@ -29,7 +29,7 @@ bool isVideoOrAudio(std::string& data) {
 
 std::string readPreJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[3] = {"init.js", "keyhandler.js", "_dynamic.js" };
+    std::string files[] = {"init.js", "keyhandler.js", "_dynamic.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());
@@ -45,7 +45,7 @@ std::string readPreJavascript(std::string browserIp, int browserPort) {
 
 std::string readPreCSS(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[1] = { "TiresiasPCfont.css" };
+    std::string files[] = { "TiresiasPCfont.css" };
 
     for (const auto & file : files) {
         result += readFile(("css/" + file).c_str());
@@ -57,13 +57,11 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
     _dynamic.close();
 
     return "\n<link rel=\"stylesheet\" type=\"text/css\" href=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/css/_dynamic.css\"></link>\n";
-
-    // return "\n<style>\n" + result + "</style>\n";
 }
 
 std::string readPostJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[4] = { "video_quirks.js", "initlast.js", "videoobserver.js", "hbbtv.js" };
+    std::string files[] = { "_zoom_level.js", "video_quirks.js", "initlast.js", "videoobserver.js", "hbbtv.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());

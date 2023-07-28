@@ -12,5 +12,5 @@ public:
     ~SharedMemory();
 
     uint8_t* Get();
-    bool Write(uint8_t* data, int size);
+    bool Write(uint8_t* data, size_t size);
 };

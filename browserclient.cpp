@@ -66,7 +66,7 @@ void BrowserClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
 void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {
     LOG_CURRENT_THREAD();
 
-    if (width > 1920 || height > 1080) {
+    if (width > renderWidth || height > renderHeight) {
         CRITICAL("BrowserClient::OnPaint, width {}, height {} are too large. Ignore this request.");
         return;
     }
@@ -97,6 +97,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         }
 
         if (osdqoi == QOI) {
+            /*
             // encode qoi image
             for (int i = 0; i < r.width * r.height; ++i) {
                 // Source: BGRA = 0xAARRGGBB
@@ -106,7 +107,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
                         ((outbuffer[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
                         ((outbuffer[i] & 0x000000FF) << 16);  // ______BB -> __BB____
             }
-
+            */
 #if ONPAINT_MEASURE_TIME == 1
             auto begin = std::chrono::high_resolution_clock::now();
 #endif
@@ -127,7 +128,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
                       << "ms, size " << out_len << std::endl;
 #endif
 
-            vdrRemoteClient->ProcessOsdUpdateQoi(r.x, r.y, std::string(encoded_image, out_len));
+            vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len));
 
             free(encoded_image);
 
@@ -135,7 +136,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             SharedMemory sharedMemory;
             sharedMemory.Write((uint8_t *)outbuffer, r.width * r.height * 4);
 
-            vdrRemoteClient->ProcessOsdUpdate(r.x, r.y, r.width, r.height);
+            vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height);
         }
 
         delete[] outbuffer;

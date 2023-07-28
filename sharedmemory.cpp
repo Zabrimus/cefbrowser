@@ -7,7 +7,7 @@
 #include "logger.h"
 
 const std::string sharedMemoryFile("/cefbrowser");
-const int sharedMemorySize = 1920 * 1080 * 4;
+const size_t sharedMemorySize = 3840 * 2160 * 4; // 4K
 
 SharedMemory::SharedMemory() {
     int shmid = shm_open(sharedMemoryFile.c_str(), O_RDWR, 0666);
@@ -30,7 +30,7 @@ uint8_t* SharedMemory::Get() {
     return shmp;
 }
 
-bool SharedMemory::Write(uint8_t* data, int size) {
+bool SharedMemory::Write(uint8_t* data, size_t size) {
     if (size > sharedMemorySize || size <= 0) {
         // abort
         ERROR("Prevent writing %d bytes in buffer of length %d", size, sharedMemorySize);

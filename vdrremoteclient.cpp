@@ -14,10 +14,12 @@ VdrRemoteClient::~VdrRemoteClient() {
     delete client;
 }
 
-bool VdrRemoteClient::ProcessOsdUpdate(int x, int y, int width, int height) {
+bool VdrRemoteClient::ProcessOsdUpdate(int disp_width, int disp_height, int x, int y, int width, int height) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
     httplib::Params params;
+    params.emplace("disp_width", std::to_string(disp_width));
+    params.emplace("disp_height", std::to_string(disp_height));
     params.emplace("x", std::to_string(x));
     params.emplace("y", std::to_string(y));
     params.emplace("width", std::to_string(width));
@@ -39,10 +41,10 @@ bool VdrRemoteClient::ProcessOsdUpdate(int x, int y, int width, int height) {
     return true;
 }
 
-bool VdrRemoteClient::ProcessOsdUpdateQoi(int x, int y, const std::string& imageQoi) {
+bool VdrRemoteClient::ProcessOsdUpdateQoi(int disp_width, int disp_height, int x, int y, const std::string& imageQoi) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
-    if (auto res = client->Post("/ProcessOsdUpdateQOI", std::to_string(x) + ":" + std::to_string(y) + ":" + imageQoi, "text/plain")) {
+    if (auto res = client->Post("/ProcessOsdUpdateQOI", std::to_string(disp_width) + ":" + std::to_string(disp_height) + ":" + std::to_string(x) + ":" + std::to_string(y) + ":" + imageQoi, "text/plain")) {
         if (res->status != 200) {
             // ERROR("Http result: {}", res->status);
             return false;
