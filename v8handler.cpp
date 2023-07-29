@@ -174,6 +174,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             params.push_back(std::to_string(w));
             params.push_back(std::to_string(h));
 
+            sendMessageToBrowser("SetDirtyOSD");
             vdrRemoteClient->VideoSize(x, y, w, h);
         }
 

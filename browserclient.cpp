@@ -209,6 +209,8 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
         } else {
             ERROR("BrowserClient::OnProcessMessageReceived: StartApp without channelId or appId");
         }
+    } else if (message->GetName().ToString() == "SetDirtyOSD") {
+        browser->GetHost()->Invalidate(PET_VIEW);
     }
 
     return false;
