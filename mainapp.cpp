@@ -247,6 +247,23 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
+    svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
+        auto fmt = "<h1>Error 500</h1><p>%s</p>";
+        char buf[BUFSIZ];
+        try {
+            std::rethrow_exception(ep);
+        } catch (std::exception &e) {
+            snprintf(buf, sizeof(buf), fmt, e.what());
+        } catch (...) {
+            snprintf(buf, sizeof(buf), fmt, "Unknown Exception");
+        }
+
+        ERROR("Exception in cpp-httplib: {}", std::string(buf));
+
+        res.set_content(buf, "text/html");
+        res.status = 500;
+    });
+
     svr.listen(browserIp, browserPort);
 }
 
