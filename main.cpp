@@ -84,7 +84,8 @@ void parseCommandLine(int argc, char *argv[]) {
     loglevel = 1;
     image_type = NONE;
     zoom_width = 1280;
-    zoom_width = 720;
+    zoom_height = 720;
+    zoom_level = 1.0f;
 
     while ((c = getopt_long(argc, argv, "qc:l:z:", long_options, &option_index)) != -1)
     {
@@ -127,6 +128,7 @@ void parseCommandLine(int argc, char *argv[]) {
 
                     default: // illegal value
                         ERROR("zoom value {} is not defined.", zoom_width);
+                        zoom_width = 1280;
                         zoom_height = 720;
                         zoom_level = 1.0f;
                         break;
@@ -204,6 +206,11 @@ std::string getexepath() {
 }
 
 int main(int argc, char *argv[]) {
+    // set some default values
+    zoom_width = 1280;
+    zoom_height = 720;
+    zoom_level = 1.0f;
+
     parseCommandLine(argc, argv);
 
     switch (loglevel) {
