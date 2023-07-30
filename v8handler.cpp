@@ -8,8 +8,8 @@ bool startVideo;
 bool videoReset;
 
 void V8Handler::stopVdrVideo() {
-    int waitTime = 5; // ms
-    int count = 500 / waitTime;
+    int waitTime = 50; // ms
+    int count = 1000 / waitTime;
     startVideo = false;
 
     while (count-- > 0 && !startVideo) {
