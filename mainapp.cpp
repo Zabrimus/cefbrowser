@@ -268,10 +268,11 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 }
 
 // BrowserApp
-BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height) :
+BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs) :
         browserIp(browserIp), browserPort(browserPort),
         transcoderIp(transcoderIp), transcoderPort(transcoderPort),
-        vdrIp(vdrIp), vdrPort(vdrPort), osdqoi(osdqoi), zoom_width(zoom_width), zoom_height(zoom_height) {
+        vdrIp(vdrIp), vdrPort(vdrPort), osdqoi(osdqoi), zoom_width(zoom_width), zoom_height(zoom_height),
+        use_dirty_recs(use_dirty_recs) {
 
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
@@ -314,8 +315,9 @@ void BrowserApp::OnContextInitialized() {
     extra_info->SetInt("vdrPort", vdrPort);
     extra_info->SetInt("LogLevel", logger->level());
     extra_info->SetInt("osdqoi", (int)osdqoi);
+    extra_info->SetBool("dirtyRecs", use_dirty_recs);
 
-    CefRefPtr<BrowserClient> client = new BrowserClient(false, zoom_width, zoom_height, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi);
+    CefRefPtr<BrowserClient> client = new BrowserClient(false, zoom_width, zoom_height, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi, use_dirty_recs);
     currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
 
     INFO("Start Http Server on {}:{}", browserIp, browserPort);
@@ -335,6 +337,7 @@ void BrowserApp::OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDi
     vdrIp = extra_info->GetString("vdrIp");
     vdrPort = extra_info->GetInt("vdrPort");
     osdqoi = (image_type_enum)extra_info->GetInt("osdqoi");
+    use_dirty_recs = extra_info->GetBool("dirtyRecs");
 
     int logLevel = extra_info->GetInt("LogLevel");
     logger->set_level(static_cast<spdlog::level::level_enum>(logLevel));

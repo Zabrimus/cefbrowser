@@ -20,8 +20,8 @@ std::string urlBlockList[] {
         "px.moatads.com"
 };
 
-BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi)
-                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi) {
+BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, bool use_dirty_recs)
+                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi), use_dirty_recs(use_dirty_recs) {
     LOG_CURRENT_THREAD();
 
     this->renderWidth = width;
@@ -71,8 +71,16 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         return;
     }
 
+    RectList recList;
+    if (use_dirty_recs) {
+        recList = dirtyRects;
+    } else {
+        CefRect rect(0, 0, width, height);
+        recList.emplace_back(rect);
+    }
+
     // iterate overall dirty recs
-    for (auto r : dirtyRects) {
+    for (auto r : recList) {
         uint32_t* outbuffer = new uint32_t[4 * r.width * r.height];
 
         // copy the region
