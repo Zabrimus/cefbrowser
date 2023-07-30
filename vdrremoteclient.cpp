@@ -21,7 +21,7 @@ VdrRemoteClient::~VdrRemoteClient() {
 bool VdrRemoteClient::ProcessOsdUpdate(int disp_width, int disp_height, int x, int y, int width, int height) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
-    TRACE("Call VdrRemoteClient::ProcessOsdUpdate");
+    // TRACE("Call VdrRemoteClient::ProcessOsdUpdate");
 
     httplib::Params params;
     params.emplace("disp_width", std::to_string(disp_width));
