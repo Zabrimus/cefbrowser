@@ -34,25 +34,37 @@ function activate_quirks(isStart) {
     // Arte.tv
     if (document.location.href.search("www.arte.tv") > 0) {
         if (isStart) {
-            _quirk_style_id('_video_color_overlay_', 'visibility', 'hidden');
             _quirk_style_id('player', 'visibility', 'hidden');
         } else {
-            _quirk_style_id('_video_color_overlay_', 'visibility', 'visible');
             _quirk_style_id('player', 'visibility', 'visible');
         }
     } else if (document.location.href.search("hbbtv.redbutton.de/extern/redorbit/hbbtv/apps/") > 0) {
         if (isStart) {
+            _quirk_style_id('contentHub-home', 'visibility', 'hidden');
+            _quirk_style_id('stage', 'visibility', 'hidden');
+            _quirk_style_id('screen', 'background', 'transparent');
+            _quirk_body_background('transparent');
+
+            /*
             _quirk_style_id('content', 'visibility', 'hidden');
             _quirk_style_id('footer', 'visibility', 'hidden');
             _quirk_body_background('transparent');
             _quirk_save_set('HBBTV_SAVE_CONTENT_HUB_HOME', 'contentHub-home', 'background', 'transparent');
             _quirk_save_set('HBBTV_SAVE_SCREEN', 'screen', 'background', 'transparent');
+             */
         } else {
+            _quirk_style_id('contentHub-home', 'visibility', 'visible');
+            _quirk_style_id('stage', 'visibility', 'visible');
+            _quirk_style_id('screen', 'background', '#efefef');
+            _quirk_body_background('#2c2c2c');
+
+            /*
             _quirk_style_id('content', 'visibility', 'visible');
             _quirk_style_id('footer', 'visibility', 'visible');
             _quirk_body_background('#2c2c2c');
             _quirk_restore_set('HBBTV_SAVE_CONTENT_HUB_HOME', 'contentHub-home', 'background');
             _quirk_restore_set('HBBTV_SAVE_SCREEN', 'screen', 'background');
+            */
         }
     }
 }

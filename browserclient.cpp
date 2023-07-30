@@ -90,11 +90,13 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         // fffe2e9a => 00fe2e9a
 
         // delete parts of the OSD where a video shall be visible
+       /*
         for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
             if (outbuffer[i] == 0xfffe2e9a) {
                 outbuffer[i] = 0x00fe2e9a;
             }
         }
+        */
 
         if (osdqoi == QOI) {
             /*

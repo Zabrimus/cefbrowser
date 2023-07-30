@@ -5,6 +5,7 @@
 #include "logger.h"
 
 bool startVideo;
+bool videoReset;
 
 void V8Handler::stopVdrVideo() {
     int waitTime = 5; // ms
@@ -17,8 +18,10 @@ void V8Handler::stopVdrVideo() {
 
     if (startVideo) {
         vdrRemoteClient->ResetVideo();
+        videoReset = true;
     } else {
         vdrRemoteClient->StopVideo();
+        videoReset = false;
     }
 }
 
@@ -27,6 +30,9 @@ V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std
 {
     transcoderRemoteClient = new TranscoderRemoteClient(tIp, tPort, bIp, bPort);
     vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
+
+    lastVideoX = lastVideoY = lastVideoW = lastVideoH = 0;
+    lastFullscreen = false;
 }
 
 V8Handler::~V8Handler() {
@@ -34,11 +40,11 @@ V8Handler::~V8Handler() {
     delete vdrRemoteClient;
 }
 
-void V8Handler::sendMessageToBrowser(std::string message) {
-    sendMessageToBrowser(message, "");
+void V8Handler::sendMessageToProcess(std::string message, CefProcessId target_process) {
+    sendMessageToProcess(message, "", target_process);
 }
 
-void V8Handler::sendMessageToBrowser(std::string message, std::string parameter) {
+void V8Handler::sendMessageToProcess(std::string message, std::string parameter, CefProcessId target_process) {
     CefRefPtr<CefV8Context> ctx = CefV8Context::GetCurrentContext();
     CefRefPtr<CefBrowser> browser = ctx->GetBrowser();
 
@@ -48,10 +54,10 @@ void V8Handler::sendMessageToBrowser(std::string message, std::string parameter)
         args->SetString(0, parameter);
     }
 
-    browser->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
+    browser->GetMainFrame()->SendProcessMessage(target_process, msg);
 }
 
-void V8Handler::sendMessageToBrowser(std::string message, std::vector<std::string>& parameter) {
+void V8Handler::sendMessageToProcess(std::string message, std::vector<std::string>& parameter, CefProcessId target_process) {
     CefRefPtr<CefV8Context> ctx = CefV8Context::GetCurrentContext();
     CefRefPtr<CefBrowser> browser = ctx->GetBrowser();
 
@@ -64,7 +70,7 @@ void V8Handler::sendMessageToBrowser(std::string message, std::vector<std::strin
         idx++;
     }
 
-    browser->GetMainFrame()->SendProcessMessage(PID_BROWSER, msg);
+    browser->GetMainFrame()->SendProcessMessage(target_process, msg);
 }
 
 bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, const CefV8ValueList &arguments, CefRefPtr<CefV8Value> &retval, CefString &exception) {
@@ -83,7 +89,9 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 return false;
             }
 
-            vdrRemoteClient->StartVideo();
+            if (!videoReset) {
+                vdrRemoteClient->StartVideo();
+            }
         }
 
         retval = CefV8Value::CreateString("http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
@@ -138,7 +146,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             DEBUG("V8Handler::Execute RedButton Argument ChannelId {}", channelId);
 
-            sendMessageToBrowser("RedButton", channelId);
+            sendMessageToProcess("RedButton", channelId, PID_BROWSER);
         }
 
         retval = CefV8Value::CreateBool(true);
@@ -150,7 +158,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             DEBUG("V8Handler::Execute LoadUrl {}", url);
 
-            sendMessageToBrowser("LoadUrl", url);
+            sendMessageToProcess("LoadUrl", url, PID_BROWSER);
         }
 
         retval = CefV8Value::CreateBool(true);
@@ -168,20 +176,32 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 return true;
             }
 
-            std::vector<std::string> params;
-            params.push_back(std::to_string(x));
-            params.push_back(std::to_string(y));
-            params.push_back(std::to_string(w));
-            params.push_back(std::to_string(h));
+            if ((x != lastVideoX) || (y != lastVideoY) || (w != lastVideoW) || (h != lastVideoH)) {
+                // send new VideoSize to Browser
+                lastVideoX = x;
+                lastVideoY = y;
+                lastVideoH = h;
+                lastVideoW = w;
+                lastFullscreen = false;
 
-            sendMessageToBrowser("SetDirtyOSD");
-            vdrRemoteClient->VideoSize(x, y, w, h);
+                vdrRemoteClient->VideoSize(x, y, w, h);
+            }
+
+            sendMessageToProcess("SetDirtyOSD", PID_BROWSER);
         }
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "VideoFullscreen") {
-        vdrRemoteClient->VideoFullscreen();
+        if (!lastFullscreen) {
+            lastVideoX = 0;
+            lastVideoY = 0;
+            lastVideoH = 0;
+            lastVideoW = 0;
+            lastFullscreen = true;
+
+            vdrRemoteClient->VideoFullscreen();
+        }
 
         retval = CefV8Value::CreateBool(true);
         return true;
@@ -196,7 +216,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             params.push_back(appId);
             params.push_back(args);
 
-            sendMessageToBrowser("StartApp", params);
+            sendMessageToProcess("StartApp", params, PID_BROWSER);
         }
 
         retval = CefV8Value::CreateBool(true);

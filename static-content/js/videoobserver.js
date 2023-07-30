@@ -11,7 +11,6 @@ const PLAY_STATES = {
 window.promoteVideoSize = (node, considerLayer) => {
     let position = node.getBoundingClientRect();
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
-    let overlay = document.getElementById('_video_color_overlay_');
 
     /*
     console.log("In PromoteVideoSize: body (" + bodyPos.x + "," + bodyPos.y + "," + bodyPos.width + "," + bodyPos.height + ")");
@@ -21,33 +20,22 @@ window.promoteVideoSize = (node, considerLayer) => {
 
     // if width or height of body is 0, then set values to the maximum size
     if (bodyPos.width == 0 || bodyPos.height == 0) {
-        bodyPos.width = 1280;
-        bodyPos.height = 720;
+        // bodyPos.width = 1280;
+        // bodyPos.height = 720;
     }
 
     if ((position.width == 300) && (position.height == 150)) {
         // sometimes the wrong size is requested. Ignore this to prevent flickering
         // console.log("Size 300x150 requested");
 
-        overlay.style.visibility = "hidden";
-        window.cefVideoFullscreen();
-        return;
+        // overlay.style.visibility = "hidden";
+        // window.cefVideoFullscreen();
+        // return;
     }
 
     if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
-        overlay.style.visibility = "hidden";
-
         window.cefVideoFullscreen();
     } else {
-        if (overlay && considerLayer) {
-            overlay.style.visibility = "visible";
-            overlay.style.left = position.x.toString() + "px";
-            overlay.style.top = position.y.toString() + "px";
-            overlay.style.width = position.width.toString() + "px";
-            overlay.style.height = position.height.toString() + "px";
-            overlay.style.backgroundColor = "rgb(254, 46, 154)";
-        }
-
         window.cefVideoSize(position.x | 0, position.y | 0, position.width | 0, position.height | 0);
     }
 }
@@ -242,7 +230,7 @@ function watchAndHandleVideoObjectMutations() {
 
         video.autoplay = true;
         video.src = url;
-        video.style = 'top:0px; left:0px; width:100%; height:100%;background-color:rgb(254, 46, 154)';
+        video.style = 'top:0px; left:0px; width:100%; height:100%;';
 
         node.replaceChildren(video);
     }
@@ -297,6 +285,7 @@ function watchAndHandleVideoObjectMutations() {
             // console.log("All Cookies: " + document.cookie);
 
             let newUrl = window.cefStreamVideo(node.data);
+
             addVideoNode(node, newUrl);
             node.data = newUrl;
             node.style.visibility = 'hidden';
@@ -368,6 +357,10 @@ function watchAndHandleVideoObjectMutations() {
         }
     };
 
+    const handleAttributeChanged = (mutation) => {
+        // console.log("Target: " + mutation.target);
+    };
+
     const handleMutation = (mutationList) => {
         mutationList.forEach((mutation) => {
             switch (mutation.type) {
@@ -375,6 +368,7 @@ function watchAndHandleVideoObjectMutations() {
                     handleChildAddedRemoved(mutation);
                     break;
                 case 'attributes':
+                    // handleAttributeChanged(mutation);
                     break;
             }
         });

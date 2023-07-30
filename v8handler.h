@@ -24,10 +24,13 @@ private:
     VdrRemoteClient* vdrRemoteClient;
     TranscoderRemoteClient* transcoderRemoteClient;
 
+    int lastVideoX, lastVideoY, lastVideoW, lastVideoH;
+    bool lastFullscreen;
+
 private:
-    void sendMessageToBrowser(std::string message);
-    void sendMessageToBrowser(std::string message, std::string parameter);
-    void sendMessageToBrowser(std::string message, std::vector<std::string>& parameter);
+    void sendMessageToProcess(std::string message, CefProcessId target_process);
+    void sendMessageToProcess(std::string message, std::string parameter, CefProcessId target_process);
+    void sendMessageToProcess(std::string message, std::vector<std::string>& parameter, CefProcessId target_process);
 
     void stopVdrVideo();
 

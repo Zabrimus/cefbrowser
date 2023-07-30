@@ -72,8 +72,7 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     _dynamic << result << std::endl;
     _dynamic.close();
 
-    std::string post = "\n<div id=\"_video_color_overlay_\" style=\"visibility:hidden;position: absolute; background-color: rgb(254, 46, 154); z-index: 999;\"></div>\n";
-    post += "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
+    std::string post = "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
 
     return post;
 }

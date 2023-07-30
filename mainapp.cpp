@@ -386,6 +386,9 @@ void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
 
 bool BrowserApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
     TRACE("BrowserApp::OnProcessMessageReceived");
+
+    DEBUG("===> Render message: {}", message->GetName().ToString());
+
     return false;
 }
 

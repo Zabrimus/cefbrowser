@@ -22,7 +22,6 @@ public:
     bool VideoFullscreen();
 
     bool SendHello();
-
 private:
     httplib::Client* client;
 };
