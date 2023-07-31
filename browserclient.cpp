@@ -143,9 +143,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             free(encoded_image);
 
         } else {
-            SharedMemory sharedMemory;
             sharedMemory.Write((uint8_t *)outbuffer, r.width * r.height * 4);
-
             vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height);
         }
 

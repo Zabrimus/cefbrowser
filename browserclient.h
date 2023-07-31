@@ -6,6 +6,7 @@
 #include "tools.h"
 #include "transcoderremoteclient.h"
 #include "vdrremoteclient.h"
+#include "sharedmemory.h"
 
 class BrowserClient : public CefClient,
                       public CefRenderHandler,
@@ -91,6 +92,8 @@ private:
 
     VdrRemoteClient* vdrRemoteClient;
     TranscoderRemoteClient *transcoderRemoteClient;
+
+    SharedMemory sharedMemory;
 
 private:
     IMPLEMENT_REFCOUNTING(BrowserClient);

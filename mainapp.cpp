@@ -108,6 +108,13 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
+    svr.Get("/ReloadOSD", [](const httplib::Request &req, httplib::Response &res) {
+        currentBrowser->GetHost()->Invalidate(PET_VIEW);
+
+        res.status = 200;
+        res.set_content("ok", "text/plain");
+    });
+
     svr.Post("/StartApplication", [_browserIp, _browserPort](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
