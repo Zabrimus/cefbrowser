@@ -81,7 +81,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
     // iterate overall dirty recs
     for (auto r : recList) {
-        uint32_t* outbuffer = new uint32_t[4 * r.width * r.height];
+        uint32_t* outbuffer = new uint32_t[r.width * r.height];
 
         // copy the region
         uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
