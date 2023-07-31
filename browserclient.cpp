@@ -234,7 +234,7 @@ void BrowserClient::loadUrl(CefRefPtr<CefBrowser> browser, const std::string& ur
     //  Es reicht, den Transcoder zu stoppen, obwohl selbst das muss nicht sein - denke ich - da der Transcoder das selbst managed.
 
     vdrRemoteClient->StopVideo();
-    vdrRemoteClient->VideoFullscreen();
+    // vdrRemoteClient->VideoFullscreen();
     transcoderRemoteClient->Stop();
 
     // load url
