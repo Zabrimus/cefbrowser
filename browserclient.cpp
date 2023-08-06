@@ -138,13 +138,19 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
                       << "ms, size " << out_len << std::endl;
 #endif
 
-            vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len));
+            if (!vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
+                // OSD in VDR is not available
+                loadUrl(browser, "about:blank");
+            }
 
             free(encoded_image);
 
         } else {
             sharedMemory.Write((uint8_t *)outbuffer, r.width * r.height * 4);
-            vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height);
+            if (!vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height)) {
+                // OSD in VDR is not available
+                loadUrl(browser, "about:blank");
+            }
         }
 
         delete[] outbuffer;
