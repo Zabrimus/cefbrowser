@@ -254,6 +254,21 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
+    // called by VDR
+    svr.Post("/SetVolume", [&transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
+        auto cv = req.get_param_value("currentVolume");
+        auto mv = req.get_param_value("maxVolume");
+
+        if (cv.empty() || mv.empty()) {
+            res.status = 404;
+        } else {
+            // TODO: Implement some HTML Widget which shows the current volume
+            res.set_content("ok", "text/plain");
+        }
+    });
+
     svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
         auto fmt = "<h1>Error 500</h1><p>%s</p>";
         char buf[BUFSIZ];
