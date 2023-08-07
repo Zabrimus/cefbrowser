@@ -1,0 +1,10 @@
+#_volumecontainer {
+    width: 100%;
+    position: absolute;
+    left: 0px;
+    top: 0px;
+}
+
+#_volume {
+    width: 100%;
+}

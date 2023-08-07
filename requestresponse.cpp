@@ -45,7 +45,7 @@ std::string readPreJavascript(std::string browserIp, int browserPort) {
 
 std::string readPreCSS(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = { "TiresiasPCfont.css" };
+    std::string files[] = { "TiresiasPCfont.css", "volume.css" };
 
     for (const auto & file : files) {
         result += readFile(("css/" + file).c_str());
@@ -73,6 +73,8 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     _dynamic.close();
 
     std::string post = "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
+
+    post += "<div id=\"_volumecontainer\" style=\"visibility: hidden;\"><progress value=\"0\" max=\"100\" id=\"_volume\"></progress></div>\n";
 
     return post;
 }

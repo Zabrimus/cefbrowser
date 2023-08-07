@@ -14,6 +14,28 @@ std::mutex httpServerMutex;
 
 std::string lastInsertChannel = "";
 
+int VolumeProgressRunning = false;
+int VolumeWaitCount;
+
+void hideVolumebar() {
+    // int waitTime = 100;
+    int waitTime = 60;
+    VolumeWaitCount = 0;
+    VolumeProgressRunning = true;
+
+    while (VolumeWaitCount < 50) {
+        VolumeWaitCount++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(waitTime));
+    }
+
+    auto frame = currentBrowser->GetMainFrame();
+    if (frame != nullptr) {
+        frame->ExecuteJavaScript("document.getElementById('_volumecontainer').style.visibility= \"hidden\";", frame->GetURL(), 0);
+    }
+
+    VolumeProgressRunning = false;
+}
+
 void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort) {
     int _browserPort = browserPort;
     std::string _browserIp = browserIp;
@@ -264,7 +286,21 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         if (cv.empty() || mv.empty()) {
             res.status = 404;
         } else {
-            // TODO: Implement some HTML Widget which shows the current volume
+            auto frame = currentBrowser->GetMainFrame();
+
+            if (frame != nullptr) { // Why is it possible, that MainFrame is null?
+                frame->ExecuteJavaScript("document.getElementById('_volumecontainer').style.visibility= \"visible\";", frame->GetURL(), 0);
+                frame->ExecuteJavaScript("document.getElementById('_volume').value = \"" + cv + "\";", frame->GetURL(), 0);
+                frame->ExecuteJavaScript("document.getElementById('_volume').max = \"" + mv + "\";", frame->GetURL(), 0);
+
+                if (VolumeProgressRunning) {
+                    VolumeWaitCount = 0;
+                } else {
+                    std::thread hideThread(hideVolumebar);
+                    hideThread.detach();
+                }
+            }
+
             res.set_content("ok", "text/plain");
         }
     });
