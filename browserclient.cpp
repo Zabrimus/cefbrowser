@@ -141,6 +141,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             if (!vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
+                sharedMemory.Clear();
             }
 
             free(encoded_image);
@@ -150,6 +151,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             if (!vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height)) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
+                sharedMemory.Clear();
             }
         }
 

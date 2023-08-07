@@ -57,3 +57,7 @@ bool SharedMemory::Write(uint8_t* data, size_t size) {
 
     return true;
 }
+
+void SharedMemory::Clear() {
+    memset(shmp, 0, sharedMemorySize);
+}

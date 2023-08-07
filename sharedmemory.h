@@ -13,4 +13,5 @@ public:
 
     uint8_t* Get();
     bool Write(uint8_t* data, size_t size);
+    void Clear();
 };
