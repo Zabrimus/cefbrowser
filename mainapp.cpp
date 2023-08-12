@@ -283,7 +283,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     });
 
     // called by VDR
-    svr.Post("/SetVolume", [&transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/SetVolume", [](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         auto cv = req.get_param_value("currentVolume");
@@ -328,7 +328,10 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.status = 500;
     });
 
-    svr.listen(browserIp, browserPort);
+    if (!svr.listen(browserIp, browserPort)) {
+        CRITICAL("Call of listen failed: ip {}, port {}, Reason: {}", browserIp, browserPort, strerror(errno));
+        exit(1);
+    }
 }
 
 // BrowserApp
