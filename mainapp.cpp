@@ -322,7 +322,10 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.status = 500;
     });
 
-    svr.listen(browserIp, browserPort);
+    if (!svr.listen(browserIp, browserPort)) {
+        CRITICAL("Call of listen failed: ip {}, port {}, Reason: {}", browserIp, browserPort, strerror(errno));
+        exit(1);
+    }
 }
 
 // BrowserApp
