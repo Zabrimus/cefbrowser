@@ -68,15 +68,12 @@ public:
     void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
 
 private:
-    // clear parts of the OSD
-    void osdClearVideo(int x, int y, int width, int height);
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);
 
 private:
     int renderWidth;
     int renderHeight;
     bool fullscreen;
-    int clearX, clearY, clearWidth, clearHeight;
 
     std::string vdrIp;
     int vdrPort;
@@ -89,6 +86,9 @@ private:
 
     image_type_enum osdqoi;
     bool use_dirty_recs;
+
+    int videoX, videoY, videoW, videoH;
+    bool videoIsFullscreen;
 
     VdrRemoteClient* vdrRemoteClient;
     TranscoderRemoteClient *transcoderRemoteClient;

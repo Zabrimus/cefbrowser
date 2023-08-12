@@ -9,6 +9,7 @@
 std::string preJavascript;
 std::string postJavascript;
 std::string preCSS;
+std::string postHTML;
 
 std::string lastContentType;
 
@@ -77,6 +78,17 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     post += "<div id=\"_volumecontainer\" style=\"visibility: hidden;\"><progress value=\"0\" max=\"100\" id=\"_volume\"></progress></div>\n";
 
     return post;
+}
+
+std::string readPostHTML() {
+    std::string result;
+    std::string files[] = { "volume.html", "videoimage.html" };
+
+    for (const auto & file : files) {
+        result += readFile(("js/" + file).c_str());
+    }
+
+    return result;
 }
 
 std::string insertAfterHead(std::string& origStr, std::string& addStr) {
@@ -228,6 +240,7 @@ RequestResponse::RequestResponse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFra
         preJavascript = readPreJavascript(browserIp, browserPort);
         postJavascript = readPostJavascript(browserIp, browserPort);
         preCSS = readPreCSS(browserIp, browserPort);
+        postHTML = readPostHTML();
     }
 
     this->blockThis = blockThis;
@@ -257,7 +270,19 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
 }
 
 void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
-    DEBUG("RequestResponse::GetResponseHeaders: {}", response->GetURL().ToString());
+    DEBUG("RequestResponse::GetResponseHeader: Error 1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
+            url_request->GetResponse()->GetError(), url_request->GetRequestError(),
+            url_request->GetResponse()->GetStatus(), url_request->GetRequestStatus(),
+            url_request->GetResponse()->GetStatusText().ToString() );
+
+    if (url_request->GetResponse()->GetStatus() != 200) {
+        response->SetStatus(url_request->GetResponse()->GetStatus());
+        response->SetStatusText(url_request->GetResponse()->GetStatusText());
+        response_length = 0;
+        lastContentType = "";
+
+        return;
+    }
 
     CefResponse::HeaderMap responseHeader;
     url_request->GetResponse()->GetHeaderMap(responseHeader);
@@ -323,10 +348,13 @@ void RequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     // Inject Javascript (header)
     download_data = insertAfterHead(download_data, preJavascript);
 
+    // inject HTML (body)
+    download_data = insertBeforeEnd(download_data, postHTML);
+
     // Inject Javascript (body)
     download_data = insertBeforeEnd(download_data, postJavascript);
 
-    // Inject CSS
+    // Inject CSS (header)
     download_data = insertAfterHead(download_data, preCSS);
 
     DEBUG("RequestClient::OnRequestComplete (after inject), Page Source: {}", download_data);

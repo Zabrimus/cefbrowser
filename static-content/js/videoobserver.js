@@ -8,35 +8,56 @@ const PLAY_STATES = {
     error: 6,
 };
 
+window.displayVideoOverlay = (x,y,w,h) => {
+    console.log("URL: " + document.URL);
+
+    let showOverlay = false;
+
+    if (document.URL.includes("hbbtv-apps.redbutton.de")) {
+        showOverlay = true;
+        h = h - 8;
+    }
+
+    if (showOverlay) {
+        let el = document.getElementById("_video_color_overlay_");
+        if (el) {
+            el.style.width = w + "px";
+            el.style.height = h + "px";
+            el.style.left = x + "px";
+            el.style.top = y + "px";
+            el.style.visibility = "visible";
+        }
+    }
+}
+
+window.hideVideoOverlay = () => {
+    let el = document.getElementById("_video_color_overlay_");
+    if (el) {
+        el.style.visibility = "hidden";
+    }
+}
+
 window.promoteVideoSize = (node, considerLayer) => {
     let position = node.getBoundingClientRect();
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
 
-    /*
-    console.log("In PromoteVideoSize: body (" + bodyPos.x + "," + bodyPos.y + "," + bodyPos.width + "," + bodyPos.height + ")");
-    console.log("In PromoteVideoSize: node (" + position.x + "," + position.y + "," + position.width + "," + position.height + ")");
-    console.log("In PromoteVideoSize: Fullscreen: " + ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)));
-    */
-
-    // if width or height of body is 0, then set values to the maximum size
-    if (bodyPos.width == 0 || bodyPos.height == 0) {
-        // bodyPos.width = 1280;
-        // bodyPos.height = 720;
-    }
-
-    if ((position.width == 300) && (position.height == 150)) {
-        // sometimes the wrong size is requested. Ignore this to prevent flickering
-        // console.log("Size 300x150 requested");
-
-        // overlay.style.visibility = "hidden";
-        // window.cefVideoFullscreen();
-        // return;
-    }
-
     if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
         window.cefVideoFullscreen();
+        window.hideVideoOverlay();
     } else {
-        window.cefVideoSize(position.x | 0, position.y | 0, position.width | 0, position.height | 0);
+        let posx = position.x | 0;
+        let posy = position.y | 0;
+        let posw = position.width | 0;
+        let posh = position.height | 0;
+
+        console.log("Video: " + posx + "," + posy + " -> " + posw + " x " + posh);
+
+        if ((posw <= 160 || posh <= 100) || (posw === 300 && posh === 150 && posx === 0)) {
+            console.log("  => Ignore video size");
+        } else {
+            window.displayVideoOverlay(posx, posy, posw, posh);
+            window.cefVideoSize(posx, posy, posw, posh);
+        }
     }
 }
 
@@ -281,16 +302,25 @@ function watchAndHandleVideoObjectMutations() {
                    mimeType.lastIndexOf('application/dash+xml', 0) === 0 || // mpeg-dash
                    mimeType.lastIndexOf('video/mpeg', 0) === 0) {           // mpeg-ts
 
-            console.log("Found Video on node: " + node + " -> " + node.data);
-            // console.log("All Cookies: " + document.cookie);
+            console.log("Found Video on node: " + node.outerHTML + " -> " + node.data);
 
-            let newUrl = window.cefStreamVideo(node.data);
+            console.log("1==> " + node.parentNode.outerHTML);
 
-            addVideoNode(node, newUrl);
-            node.data = newUrl;
-            node.style.visibility = 'hidden';
+            if (node.data) {
+                if (node.data.indexOf("2mdn.net") > 0) {
+                    // ignore this
+                    node.data = "http://404.fail";
+                } else {
 
-            considerLayer = true;
+                    let newUrl = window.cefStreamVideo(node.data);
+
+                    addVideoNode(node, newUrl);
+                    node.data = newUrl;
+                    node.style.visibility = 'hidden';
+
+                    considerLayer = true;
+                }
+            }
         }
 
         node.bindToCurrentChannel = node.bindToCurrentChannel || function() {

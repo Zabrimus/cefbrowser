@@ -80,6 +80,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         } else {
             if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possible, that MainFrame is null?
                 currentBrowser->GetMainFrame()->LoadURL(url);
+            } else {
+                ERROR("MainFrame is null");
             }
             res.set_content("ok", "text/plain");
         }
@@ -121,8 +123,10 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 _dynamic.close();
 
                 // load url
-                if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possiböe, that MainFrame is null?
+                if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possible, that MainFrame is null?
                     currentBrowser->GetMainFrame()->LoadURL(url);
+                } else {
+                    ERROR("MainFrame is null");
                 }
 
                 res.set_content("ok", "text/plain");
@@ -191,6 +195,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
                 if (frame != nullptr) { // Why is it possiböe, that MainFrame is null?
                     frame->ExecuteJavaScript(script, frame->GetURL(), 0);
+                } else {
+                    ERROR("MainFrame is null");
                 }
             } else {
                 // send key event via code
@@ -446,9 +452,7 @@ void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
 }
 
 bool BrowserApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {
-    TRACE("BrowserApp::OnProcessMessageReceived");
-
-    DEBUG("===> Render message: {}", message->GetName().ToString());
+    TRACE("BrowserApp::OnProcessMessageReceived(Renderer) {}", message->GetName().ToString());
 
     return false;
 }
