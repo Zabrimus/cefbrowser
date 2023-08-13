@@ -4,13 +4,16 @@
 #
 
 [binaries]
-c = 'clang-16'
-cpp = 'clang++-16'
+c = 'clang-17'
+cpp = 'clang++-17'
 pkgconfig = 'pkg-config'
 
 [built-in options]
-c_link_args = ['-fsanitize=address', '-l:libc++abi.a']
-cpp_link_args = ['-fsanitize=address', '-l:libc++abi.a']
+c_link_args = ['-fsanitize=address', '-l:libc++abi.so']
+cpp_link_args = ['-fsanitize=address', '-l:libc++abi.so']
+
+# c_link_args = ['-fsanitize=address', '-l:libc++abi']
+# cpp_link_args = ['-fsanitize=address', '-l:libc++abi']
 
 [project options]
 b_sanitize = 'address'

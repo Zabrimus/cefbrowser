@@ -30,7 +30,7 @@ bool isVideoOrAudio(std::string& data) {
 
 std::string readPreJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = {"init.js", "keyhandler.js", "_dynamic.js" };
+    std::string files[] = {"mutation-summary.js", "init.js", "keyhandler.js", "_dynamic.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());
@@ -74,9 +74,6 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     _dynamic.close();
 
     std::string post = "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
-
-    post += "<div id=\"_volumecontainer\" style=\"visibility: hidden;\"><progress value=\"0\" max=\"100\" id=\"_volume\"></progress></div>\n";
-
     return post;
 }
 
