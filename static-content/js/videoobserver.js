@@ -248,12 +248,16 @@ function watchAndHandleVideoObjectMutations() {
         node.playTime = video.duration * 1000;
         node.error = -1;
         node.type = "video/webm";
+        node.data = url;
+        node.style.visibility = 'hidden';
 
         video.autoplay = true;
         video.src = url;
         video.style = 'top:0px; left:0px; width:100%; height:100%;';
 
         node.replaceChildren(video);
+
+        console.log("2 ==> " + node.outerHTML);
     }
 
     const watchAndHandleVideoAttributes = (videoObject, layer) => {
@@ -315,8 +319,6 @@ function watchAndHandleVideoObjectMutations() {
                     let newUrl = window.cefStreamVideo(node.data);
 
                     addVideoNode(node, newUrl);
-                    node.data = newUrl;
-                    node.style.visibility = 'hidden';
 
                     considerLayer = true;
                 }
@@ -388,17 +390,26 @@ function watchAndHandleVideoObjectMutations() {
     };
 
     const handleAttributeChanged = (mutation) => {
-        // console.log("Target: " + mutation.target);
+        /* An attribute value changed on the element in
+           mutation.target; the attribute name is in
+           mutation.attributeName and its previous value is in
+           mutation.oldValue */
+        console.log("Attribute Target: " + mutation.target);
+        console.log("     Attribute Name:     " + mutation.attributeName);
+        console.log("     Attribute OldValue: " + mutation.oldValue);
+        console.log("     Attribute NewValue: " + mutation.newValue);
     };
 
     const handleMutation = (mutationList) => {
         mutationList.forEach((mutation) => {
             switch (mutation.type) {
+                case 'subtree':
                 case 'childList':
                     handleChildAddedRemoved(mutation);
                     break;
+
                 case 'attributes':
-                    // handleAttributeChanged(mutation);
+                    handleAttributeChanged(mutation);
                     break;
             }
         });
@@ -415,8 +426,9 @@ function watchAndHandleVideoObjectMutations() {
         'subtree': true,
         'childList': true,
         'attributes': true,
-        'characterData': true,
-        'attributeFilter': ["type"]
+        'attributeOldValue': true,
+        // 'characterData': true,
+        //'attributeFilter': ["src"]
     });
 }
 
