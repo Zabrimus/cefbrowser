@@ -11,7 +11,8 @@
 class BrowserClient : public CefClient,
                       public CefRenderHandler,
                       public CefLifeSpanHandler,
-                      public CefRequestHandler {
+                      public CefRequestHandler,
+                      public CefDisplayHandler {
 
 public:
     explicit BrowserClient(bool fullscreen, int width, int height,
@@ -35,6 +36,11 @@ public:
 
     // CefRequestHandler
     CefRefPtr<CefRequestHandler> GetRequestHandler() override {
+        return this;
+    }
+
+    // CefDisplayHandler
+    CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
         return this;
     }
 
@@ -66,6 +72,10 @@ public:
     // RequestHandler
     bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect) override;
     void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
+
+    // CefDisplayHandler
+    void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override;
+    bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
 
 private:
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);

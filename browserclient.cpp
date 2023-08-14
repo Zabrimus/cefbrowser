@@ -358,3 +358,45 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
 void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) {
 }
 
+void BrowserClient::OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString &value) {
+    TRACE("[JS] StatusMessage: {}", value.ToString());
+}
+
+bool BrowserClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString &message, const CefString &source, int line) {
+    if (!logger->isTraceEnabled()) {
+        return false;
+    }
+
+    std::string log_message;
+
+    switch(level) {
+        case LOGSEVERITY_DEFAULT:
+            log_message = "[Default] ";
+            break;
+        case LOGSEVERITY_VERBOSE:
+            log_message = "[Verbose] ";
+            break;
+        case LOGSEVERITY_INFO:
+            log_message = "[Info] ";
+            break;
+        case LOGSEVERITY_WARNING:
+            log_message = "[Warning] ";
+            break;
+        case LOGSEVERITY_ERROR:
+            log_message = "[Error] ";
+            break;
+        case LOGSEVERITY_FATAL:
+            log_message = "[Fatal] ";
+            break;
+        case LOGSEVERITY_DISABLE:
+            log_message = "[Disabled] ";
+            break;
+    }
+
+    log_message += "<" + source.ToString() + ", " + std::to_string(line) + "> " + message.ToString();
+
+    TRACE("[JS] {}", log_message);
+
+    return false;
+}
+
