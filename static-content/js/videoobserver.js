@@ -310,14 +310,14 @@ function checkObjectNode(summaries) {
     let node = summaries.added[0];
 
     if (node.type === 'video/broadcast') {
-        console.log("NEU Found TV on node: " + node);
+        console.log("Found TV on node: " + node);
     } else if ((node.type === 'video/mpeg4') ||             // mpeg4 video
                (node.type === 'video/mp4') ||               // h.264 video
                (node.type === 'audio/mp4') ||               // aac audio
                (node.type === 'audio/mpeg') ||              // mp3 audio
                (node.type === 'application/dash+xml') ||    // mpeg-dash
                (node.type === 'video/mpeg')) {              // mpeg-ts
-        console.log("NEU Found Video on node: " + node);
+        console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
         let newUrl = window.cefStreamVideo(node.data);
 
@@ -331,14 +331,16 @@ function checkObjectNode(summaries) {
 
     addNodeFunctions(node);
 
-    let clientRect = node.getBoundingClientRect();
-    console.log("   => " + clientRect.left + "," + clientRect.top + " => " + clientRect.width + " x " + clientRect.height);
+    // let clientRect = node.getBoundingClientRect();
+    // console.log("   => " + clientRect.left + "," + clientRect.top + " => " + clientRect.width + " x " + clientRect.height);
 
     promoteVideoSize(node);
 }
 
 const ms = new MutationSummary({
     callback(summaries) {
+        summaries.forEach((summary) => console.log(summary));
+
         summaries.forEach((summary) => checkObjectNode(summary));
     },
     queries: [

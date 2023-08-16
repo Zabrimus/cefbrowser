@@ -41,7 +41,10 @@ public:
 
     // CefDisplayHandler
     CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
-        return this;
+        // Disabled
+        return nullptr;
+
+        // return this;
     }
 
     // CefClient

@@ -393,9 +393,9 @@ bool BrowserClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_seve
             break;
     }
 
-    log_message += "<" + source.ToString() + ", " + std::to_string(line) + "> " + message.ToString();
+    log_message += message.ToString() + " <" + source.ToString() + ", " + std::to_string(line) + ">";
 
-    TRACE("[JS] {}", log_message);
+    JSTRACE("[JS] {}", log_message);
 
     return false;
 }

@@ -18,6 +18,7 @@
 #include "spdlog/sinks/rotating_file_sink.h"
 #include "spdlog/fmt/bin_to_hex.h"
 
+#define JSTRACE(...)   (logger->current())->log(spdlog::source_loc{}, spdlog::level::trace, __VA_ARGS__)
 #define TRACE(...)     SPDLOG_LOGGER_TRACE(logger->current(), __VA_ARGS__)
 #define DEBUG(...)     SPDLOG_LOGGER_DEBUG(logger->current(), __VA_ARGS__)
 #define INFO(...)      SPDLOG_LOGGER_INFO(logger->current(), __VA_ARGS__)
