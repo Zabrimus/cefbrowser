@@ -28,9 +28,9 @@ private:
     bool lastFullscreen;
 
 private:
-    void sendMessageToProcess(std::string message, CefProcessId target_process);
-    void sendMessageToProcess(std::string message, std::string parameter, CefProcessId target_process);
-    void sendMessageToProcess(std::string message, std::vector<std::string>& parameter, CefProcessId target_process);
+    void sendMessageToProcess(std::string message);
+    void sendMessageToProcess(std::string message, std::string parameter);
+    void sendMessageToProcess(std::string message, std::vector<std::string>& parameter);
 
     void stopVdrVideo();
 

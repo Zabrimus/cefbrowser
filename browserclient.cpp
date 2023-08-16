@@ -1,4 +1,5 @@
 #include <chrono>
+#include <algorithm>
 #include "browserclient.h"
 #include "sharedmemory.h"
 #include "database.h"
@@ -17,7 +18,10 @@ std::string urlBlockList[] {
         ".sensic.net",
         ".tvping.com",
         "tracking.redbutton.de",
-        "px.moatads.com"
+        "px.moatads.com",
+        "2mdn.net",
+        ".gvt1.com", // testwise
+        ".gvt2.com"  // testwise
 };
 
 BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, bool use_dirty_recs)
@@ -37,16 +41,6 @@ BrowserClient::~BrowserClient() {
 
     delete transcoderRemoteClient;
     delete vdrRemoteClient;
-}
-
-void BrowserClient::osdClearVideo(int x, int y, int width, int height) {
-    LOG_CURRENT_THREAD();
-    TRACE("BrowserClient::osdClearVideo: {}, {}, {}, {}", x, y, width, height);
-
-    clearX = x;
-    clearY = y;
-    clearWidth = width;
-    clearHeight = height;
 }
 
 void BrowserClient::setRenderSize(int width, int height) {
@@ -93,18 +87,12 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             co += r.width;
         }
 
-        // hex = 0xAARRGGBB.
-        // rgb(254, 46, 154) = #fe2e9a
-        // fffe2e9a => 00fe2e9a
-
         // delete parts of the OSD where a video shall be visible
-       /*
         for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
             if (outbuffer[i] == 0xfffe2e9a) {
                 outbuffer[i] = 0x00fe2e9a;
             }
         }
-        */
 
         if (osdqoi == QOI) {
             /*
@@ -240,7 +228,6 @@ void BrowserClient::loadUrl(CefRefPtr<CefBrowser> browser, const std::string& ur
     //  Es reicht, den Transcoder zu stoppen, obwohl selbst das muss nicht sein - denke ich - da der Transcoder das selbst managed.
 
     vdrRemoteClient->StopVideo();
-    // vdrRemoteClient->VideoFullscreen();
     transcoderRemoteClient->Stop();
 
     // load url
@@ -270,14 +257,20 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     for (const auto & block : urlBlockList) {
         if (url.substr(found + 3, found2).find(block) != std::string::npos) {
-            TRACE("Url {} is on the block list", url);
-            // block
             blockThis = true;
         }
     }
 
-    TRACE("GetResourceRequestHandler: is_navigation:{}, blockThis:{}, URL:{}, Initiator:{}", is_navigation, blockThis, request->GetURL().ToString(), request_initiator.ToString());
-    TRACE("GetResourceRequestHandler: Method:{}, Referrer:{}", request->GetMethod().ToString(), request->GetReferrerURL().ToString());
+    if (!blockThis) {
+        TRACE("GetResourceRequestHandler: is_navigation:{}, blockThis:{}, URL:{}, Initiator:{}", is_navigation,
+              blockThis, request->GetURL().ToString(), request_initiator.ToString());
+
+        if (request->GetResourceType() == RT_MEDIA) {
+            TRACE("GetResourceRequestHandler: RT_MEDIA: {}", request->GetURL().ToString());
+        }
+    }
+
+    /*
     if (logger->isTraceEnabled()) {
         switch(request->GetResourceType()) {
             case RT_MAIN_FRAME:
@@ -305,7 +298,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                 TRACE("GetResourceRequestHandler: RT_OBJECT");
                 break;
             case RT_MEDIA:
-                TRACE("GetResourceRequestHandler: RT_MEDIA");
+                TRACE("GetResourceRequestHandler: RT_MEDIA: {}", request->GetURL().ToString());
                 break;
             case RT_WORKER:
                 TRACE("GetResourceRequestHandler: RT_WORKER");
@@ -342,10 +335,14 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                 break;
         }
     }
+    */
 
     if ((is_navigation && request->GetResourceType() != RT_SUB_FRAME) || (request->GetResourceType() == RT_SUB_RESOURCE) || blockThis) {
-        DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
-              request->GetURL().ToString(), request_initiator.ToString());
+        if (!blockThis) {
+            DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
+                  request->GetURL().ToString(), request_initiator.ToString());
+        }
+
         return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
                                    disable_default_handling, browserIp, browserPort, blockThis);
     }
@@ -359,5 +356,47 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
 }
 
 void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) {
+}
+
+void BrowserClient::OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString &value) {
+    TRACE("[JS] StatusMessage: {}", value.ToString());
+}
+
+bool BrowserClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString &message, const CefString &source, int line) {
+    if (!logger->isTraceEnabled()) {
+        return false;
+    }
+
+    std::string log_message;
+
+    switch(level) {
+        case LOGSEVERITY_DEFAULT:
+            log_message = "[Default] ";
+            break;
+        case LOGSEVERITY_VERBOSE:
+            log_message = "[Verbose] ";
+            break;
+        case LOGSEVERITY_INFO:
+            log_message = "[Info] ";
+            break;
+        case LOGSEVERITY_WARNING:
+            log_message = "[Warning] ";
+            break;
+        case LOGSEVERITY_ERROR:
+            log_message = "[Error] ";
+            break;
+        case LOGSEVERITY_FATAL:
+            log_message = "[Fatal] ";
+            break;
+        case LOGSEVERITY_DISABLE:
+            log_message = "[Disabled] ";
+            break;
+    }
+
+    log_message += message.ToString() + " <" + source.ToString() + ", " + std::to_string(line) + ">";
+
+    JSTRACE("[JS] {}", log_message);
+
+    return false;
 }
 
