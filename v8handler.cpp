@@ -84,9 +84,12 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto& urlParam = arguments.at(0);
             auto url = urlParam.get()->GetStringValue();
 
+            const auto& cookiesParam = arguments.at(1);
+            auto cookies = cookiesParam.get()->GetStringValue();
+
             TRACE("Video URL: {}", url.ToString());
 
-            if (!transcoderRemoteClient->StreamUrl(url)) {
+            if (!transcoderRemoteClient->StreamUrl(url, cookies)) {
                 // transcoder not available
                 ERROR("Unable to send request to transcoder");
                 return false;

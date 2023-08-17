@@ -10,9 +10,10 @@ TranscoderRemoteClient::~TranscoderRemoteClient() {
     delete client;
 }
 
-bool TranscoderRemoteClient::StreamUrl(std::string url) {
+bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies) {
     httplib::Params params;
     params.emplace("url", url);
+    params.emplace("cookies", cookies);
     params.emplace("responseIp", browserIp);
     params.emplace("responsePort", std::to_string(browserPort));
 

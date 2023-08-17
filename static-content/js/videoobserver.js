@@ -109,7 +109,20 @@ function addNodeFunctions(node) {
 }
 
 function addVideoNode(node, url) {
-    let video = document.createElement('video');
+    let video;
+    let newVideo = false;
+
+    // Test if a node of type video already exists
+    let videoElem = node.querySelector("video");
+
+    if (videoElem === null) {
+        // create video node
+        video = document.createElement('video');
+        newVideo = true;
+    } else {
+        video = videoElem;
+        newVideo = false;
+    }
 
     node.play = node.play || function (speed) {
         console.log("Node Play Speed " + speed);
@@ -298,8 +311,11 @@ function addVideoNode(node, url) {
     video.autoplay = true;
     video.src = url;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
+    video.type = "video/webm";
 
-    node.replaceChildren(video);
+    if (newVideo) {
+        node.replaceChildren(video);
+    }
 }
 
 function checkObjectNode(summaries) {
@@ -319,7 +335,7 @@ function checkObjectNode(summaries) {
                (node.type === 'video/mpeg')) {              // mpeg-ts
         console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
-        let newUrl = window.cefStreamVideo(node.data);
+        let newUrl = window.cefStreamVideo(node.data, document.cookie);
 
         node.setAttribute('data', "http://404.gibbt.nixx");
         addVideoNode(node, newUrl);
@@ -331,22 +347,21 @@ function checkObjectNode(summaries) {
 
     addNodeFunctions(node);
 
-    // let clientRect = node.getBoundingClientRect();
-    // console.log("   => " + clientRect.left + "," + clientRect.top + " => " + clientRect.width + " x " + clientRect.height);
-
     promoteVideoSize(node);
 }
 
 const ms = new MutationSummary({
     callback(summaries) {
-        summaries.forEach((summary) => console.log(summary));
-
         summaries.forEach((summary) => checkObjectNode(summary));
     },
     queries: [
         {
           element: 'object',
           elementAttributes: 'data type',
+        },
+        {
+            element: 'video',
+            elementAttributes: 'src',
         }
     ]
 });
