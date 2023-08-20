@@ -352,6 +352,13 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
 
 bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect) {
+    DEBUG("BrowserClient::OnBeforeBrowse: Url: {}, Redirect: {}, UserGesture: {}", request->GetURL().ToString(), is_redirect, user_gesture);
+
+    if (request->GetURL().ToString().find("p7s1video.net/") != std::string::npos) {
+        DEBUG("Found external video domain. Cancel the request. Request will be handled later.");
+        return true;
+    }
+
     return false;
 }
 

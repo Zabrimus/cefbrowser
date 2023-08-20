@@ -8,7 +8,7 @@ public:
     explicit TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort);
     ~TranscoderRemoteClient();
 
-    bool StreamUrl(std::string url, std::string cookies);
+    bool StreamUrl(std::string url, std::string cookies, std::string referer, std::string userAgent);
     bool Pause();
     bool Seek(std::string seekTo);
     bool Resume(std::string position);

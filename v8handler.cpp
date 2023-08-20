@@ -87,9 +87,15 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto& cookiesParam = arguments.at(1);
             auto cookies = cookiesParam.get()->GetStringValue();
 
+            const auto& refererParam = arguments.at(2);
+            auto referer = refererParam.get()->GetStringValue();
+
+            const auto& userAgentParam = arguments.at(3);
+            auto userAgent = userAgentParam.get()->GetStringValue();
+
             TRACE("Video URL: {}", url.ToString());
 
-            if (!transcoderRemoteClient->StreamUrl(url, cookies)) {
+            if (!transcoderRemoteClient->StreamUrl(url, cookies, referer, userAgent)) {
                 // transcoder not available
                 ERROR("Unable to send request to transcoder");
                 return false;
@@ -99,6 +105,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 vdrRemoteClient->StartVideo();
             }
         }
+
+        TRACE("Javascript return new Video URL: {}", "http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
 
         retval = CefV8Value::CreateString("http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
         return true;
