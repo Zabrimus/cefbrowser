@@ -112,6 +112,9 @@ function addVideoNode(node, url) {
     // Test if a node of type video already exists
     let video = document.createElement('video');
     let videoSource = document.createElement('source');
+    videoSource.type = "video/webm";
+    videoSource.src = url;
+
     video.appendChild(videoSource);
     video.autoplay = true;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
@@ -251,13 +254,13 @@ function addVideoNode(node, url) {
     }, false);
 
     video && video.addEventListener && video.addEventListener('durationchange', () => {
-        console.log("Video event durationchange");
+        console.log("Video event durationchange to " + video.duration);
         node.duration = video.duration * 1000;
     }, false);
 
     video && video.addEventListener && video.addEventListener('timeupdate', function () {
-        console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
-        console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
+        // console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
+        // console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
 
         var pos = Math.floor(video.currentTime * 1000);
         node.playPostion = pos;
@@ -294,18 +297,15 @@ function addVideoNode(node, url) {
         }
     }, false);
 
+    console.log("video.duration: " + video.duration);
+
     node.playTime = video.duration * 1000;
     node.error = -1;
     node.type = "video/webm";
     node.data = url;
     node.style.visibility = 'hidden';
 
-    videoSource.type = "video/webm";
-    videoSource.src = url;
-
-    console.log("[addVideoNode] Before: " + node.outerHTML);
-    node.replaceChildren(video);
-    console.log("[addVideoNode] After: " + node.outerHTML);
+    node.append(video);
 }
 
 function checkObjectNode(summaries) {
@@ -326,8 +326,6 @@ function checkObjectNode(summaries) {
         console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
         let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
-
-        node.setAttribute('data', "http://404.gibbt.nixx");
         addVideoNode(node, newUrl);
     } else {
         // ignore all others
@@ -336,36 +334,20 @@ function checkObjectNode(summaries) {
     }
 
     addNodeFunctions(node);
-
     promoteVideoSize(node);
 }
 
 const ms = new MutationSummary({
     callback(summaries) {
         summaries.forEach((summary) => {
-            console.log("Added: " + summary.added.length);
-            summary.added.forEach(s => {
-                console.log("   -> " + s.parentElement.outerHTML);
-            })
-
-            console.log("Removed: " + summary.removed.length);
-            summary.removed.forEach(s => {
-                console.log("   -> " + s.nodeName + "," + s.parentNode);
-            })
-
-            console.log("Reparented: " + summary.reparented.length);
-            summary.reparented.forEach(s => {
-                console.log("   -> " + s.parentElement.outerHTML);
-            })
-
             console.log(summary);
             checkObjectNode(summary);
         });
     },
     queries: [
         {
-          element: 'object'
-          // elementAttributes: 'data type',
+            element: 'object',
+            elementAttributes: 'data type',
         }
     ]
 });
