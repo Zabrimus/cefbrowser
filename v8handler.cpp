@@ -95,6 +95,14 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             TRACE("Video URL: {}", url.ToString());
 
+            // 1. Step call Probe
+            if (!transcoderRemoteClient->Probe(url, cookies, referer, userAgent)) {
+                // transcoder not available
+                ERROR("Unable to send request to transcoder");
+                return false;
+            }
+
+            // 2. Step call StreamUrl
             if (!transcoderRemoteClient->StreamUrl(url, cookies, referer, userAgent)) {
                 // transcoder not available
                 ERROR("Unable to send request to transcoder");

@@ -109,14 +109,10 @@ function addNodeFunctions(node) {
 }
 
 function addVideoNode(node, url) {
-    // Test if a node of type video already exists
     let video = document.createElement('video');
-    let videoSource = document.createElement('source');
-    videoSource.type = "video/webm";
-    videoSource.src = url;
-
-    video.appendChild(videoSource);
-    video.autoplay = true;
+    video.type = "video/webm";
+    video.src = url;
+    video.autoplay = false;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
 
     node.play = node.play || function (speed) {
@@ -297,7 +293,14 @@ function addVideoNode(node, url) {
         }
     }, false);
 
+    video && video.addEventListener && video.addEventListener('loadedmetadata', function () {
+        console.log("Video loaded metadata, duration " + video.duration);
+    }, false);
+
     console.log("video.duration: " + video.duration);
+
+    // delete all children
+    node.innerHTML = "";
 
     node.playTime = video.duration * 1000;
     node.error = -1;
@@ -306,6 +309,9 @@ function addVideoNode(node, url) {
     node.style.visibility = 'hidden';
 
     node.append(video);
+
+    video.load();
+    video.play();
 }
 
 function checkObjectNode(summaries) {
