@@ -112,8 +112,9 @@ function addVideoNode(node, url) {
     let video = document.createElement('video');
     video.type = "video/webm";
     video.src = url;
-    video.autoplay = false;
+    // video.autoplay = false;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
+    video.preload = "auto";
 
     node.play = node.play || function (speed) {
         console.log("Node Play Speed " + speed);
@@ -175,7 +176,6 @@ function addVideoNode(node, url) {
         node.speed = 0;
 
         window.stop_video_quirk();
-
         return true;
     }
 
@@ -305,13 +305,15 @@ function addVideoNode(node, url) {
     node.playTime = video.duration * 1000;
     node.error = -1;
     node.type = "video/webm";
-    node.data = url;
+    node.data = "http://gibbet.nix"; // url;
     node.style.visibility = 'hidden';
 
     node.append(video);
 
-    video.load();
-    video.play();
+    setTimeout(() => {
+        video.load();
+        video.play();
+    }, 0);
 }
 
 function checkObjectNode(summaries) {
