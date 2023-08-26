@@ -76,6 +76,7 @@ void V8Handler::sendMessageToProcess(std::string message, std::vector<std::strin
 
 bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, const CefV8ValueList &arguments, CefRefPtr<CefV8Value> &retval, CefString &exception) {
     DEBUG("V8Handler::Execute: {}", name.ToString());
+    time_t now = time(nullptr);
 
     if (name == "StreamVideo") {
         if (!arguments.empty()) {
@@ -96,7 +97,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             TRACE("Video URL: {}", url.ToString());
 
             // 1. Step call Probe
-            if (!transcoderRemoteClient->Probe(url, cookies, referer, userAgent)) {
+            if (!transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now))) {
                 // transcoder not available
                 ERROR("Unable to send request to transcoder");
                 return false;
@@ -114,9 +115,10 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             }
         }
 
-        TRACE("Javascript return new Video URL: {}", "http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
+        std::string newVideoUrl = "http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + "-" + std::to_string(now) + ".webm";
+        TRACE("Javascript return new Video URL: {}", newVideoUrl);
 
-        retval = CefV8Value::CreateString("http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + ".webm");
+        retval = CefV8Value::CreateString(newVideoUrl);
         return true;
     } else if (name == "StopVideo") {
         transcoderRemoteClient->Stop();

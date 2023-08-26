@@ -170,10 +170,17 @@ function addVideoNode(node, url) {
         window.cefStopVideo();
 
         video.pause();
+        video.removeAttribute('src'); // empty source
+        video.load();
+
         video.currentTime = 0;
         node.playState = PLAY_STATES.stopped;
         node.playPosition = 0;
         node.speed = 0;
+
+        // remove all event listeners
+        document.getElementsByTagName('video')[0].outerHTML = document.getElementsByTagName('video')[0].outerHTML;
+        node.outerHTML = node.outerHTML;
 
         window.stop_video_quirk();
         return true;
@@ -333,6 +340,8 @@ function checkObjectNode(summaries) {
                (node.type === 'video/mpeg')) {              // mpeg-ts
         console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
+        console.log("AddedNode(outer): " + node.outerHTML);
+
         let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
         addVideoNode(node, newUrl);
     } else {
