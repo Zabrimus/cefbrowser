@@ -46,7 +46,7 @@ std::string readPreJavascript(std::string browserIp, int browserPort) {
 
 std::string readPreCSS(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = { "TiresiasPCfont.css", "volume.css" };
+    std::string files[] = { "TiresiasPCfont.css", "volume.css", "videoquirks.css" };
 
     for (const auto & file : files) {
         result += readFile(("css/" + file).c_str());

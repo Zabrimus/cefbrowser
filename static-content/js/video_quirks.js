@@ -1,70 +1,67 @@
-function _quirk_body_background(value) {
-    document.body.style.backgroundColor = value;
-}
+function _quirk_add_class(id, tagName, classname) {
+    let sel;
+    if (id !== null) {
+        sel = '#' + id;
+    } else {
+        sel = tagName;
+    }
 
-function  _quirk_style_id(id, key, value) {
-    let el = document.querySelectorAll('#' + id);
+    el = document.querySelectorAll(sel);
+
     if (typeof el !== 'undefined' && el != null && el.length > 0) {
         for (let i = 0; i < el.length; ++i) {
-            el[i].style[key] = value;
+            el[i].classList.add(classname);
         }
     }
 }
 
-function _quirk_save_set(name, id, key, value) {
-    let el = document.querySelectorAll('#' + id);
+function _quirk_remove_class(id, tagName, classname) {
+    let sel;
+    if (id !== null) {
+        sel = '#' + id;
+    } else {
+        sel = tagName;
+    }
+
+    el = document.querySelectorAll(sel);
+
     if (typeof el !== 'undefined' && el != null && el.length > 0) {
         for (let i = 0; i < el.length; ++i) {
-            document[name + '_' + i] = el[i].style[key];
-            el[i].style[key] = value;
+            el[i].classList.remove(classname);
         }
     }
 }
 
-function _quirk_restore_set(name, id, key) {
-    let el = document.querySelectorAll('#' + id);
-    if (typeof el !== 'undefined' && el != null && el.length > 0) {
-        for (let i = 0; i < el.length; ++i) {
-            el[i].style[key] = document[name + '_' + i];
-        }
-    }
+function _quirk_hide_element(id, tagName) {
+    _quirk_add_class(id, tagName, 'quirk_hide_element');}
+
+function _quirk_unhide_element(id, tagName) {
+    _quirk_remove_class(id, tagName, 'quirk_hide_element');
 }
 
 function activate_quirks(isStart) {
     // Arte.tv
     if (document.location.href.search("www.arte.tv") > 0) {
         if (isStart) {
-            _quirk_style_id('player', 'visibility', 'hidden');
+            _quirk_hide_element('player', null);
         } else {
-            _quirk_style_id('player', 'visibility', 'visible');
+            _quirk_unhide_element('player', null);
         }
     } else if (document.location.href.search("hbbtv.redbutton.de/extern/redorbit/hbbtv/apps/") > 0) {
         if (isStart) {
-            _quirk_style_id('contentHub-home', 'visibility', 'hidden');
-            _quirk_style_id('stage', 'visibility', 'hidden');
-            _quirk_style_id('screen', 'background', 'transparent');
-            _quirk_body_background('transparent');
+            _quirk_hide_element('contentHub-home', null);
+            _quirk_hide_element('stage', null);
+            _quirk_hide_element('slide-wrapper', null);
 
-            /*
-            _quirk_style_id('content', 'visibility', 'hidden');
-            _quirk_style_id('footer', 'visibility', 'hidden');
-            _quirk_body_background('transparent');
-            _quirk_save_set('HBBTV_SAVE_CONTENT_HUB_HOME', 'contentHub-home', 'background', 'transparent');
-            _quirk_save_set('HBBTV_SAVE_SCREEN', 'screen', 'background', 'transparent');
-             */
+            _quirk_add_class('screen', null, 'quirk_background_transparent');
+            _quirk_add_class(null, 'body', 'quirk_background_transparent');
         } else {
-            _quirk_style_id('contentHub-home', 'visibility', 'visible');
-            _quirk_style_id('stage', 'visibility', 'visible');
-            _quirk_style_id('screen', 'background', '#efefef');
-            _quirk_body_background('#2c2c2c');
+            _quirk_unhide_element('contentHub-home', null);
+            _quirk_unhide_element('stage', null);
+            _quirk_unhide_element('slide-wrapper', null);
 
-            /*
-            _quirk_style_id('content', 'visibility', 'visible');
-            _quirk_style_id('footer', 'visibility', 'visible');
-            _quirk_body_background('#2c2c2c');
-            _quirk_restore_set('HBBTV_SAVE_CONTENT_HUB_HOME', 'contentHub-home', 'background');
-            _quirk_restore_set('HBBTV_SAVE_SCREEN', 'screen', 'background');
-            */
+            _quirk_remove_class('screen', null, 'quirk_background_color1');
+            _quirk_remove_class(null, 'body', 'quirk_background_color2');
         }
     }
 }

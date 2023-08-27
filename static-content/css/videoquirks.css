@@ -1,0 +1,17 @@
+.quirk_hide_element, .quirk_hide_element *, .quirk_hide_element::before, .quirk_hide_element::after {
+    visibility: hidden !important;
+}
+
+.quirk_background_transparent {
+    background: transparent !important;
+}
+
+.quirk_background_color1 {
+    background: #efefef;
+}
+
+.quirk_background_color2 {
+    background: ##2c2c2c;
+}
+
+
