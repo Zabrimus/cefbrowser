@@ -99,7 +99,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             // 1. Step call Probe
             if (!transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now))) {
                 // transcoder not available
-                ERROR("Unable to send request to transcoder");
+                ERROR("Probe failed: Encrypted stream or transcoder not available.");
                 return false;
             }
 

@@ -62,7 +62,7 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
 
 std::string readPostJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = { "_zoom_level.js", "video_quirks.js", "initlast.js", "videoobserver.js", "hbbtv.js" };
+    std::string files[] = { "_zoom_level.js", "video_quirks.js", "videoobserver.js", "hbbtv.js", "initlast.js" };
 
     for (const auto & file : files) {
         result += readFile(("js/" + file).c_str());

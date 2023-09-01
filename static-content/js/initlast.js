@@ -12,7 +12,12 @@ function prepareElements() {
 
         if (mimeType.lastIndexOf('video/broadcast', 0) >= 0) { // TV
             console.log("Init Found TV on node: " + node);
-            node.style.visibility = "hidden";
+            window.addVideoOverlay(node);
+            addNodeFunctions(node);
+
+            setTimeout(() => {
+                promoteVideoSize(node);
+            }, 10);
         }
     }
 
@@ -30,6 +35,10 @@ function prepareElements() {
             videoElement.width = bodyPos.width;
             videoElement.height = bodyPos.height;
         }
+
+        setTimeout(() => {
+            promoteVideoSize(videoElement);
+        }, 10);
     }
 }
 

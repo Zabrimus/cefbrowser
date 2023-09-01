@@ -8,23 +8,26 @@ const PLAY_STATES = {
     error: 6,
 };
 
-window.displayVideoOverlay = (x,y,w,h) => {
-    let showOverlay = false;
+window.addVideoOverlay = (node) => {
+    let tv = document.createElement('div');
+    tv.id = "_video_color_overlay_";
+    tv.style.width = "100%";
+    tv.style.height = "100%";
+    tv.style.background = "rgb(254, 46, 154)";
+    tv.style.zIndex = 999;
+    tv.style.position = "relative";
+    node.visibility = "hidden";
+    node.append(tv);
+}
 
+window.displayVideoOverlay = (x,y,w,h) => {
     if (document.URL.includes("hbbtv-apps.redbutton.de")) {
-        showOverlay = true;
         h = h - 8;
     }
 
-    if (showOverlay) {
-        let el = document.getElementById("_video_color_overlay_");
-        if (el) {
-            el.style.width = w + "px";
-            el.style.height = h + "px";
-            el.style.left = x + "px";
-            el.style.top = y + "px";
-            el.style.visibility = "visible";
-        }
+   let el = document.getElementById("_video_color_overlay_");
+    if (el) {
+        el.style.visibility = "visible";
     }
 }
 
@@ -39,18 +42,25 @@ window.promoteVideoSize = (node) => {
     let position = node.getBoundingClientRect();
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
 
-    if ((position.x === bodyPos.x) && (position.y === bodyPos.y) && (position.height === bodyPos.height) && (position.width === bodyPos.width)) {
+    if ( (Math.abs(position.x - bodyPos.x) < 20) &&
+        (Math.abs(position.y - bodyPos.y) < 20) &&
+        (Math.abs(position.height - bodyPos.height) < 20) &&
+        (Math.abs(position.width - bodyPos.width) < 20)) {
+
         window.cefVideoFullscreen();
         window.hideVideoOverlay();
+        window.start_video_quirk_Fullscreen();
     } else {
         let posx = position.x | 0;
         let posy = position.y | 0;
         let posw = position.width | 0;
         let posh = position.height | 0;
 
+        console.log("Body:  " + bodyPos.x + "," + bodyPos.y + " -> " + bodyPos.width + " x " + bodyPos.height);
         console.log("Video: " + posx + "," + posy + " -> " + posw + " x " + posh);
 
         window.displayVideoOverlay(posx, posy, posw, posh);
+        window.stop_video_quirk_Fullscreen();
         window.cefVideoSize(posx, posy, posw, posh);
     }
 }
@@ -309,6 +319,8 @@ function addVideoNode(node, url) {
     // delete all children
     node.innerHTML = "";
 
+    window.addVideoOverlay(node);
+
     node.playTime = video.duration * 1000;
     node.error = -1;
     node.type = "video/webm";
@@ -323,8 +335,35 @@ function addVideoNode(node, url) {
     }, 0);
 }
 
-function checkObjectNode(summaries) {
-    if (summaries.added === undefined || summaries.added.length === 0 || summaries.added[0].type === undefined) {
+function checkPositionObjectNode(summary) {
+    // collect all nodes
+    let nodeSet = new Set();
+
+    for (const attribute of ['width', 'height', 'left', 'top', 'style']) {
+        let arr = summary.attributeChanged[attribute];
+        for (let i = 0; i < arr.length; ++i) {
+            nodeSet.add(arr[i]);
+        }
+    }
+
+    nodeSet.forEach(node => {
+        if ((node.type === 'video/mpeg4') ||             // mpeg4 video
+            (node.type === 'video/mp4') ||               // h.264 video
+            (node.type === 'audio/mp4') ||               // aac audio
+            (node.type === 'audio/mpeg') ||              // mp3 audio
+            (node.type === 'application/dash+xml') ||    // mpeg-dash
+            (node.type === 'video/mpeg') ||              // ts
+            (node.type === 'video/broadcast') ||         // TV
+            (node.type === 'video/webm')) {              // webm
+
+            console.log("checkPositionObjectNode: promoteVideoSize");
+            promoteVideoSize(node);
+        }
+    })
+}
+
+function checkAddedObjectNode(summaries) {
+    if (summaries.added.length === 0) {
         return;
     }
 
@@ -332,39 +371,42 @@ function checkObjectNode(summaries) {
 
     if (node.type === 'video/broadcast') {
         console.log("Found TV on node: " + node);
+        window.addVideoOverlay(node);
+
+        addNodeFunctions(node);
+        promoteVideoSize(node);
     } else if ((node.type === 'video/mpeg4') ||             // mpeg4 video
-               (node.type === 'video/mp4') ||               // h.264 video
-               (node.type === 'audio/mp4') ||               // aac audio
-               (node.type === 'audio/mpeg') ||              // mp3 audio
-               (node.type === 'application/dash+xml') ||    // mpeg-dash
-               (node.type === 'video/mpeg')) {              // mpeg-ts
+        (node.type === 'video/mp4') ||               // h.264 video
+        (node.type === 'audio/mp4') ||               // aac audio
+        (node.type === 'audio/mpeg') ||              // mp3 audio
+        (node.type === 'application/dash+xml') ||    // mpeg-dash
+        (node.type === 'video/mpeg')) {              // mpeg-ts
         console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
-        console.log("AddedNode(outer): " + node.outerHTML);
 
         let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
         addVideoNode(node, newUrl);
+        addNodeFunctions(node);
+        promoteVideoSize(node);
     } else {
         // ignore all others
         console.log("Ignore type " + node.type);
-        return;
     }
-
-    addNodeFunctions(node);
-    promoteVideoSize(node);
 }
 
 const ms = new MutationSummary({
     callback(summaries) {
         summaries.forEach((summary) => {
             console.log(summary);
-            checkObjectNode(summary);
+
+            checkAddedObjectNode(summary);
+            checkPositionObjectNode(summary);
         });
     },
     queries: [
         {
             element: 'object',
-            elementAttributes: 'data type',
+            elementAttributes: 'data type width height left top style',
         }
     ]
 });
