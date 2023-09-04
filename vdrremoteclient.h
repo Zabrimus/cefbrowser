@@ -12,11 +12,11 @@ public:
     bool ProcessOsdUpdateQoi(int disp_width, int disp_height, int x, int y, const std::string& imageQoi);
     bool ProcessTSPacket(std::string packets) const;
 
-    bool StartVideo();
+    bool StartVideo(std::string videoInfo);
     bool StopVideo();
     bool Pause();
     bool Resume();
-    bool ResetVideo();
+    bool ResetVideo(std::string videoInfo);
 
     bool VideoSize(int x, int y, int w, int h);
     bool VideoFullscreen();

@@ -10,7 +10,7 @@ TranscoderRemoteClient::~TranscoderRemoteClient() {
     delete client;
 }
 
-bool TranscoderRemoteClient::Probe(std::string url, std::string cookies, std::string referer, std::string userAgent, std::string postfix) {
+std::string TranscoderRemoteClient::Probe(std::string url, std::string cookies, std::string referer, std::string userAgent, std::string postfix) {
     httplib::Params params;
     params.emplace("url", url);
     params.emplace("cookies", cookies);
@@ -23,17 +23,16 @@ bool TranscoderRemoteClient::Probe(std::string url, std::string cookies, std::st
     if (auto res = client->Post("/Probe", params)) {
         if (res->status != 200) {
             TRACE("Http result: {}", res->status);
-            return false;
+            return "";
         } else {
             TRACE("Probe sent: {}", res->status);
+            return res->body;
         }
     } else {
         auto err = res.error();
         ERROR("Http error: {}", httplib::to_string(err));
-        return false;
+        return "";
     }
-
-    return true;
 }
 
 bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies, std::string referer, std::string userAgent) {

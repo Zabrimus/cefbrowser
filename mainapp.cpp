@@ -311,6 +311,13 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
+    svr.Get("/StopVideo", [&transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
+        transcoderRemoteClient.Stop();
+
+        res.status = 200;
+        res.set_content("ok", "text/plain");
+    });
+
     svr.set_exception_handler([](const auto& req, auto& res, std::exception_ptr ep) {
         auto fmt = "<h1>Error 500</h1><p>%s</p>";
         char buf[BUFSIZ];

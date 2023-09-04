@@ -69,7 +69,7 @@ bool FFmpegHandler::streamVideo(std::string url) {
 
     // TODO: Evt. Transcoding durchführen. Die Commandline muss generischer werden.
     DEBUG("Start transcoder");
-    client->StartVideo();
+    client->StartVideo(std::string());
 
     std::string cmdLine = "ffmpeg -re -y -i " + url +  " -c copy -f mpegts " + fifoFilename;
     streamHandler = new TinyProcessLib::Process(cmdLine, "",

@@ -8,9 +8,11 @@
 bool startVideo;
 bool videoReset;
 
+std::string videoInfo;
+
 void V8Handler::stopVdrVideo() {
-    int waitTime = 50; // ms
-    int count = 1000 / waitTime;
+    int waitTime = 10; // ms
+    int count = 5000 / waitTime;
     startVideo = false;
 
     while (count-- > 0 && !startVideo) {
@@ -18,9 +20,10 @@ void V8Handler::stopVdrVideo() {
     }
 
     if (startVideo) {
-        vdrRemoteClient->ResetVideo();
+        vdrRemoteClient->ResetVideo(videoInfo);
         videoReset = true;
     } else {
+        videoInfo = "";
         vdrRemoteClient->StopVideo();
         videoReset = false;
     }
@@ -34,6 +37,8 @@ V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std
 
     lastVideoX = lastVideoY = lastVideoW = lastVideoH = 0;
     lastFullscreen = false;
+
+    videoInfo = "";
 }
 
 V8Handler::~V8Handler() {
@@ -80,8 +85,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
     if (name == "StreamVideo") {
         if (!arguments.empty()) {
-            startVideo = true;
-
             const auto& urlParam = arguments.at(0);
             auto url = urlParam.get()->GetStringValue();
 
@@ -97,9 +100,14 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             TRACE("Video URL: {}", url.ToString());
 
             // 1. Step call Probe
-            if (!transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now))) {
+            videoInfo = transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now));
+            startVideo = true;
+
+            TRACE("Video Info:  {}", videoInfo);
+
+            if (videoInfo.empty()) {
                 // transcoder not available
-                ERROR("Probe failed: Encrypted stream or transcoder not available.");
+                ERROR("Probe failed: Transcoder not available, wrong video URL or another error.");
                 return false;
             }
 
@@ -111,7 +119,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             }
 
             if (!videoReset) {
-                vdrRemoteClient->StartVideo();
+                vdrRemoteClient->StartVideo(videoInfo);
             }
         }
 
@@ -188,6 +196,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto w = arguments.at(2)->GetIntValue();
             const auto h = arguments.at(3)->GetIntValue();
 
+            // TODO: Ist das noch notwendig? Aufgrund der Änderungen auf mutation-summary sollte das nicht mehr passieren.
             if ((w <= 160 || h <= 100) || (w == 300 && h == 150 && x == 0)) {
                 // ignore these video sizes
                 retval = CefV8Value::CreateBool(true);

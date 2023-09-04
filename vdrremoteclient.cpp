@@ -87,12 +87,15 @@ bool VdrRemoteClient::ProcessTSPacket(std::string packets) const {
     return true;
 }
 
-bool VdrRemoteClient::StartVideo() {
+bool VdrRemoteClient::StartVideo(std::string videoInfo) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
     TRACE("Call VdrRemoteClient::StartVideo");
 
-    if (auto res = client->Get("/StartVideo")) {
+    httplib::Params params;
+    params.emplace("videoInfo", videoInfo);
+
+    if (auto res = client->Post("/StartVideo", params)) {
         if (res->status != 200) {
             ERROR("Http result: {}", res->status);
             return false;
@@ -226,12 +229,15 @@ bool VdrRemoteClient::SendHello() {
     return true;
 }
 
-bool VdrRemoteClient::ResetVideo() {
+bool VdrRemoteClient::ResetVideo(std::string videoInfo) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
     TRACE("Call VdrRemoteClient::ResetVideo");
 
-    if (auto res = client->Get("/ResetVideo")) {
+    httplib::Params params;
+    params.emplace("videoInfo", videoInfo);
+
+    if (auto res = client->Post("/ResetVideo", params)) {
         if (res->status != 200) {
             ERROR("Http result: {}", res->status);
             return false;
