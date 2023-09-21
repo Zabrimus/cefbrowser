@@ -42,11 +42,15 @@ window.promoteVideoSize = (node) => {
     let position = node.getBoundingClientRect();
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
 
-    if ( (Math.abs(position.x - bodyPos.x) < 20) &&
-        (Math.abs(position.y - bodyPos.y) < 20) &&
-        (Math.abs(position.height - bodyPos.height) < 20) &&
-        (Math.abs(position.width - bodyPos.width) < 20)) {
+    if ( // video and body have nearly the same size
+        ((Math.abs(position.x - bodyPos.x) < 20) &&
+         (Math.abs(position.y - bodyPos.y) < 20) &&
+         (Math.abs(position.height - bodyPos.height) < 20) &&
+         (Math.abs(position.width - bodyPos.width) < 20)) ||
 
+        // special case: if video width = 1280 and heigth = 720 is also fullscreen
+        ( position.width === 1280 && position.height === 720)
+    ) {
         window.cefVideoFullscreen();
         window.hideVideoOverlay();
         window.start_video_quirk_Fullscreen();
