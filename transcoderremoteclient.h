@@ -14,7 +14,7 @@ public:
     bool Pause();
     bool Seek(std::string seekTo);
     bool Resume(std::string position);
-    bool Stop() const;
+    bool Stop(std::string& reason) const;
 
 private:
     httplib::Client *client;

@@ -137,7 +137,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateString(newVideoUrl);
         return true;
     } else if (name == "StopVideo") {
-        transcoderRemoteClient->Stop();
+        std::string reason = "Javascript StopVideo";
+        transcoderRemoteClient->Stop(reason);
 
         std::thread stopThread(&V8Handler::stopVdrVideo, this);
         stopThread.detach();

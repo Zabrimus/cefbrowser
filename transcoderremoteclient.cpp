@@ -117,9 +117,10 @@ bool TranscoderRemoteClient::Resume(std::string position) {
     return true;
 }
 
-bool TranscoderRemoteClient::Stop() const {
+bool TranscoderRemoteClient::Stop(std::string& reason) const {
     httplib::Params params;
     params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
+    params.emplace("reason", reason);
 
     if (auto res = client->Post("/Stop", params)) {
         if (res->status != 200) {

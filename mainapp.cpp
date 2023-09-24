@@ -72,7 +72,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
         if (url == "about:blank") {
             // special case
-            transcoderRemoteClient.Stop();
+            transcoderRemoteClient.Stop(url);
         }
 
         if (url.empty()) {
@@ -235,7 +235,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
             if (!vdrRemoteClient.ProcessTSPacket(std::string(body.c_str(), body.length()))) {
                 // vdr is not running? stop transcoder
                 ERROR("vdr is not running? stop transcoder");
-                transcoderRemoteClient.Stop();
+                std::string reason = "ProcessTSPacket failed";
+                transcoderRemoteClient.Stop(reason);
             }
 
             res.set_content("ok", "text/plain");
@@ -272,7 +273,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
             if (body != lastInsertChannel) {
                 // in case of channel switch always stop playing videos
-                transcoderRemoteClient.Stop();
+                std::string reason = "ChannelSwitch";
+                transcoderRemoteClient.Stop(reason);
                 lastInsertChannel = body;
             }
 
@@ -312,7 +314,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     });
 
     svr.Get("/StopVideo", [&transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
-        transcoderRemoteClient.Stop();
+        std::string reason = "VDR request StopVideo";
+        transcoderRemoteClient.Stop(reason);
 
         res.status = 200;
         res.set_content("ok", "text/plain");
