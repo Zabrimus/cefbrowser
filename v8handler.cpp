@@ -9,6 +9,7 @@ bool startVideo;
 bool videoReset;
 
 std::string videoInfo;
+std::string oldVideoInfo;
 
 void V8Handler::stopVdrVideo() {
     int waitTime = 10; // ms
@@ -100,10 +101,17 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             TRACE("Video URL: {}", url.ToString());
 
             // 1. Step call Probe
+            oldVideoInfo = videoInfo;
             videoInfo = transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now));
-            startVideo = true;
 
-            TRACE("Video Info:  {}", videoInfo);
+            TRACE("Video Info:  {} -> {}", oldVideoInfo, videoInfo);
+            if (!oldVideoInfo.empty() && oldVideoInfo != videoInfo) {
+                INFO("--> Video format change");
+            } else {
+                INFO("--> Video format equal");
+            }
+
+            startVideo = true;
 
             if (videoInfo.empty()) {
                 // transcoder not available
