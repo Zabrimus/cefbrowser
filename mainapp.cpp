@@ -243,6 +243,23 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
+    svr.Post("/StreamError", [&vdrRemoteClient, &transcoderRemoteClient](const httplib::Request &req, httplib::Response &res) {
+        std::lock_guard<std::mutex> guard(httpServerMutex);
+
+        auto reason = req.get_param_value("reason");
+
+        ERROR("Transcoder returned a stream error: {}", reason);
+
+        std::string script = "document.getElementsByTagName('video')[0].currentTime = document.getElementsByTagName('video')[0].duration;";
+        currentBrowser->GetMainFrame()->ExecuteJavaScript(script, currentBrowser->GetMainFrame()->GetURL(), 0);
+
+        std::string reas = "stream error";
+        transcoderRemoteClient.Stop(reas);
+        // vdrRemoteClient.StopVideo();
+
+        res.set_content("ok", "text/plain");
+    });
+
     // called by VDR
     svr.Post("/InsertHbbtv", [](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
