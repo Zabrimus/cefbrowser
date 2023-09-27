@@ -6,7 +6,8 @@
 #include "browserclient.h"
 
 bool startVideo;
-bool videoReset;
+bool videoReset = false;
+bool stopVideoThreadRunning = false;
 
 std::string videoInfo;
 std::string oldVideoInfo;
@@ -21,13 +22,19 @@ void V8Handler::stopVdrVideo() {
     }
 
     if (startVideo) {
+        TRACE("Thread stopVdrVideo, resetVideo");
+
         vdrRemoteClient->ResetVideo(videoInfo);
         videoReset = true;
     } else {
+        TRACE("Thread stopVdrVideo, stopVideo");
+
         videoInfo = "";
         vdrRemoteClient->StopVideo();
         videoReset = false;
     }
+
+    stopVideoThreadRunning = false;
 }
 
 V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std::string vdrIp, int vdrPort)
@@ -40,6 +47,8 @@ V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std
     lastFullscreen = false;
 
     videoInfo = "";
+    videoReset = false;
+    stopVideoThreadRunning = false;
 }
 
 V8Handler::~V8Handler() {
@@ -126,6 +135,12 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 return false;
             }
 
+            while (stopVideoThreadRunning) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+
+            TRACE("VideoReset: {}", videoReset);
+
             if (!videoReset) {
                 vdrRemoteClient->StartVideo(videoInfo);
             }
@@ -140,6 +155,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         std::string reason = "Javascript StopVideo";
         transcoderRemoteClient->Stop(reason);
 
+        stopVideoThreadRunning = true;
         std::thread stopThread(&V8Handler::stopVdrVideo, this);
         stopThread.detach();
 
