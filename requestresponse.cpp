@@ -267,9 +267,9 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
 }
 
 void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
-    DEBUG("RequestResponse::GetResponseHeader: Error 1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
-            url_request->GetResponse()->GetError(), url_request->GetRequestError(),
-            url_request->GetResponse()->GetStatus(), url_request->GetRequestStatus(),
+    DEBUG("RequestResponse::GetResponseHeader: Error1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
+            (int)url_request->GetResponse()->GetError(), (int)url_request->GetRequestError(),
+            (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),
             url_request->GetResponse()->GetStatusText().ToString() );
 
     if (url_request->GetResponse()->GetStatus() != 200) {
