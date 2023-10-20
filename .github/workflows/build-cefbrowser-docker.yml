@@ -135,7 +135,7 @@ jobs:
         run: |
           export PATH=~/.local/bin/:$PATH
           cd cefbrowser
-          ./distzip build ${{ inputs.arch_build }}          
+          ./distzip.sh build ${{ inputs.arch_build }}          
 
       - name: Get current date
         id: date
