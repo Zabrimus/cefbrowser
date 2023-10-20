@@ -158,6 +158,6 @@ jobs:
           gh release create "$TAG" -R Zabrimus/cefbrowser || true
           gh release upload "$TAG" ../dist-release/*-current-version.txt --clobber -R Zabrimus/cefbrowser || true
           gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
-          gh release upload "$TAG" ../dist-release/dist-release/*dist-cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
+          gh release upload "$TAG" ../dist-release/*dist-cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
