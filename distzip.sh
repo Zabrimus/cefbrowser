@@ -1,7 +1,7 @@
 #!/bin/sh
 
 REVISION=`git rev-parse --short HEAD`
-CEFVERSION=`grep "^CEF Version: " subprojects/cef/README.txt | awk -e '{ print $3 }'`
+CEFVERSION=`grep "^CEF Version: " subprojects/cef/README.txt | awk '{ print $3 }'`
 ARCH=$2
 
 # prepare directory

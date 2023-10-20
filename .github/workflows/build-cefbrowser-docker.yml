@@ -124,18 +124,15 @@ jobs:
             OPENSSL_VERSION=3
           fi
           
+          cd ..
+          ./distzip.sh build ${{ inputs.arch_build }}
+          cd build
+          
           echo "FILENAME=cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}" >> $GITHUB_ENV
           
           mv Release cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}
           tar -czf cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}.tar.gz cefbrowser-${{ inputs.arch }}-openssl-${OPENSSL_VERSION}-${CREV}                    
           ls -la
-
-      - name: build update release
-        shell: bash
-        run: |
-          export PATH=~/.local/bin/:$PATH
-          cd cefbrowser
-          ./distzip.sh build ${{ inputs.arch_build }}          
 
       - name: Get current date
         id: date
@@ -159,8 +156,8 @@ jobs:
           
           cd cefbrowser/build          
           gh release create "$TAG" -R Zabrimus/cefbrowser || true
-          gh release upload "$TAG" *-current-version.txt --clobber -R Zabrimus/cefbrowser || true
+          gh release upload "$TAG" ../dist-release/*-current-version.txt --clobber -R Zabrimus/cefbrowser || true
           gh release upload "$TAG" cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
-          gh release upload "$TAG" dist-release/*dist-cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
+          gh release upload "$TAG" ../dist-release/dist-release/*dist-cefbrowser*.tar.gz --clobber -R Zabrimus/cefbrowser || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
