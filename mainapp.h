@@ -9,7 +9,7 @@ class BrowserApp : public CefApp,
                    public CefBrowserProcessHandler,
                    public CefRenderProcessHandler {
 public:
-    BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs);
+    BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs, std::string static_path);
 
     // CefApp
     CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override;
@@ -42,6 +42,7 @@ private:
     int zoom_width;
     int zoom_height;
     bool use_dirty_recs;
+    std::string static_path;
 
     CefRefPtr<V8Handler> handler;
 

@@ -36,30 +36,34 @@ void hideVolumebar() {
     VolumeProgressRunning = false;
 }
 
-void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort) {
+void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string static_path) {
     int _browserPort = browserPort;
     std::string _browserIp = browserIp;
     VdrRemoteClient vdrRemoteClient(vdrIp, vdrPort);
     TranscoderRemoteClient transcoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort);
 
-    auto ret = svr.set_mount_point("/js", "./js");
+    if (static_path.empty()) {
+        static_path = ".";
+    }
+
+    auto ret = svr.set_mount_point("/js", static_path + "/js");
     if (!ret) {
         // must not happen
-        ERROR("http mount point ./js does not exists. Application will not work as desired.");
+        ERROR("http mount point {}/js does not exists. Application will not work as desired.", static_path);
         return;
     }
 
-    ret = svr.set_mount_point("/css", "./css");
+    ret = svr.set_mount_point("/css", static_path + "/css");
     if (!ret) {
         // must not happen
-        ERROR("http mount point ./css does not exists. Application will not work as desired.");
+        ERROR("http mount point {}/css does not exists. Application will not work as desired.", static_path);
         return;
     }
 
-    ret = svr.set_mount_point("/application", "./application");
+    ret = svr.set_mount_point("/application", static_path + "/application");
     if (!ret) {
         // must not happen
-        ERROR("http mount point ./application does not exists. Application will not work as desired.");
+        ERROR("http mount point {}/application does not exists. Application will not work as desired.", static_path);
         return;
     }
 
@@ -365,11 +369,11 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 }
 
 // BrowserApp
-BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs) :
+BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs, std::string static_path) :
         browserIp(browserIp), browserPort(browserPort),
         transcoderIp(transcoderIp), transcoderPort(transcoderPort),
         vdrIp(vdrIp), vdrPort(vdrPort), osdqoi(osdqoi), zoom_width(zoom_width), zoom_height(zoom_height),
-        use_dirty_recs(use_dirty_recs) {
+        use_dirty_recs(use_dirty_recs), static_path(static_path) {
 
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
@@ -419,7 +423,7 @@ void BrowserApp::OnContextInitialized() {
 
     INFO("Start Http Server on {}:{}", browserIp, browserPort);
 
-    std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort);
+    std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort, static_path);
     t1.detach();
 }
 
