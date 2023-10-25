@@ -16,6 +16,7 @@ public:
     std::string getMainApp(std::string channelId);
 
     void shutdown();
+    void printFatal();
 
     std::string getAppUrl(const std::string basicString, const std::string basicString1);
 

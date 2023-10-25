@@ -2,6 +2,8 @@
 #include "cef_includes.h"
 #include "logger.h"
 
+bool fatalLogged = false;
+
 std::string insertHbbtvSql = R"(
                          INSERT INTO HBBTV_URLS (CHANNEL_ID, CHANNEL_NAME, APPLICATION_ID, CONTROL_CODE, APP_NAME, URL_BASE, URL_LOC, URL_EXT)
                          VALUES (?,?,?,?,?,?,?,?);
@@ -18,10 +20,17 @@ int unused_callback(void *NotUsed, int argc, char **argv, char **azColName) {
 }
 
 Database::Database() {
-    int rc = sqlite3_open_v2("database/hbbtv_urls.db", &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nullptr);
+    std::string browserdb;
+    if (const char* env_p = std::getenv("BROWSER_DB_PATH")) {
+        browserdb = env_p;
+    } else {
+        browserdb = "database";
+    }
+
+    int rc = sqlite3_open_v2((browserdb + "/hbbtv_urls.db").c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nullptr);
 
     if (rc) {
-        ERROR("DB Error: {}", sqlite3_errmsg(db));
+        ERROR("DB Error: {} -> {}", browserdb + "/hbbtv_urls.db", sqlite3_errmsg(db));
         sqlite3_close(db);
         db = nullptr;
 
@@ -39,15 +48,37 @@ Database::~Database() {
 }
 
 void Database::shutdown() {
-    sqlite3_finalize(insertHbbtvStmt);
-    sqlite3_finalize(insertChannelStmt);
-
     if (db) {
+        sqlite3_finalize(insertHbbtvStmt);
+        sqlite3_finalize(insertChannelStmt);
+
         sqlite3_close(db);
     }
 }
 
+void Database::printFatal() {
+    if (fatalLogged) {
+        // prevent log spamming
+        return;
+    }
+
+    std::string browserdb;
+    if (const char* env_p = std::getenv("BROWSER_DB_PATH")) {
+        browserdb = env_p;
+    } else {
+        browserdb = "database";
+    }
+
+    CRITICAL("Unable to open database: {}", browserdb + "/hbbtv_urls.db");
+    fatalLogged = true;
+}
+
 bool Database::insertHbbtv(std::string json) {
+    if (db == nullptr) {
+        printFatal();
+        return false;
+    }
+
     CefRefPtr<CefValue> messageJson = CefParseJSON(json.c_str(), json.length(), JSON_PARSER_ALLOW_TRAILING_COMMAS);
     CefRefPtr<CefDictionaryValue> dict = messageJson->GetDictionary();
 
@@ -87,6 +118,11 @@ bool Database::insertHbbtv(std::string json) {
 }
 
 bool Database::insertChannel(std::string json) {
+    if (db == nullptr) {
+        printFatal();
+        return false;
+    }
+
     CefRefPtr<CefValue> messageJson = CefParseJSON(json.c_str(), json.length(), JSON_PARSER_ALLOW_TRAILING_COMMAS);
     CefRefPtr<CefDictionaryValue> dict = messageJson->GetDictionary();
 
@@ -103,6 +139,11 @@ bool Database::insertChannel(std::string json) {
 }
 
 std::string Database::getRedButtonUrl(std::string channelId) {
+    if (db == nullptr) {
+        printFatal();
+        return std::string();
+    }
+
     std::string sql = R"(
         SELECT url_base || ifnull(URL_loc,'') || ifnull(url_ext, '') url
         FROM HBBTV_URLS
@@ -125,6 +166,11 @@ std::string Database::getRedButtonUrl(std::string channelId) {
 }
 
 std::string Database::getChannel(std::string channelId) {
+    if (db == nullptr) {
+        printFatal();
+        return std::string();
+    }
+
     std::string sql = R"(
         SELECT CHANNEL_JSON
         FROM CHANNELS
