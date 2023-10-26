@@ -20,7 +20,7 @@ fi
 #
 # download cef
 #
-if [ ! -d subprojects/cef ]; then
+if [ ! -d subprojects/cef ] && [ ! -L subprojects/cef ]; then
     curl -L ${CEF_FILE} -o subprojects/cef_minimal.tar.bz2
     tar -C subprojects -xf subprojects/cef_minimal.tar.bz2
     rm subprojects/cef_minimal.tar.bz2
