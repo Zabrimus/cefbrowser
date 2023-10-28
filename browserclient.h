@@ -20,7 +20,8 @@ public:
                            std::string transcoderIp, int transcoderPort,
                            std::string browserIp, int browserPort,
                            image_type_enum osdqoi,
-                           bool use_dirty_recs);
+                           bool use_dirty_recs,
+                           std::string static_path);
 
     ~BrowserClient() override;
 
@@ -107,6 +108,8 @@ private:
     TranscoderRemoteClient *transcoderRemoteClient;
 
     SharedMemory sharedMemory;
+
+    std::string static_path;
 
 private:
     IMPLEMENT_REFCOUNTING(BrowserClient);

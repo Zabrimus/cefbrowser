@@ -5,7 +5,7 @@
 #include "filetype.cpp"
 #include "httplib.h"
 
-
+std::string static_path;
 std::string preJavascript;
 std::string postJavascript;
 std::string preCSS;
@@ -33,11 +33,11 @@ std::string readPreJavascript(std::string browserIp, int browserPort) {
     std::string files[] = {"mutation-summary.js", "init.js", "keyhandler.js", "_dynamic.js" };
 
     for (const auto & file : files) {
-        result += readFile(("js/" + file).c_str());
+        result += readFile((static_path + "/js/" + file).c_str());
     }
 
     std::ofstream _dynamic;
-    _dynamic.open ("js/_dynamic_head.js", std::ios_base::trunc);
+    _dynamic.open (static_path + "/js/_dynamic_head.js", std::ios_base::trunc);
     _dynamic << result << std::endl;
     _dynamic.close();
 
@@ -49,11 +49,11 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
     std::string files[] = { "TiresiasPCfont.css", "volume.css", "videoquirks.css" };
 
     for (const auto & file : files) {
-        result += readFile(("css/" + file).c_str());
+        result += readFile((static_path + "/css/" + file).c_str());
     }
 
     std::ofstream _dynamic;
-    _dynamic.open ("css/_dynamic.css", std::ios_base::trunc);
+    _dynamic.open (static_path + "/css/_dynamic.css", std::ios_base::trunc);
     _dynamic << result << std::endl;
     _dynamic.close();
 
@@ -65,11 +65,11 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
     std::string files[] = { "_zoom_level.js", "video_quirks.js", "videoobserver.js", "hbbtv.js", "initlast.js" };
 
     for (const auto & file : files) {
-        result += readFile(("js/" + file).c_str());
+        result += readFile((static_path + "/js/" + file).c_str());
     }
 
     std::ofstream _dynamic;
-    _dynamic.open ("js/_dynamic_body.js", std::ios_base::trunc);
+    _dynamic.open (static_path + "/js/_dynamic_body.js", std::ios_base::trunc);
     _dynamic << result << std::endl;
     _dynamic.close();
 
@@ -82,7 +82,7 @@ std::string readPostHTML() {
     std::string files[] = { "volume.html", "videoimage.html" };
 
     for (const auto & file : files) {
-        result += readFile(("js/" + file).c_str());
+        result += readFile((static_path + "/js/" + file).c_str());
     }
 
     return result;
@@ -231,8 +231,10 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
 RequestResponse::RequestResponse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                                  CefRefPtr<CefRequest> request, bool is_navigation, bool is_download,
                                  const CefString &request_initiator, bool &disable_default_handling,
-                                 std::string browserIp, int browserPort, bool blockThis) {
+                                 std::string browserIp, int browserPort, bool blockThis, std::string sp) {
     DEBUG("RequestResponse::RequestResponse: {}, {}, {}, {}", is_navigation, is_download, request->GetURL().ToString(), (int)request->GetResourceType());
+    static_path = sp;
+
     if (!blockThis) {
         preJavascript = readPreJavascript(browserIp, browserPort);
         postJavascript = readPostJavascript(browserIp, browserPort);

@@ -18,7 +18,8 @@ public:
                     bool &disable_default_handling,
                     std::string browserIp,
                     int browserPort,
-                    bool blockThis);
+                    bool blockThis,
+                    std::string sp);
 
     // CefResourceRequestHandler
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,

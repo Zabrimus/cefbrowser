@@ -46,6 +46,8 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         static_path = ".";
     }
 
+    DEBUG("Mount static path {}", static_path);
+
     auto ret = svr.set_mount_point("/js", static_path + "/js");
     if (!ret) {
         // must not happen
@@ -91,7 +93,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
-    svr.Post("/RedButton", [](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/RedButton", [static_path](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         auto channelId = req.get_param_value("channelId");
@@ -122,7 +124,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 // write channel information
                 std::string channel = database.getChannel(channelId);
                 std::ofstream _dynamic;
-                _dynamic.open ("js/_dynamic.js", std::ios_base::trunc);
+                _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
                 _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
                 _dynamic.close();
 
@@ -145,7 +147,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.set_content("ok", "text/plain");
     });
 
-    svr.Post("/StartApplication", [_browserIp, _browserPort](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/StartApplication", [_browserIp, _browserPort, static_path](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         auto channelId = req.get_param_value("channelId");
@@ -158,7 +160,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
             // write channel information
             std::string channel = database.getChannel(channelId);
             std::ofstream _dynamic;
-            _dynamic.open ("js/_dynamic.js", std::ios_base::trunc);
+            _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
             _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
             _dynamic.close();
 
@@ -418,10 +420,10 @@ void BrowserApp::OnContextInitialized() {
     extra_info->SetInt("osdqoi", (int)osdqoi);
     extra_info->SetBool("dirtyRecs", use_dirty_recs);
 
-    CefRefPtr<BrowserClient> client = new BrowserClient(false, zoom_width, zoom_height, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi, use_dirty_recs);
+    CefRefPtr<BrowserClient> client = new BrowserClient(false, zoom_width, zoom_height, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi, use_dirty_recs, static_path);
     currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
 
-    INFO("Start Http Server on {}:{}", browserIp, browserPort);
+    INFO("Start Http Server on {}:{} with static path {}", browserIp, browserPort, static_path);
 
     std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort, static_path);
     t1.detach();

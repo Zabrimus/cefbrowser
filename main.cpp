@@ -312,7 +312,7 @@ int main(int argc, char *argv[]) {
 
     // write zoom level script
     std::ofstream _zoom_level;
-    _zoom_level.open ("js/_zoom_level.js", std::ios_base::trunc);
+    _zoom_level.open (staticPath + "/js/_zoom_level.js", std::ios_base::trunc);
     _zoom_level << "document.body.style[\"zoom\"] = " << zoom_level << ";\n" << std::endl;
     _zoom_level << "document.body.style[\"width\"] = \"" << zoom_width << "px\";\n" << std::endl;
     _zoom_level << "document.body.style[\"height\"] = \"" << zoom_height << "px\";\n" << std::endl;

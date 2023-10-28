@@ -24,8 +24,8 @@ std::string urlBlockList[] {
         ".gvt2.com"  // testwise
 };
 
-BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, bool use_dirty_recs)
-                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi), use_dirty_recs(use_dirty_recs) {
+BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, bool use_dirty_recs, std::string static_path)
+                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi), use_dirty_recs(use_dirty_recs), static_path(static_path) {
     LOG_CURRENT_THREAD();
 
     this->renderWidth = width;
@@ -170,7 +170,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             std::string channel = database.getChannel(channelId);
 
             std::ofstream _dynamic;
-            _dynamic.open ("js/_dynamic.js", std::ios_base::trunc);
+            _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
             _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
             _dynamic.close();
 
@@ -346,7 +346,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         }
 
         return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
-                                   disable_default_handling, browserIp, browserPort, blockThis);
+                                   disable_default_handling, browserIp, browserPort, blockThis, static_path);
     }
 
     return nullptr;
