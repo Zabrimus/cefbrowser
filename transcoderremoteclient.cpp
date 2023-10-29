@@ -1,8 +1,10 @@
 #include "transcoderremoteclient.h"
 #include "logger.h"
 
-TranscoderRemoteClient::TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort)
-                                    : transcoderIp(transcoderIp), transcoderPort(transcoderPort),  browserIp(browserIp), browserPort(browserPort) {
+TranscoderRemoteClient::TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, std::string vdrIp, int vdrPort)
+                                    : transcoderIp(transcoderIp), transcoderPort(transcoderPort),
+                                      browserIp(browserIp), browserPort(browserPort),
+                                      vdrIp(vdrIp), vdrPort(vdrPort) {
     client = new httplib::Client(transcoderIp, transcoderPort);
 }
 
@@ -16,8 +18,9 @@ std::string TranscoderRemoteClient::Probe(std::string url, std::string cookies, 
     params.emplace("cookies", cookies);
     params.emplace("referer", referer);
     params.emplace("userAgent", userAgent);
-    params.emplace("responseIp", browserIp);
-    params.emplace("responsePort", std::to_string(browserPort));
+    params.emplace("responseIp", vdrIp);
+    params.emplace("responsePort", std::to_string(vdrPort));
+
     params.emplace("postfix", postfix);
 
     if (auto res = client->Post("/Probe", params)) {
@@ -41,8 +44,8 @@ bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies, std
     params.emplace("cookies", cookies);
     params.emplace("referer", referer);
     params.emplace("userAgent", userAgent);
-    params.emplace("responseIp", browserIp);
-    params.emplace("responsePort", std::to_string(browserPort));
+    params.emplace("responseIp", vdrIp);
+    params.emplace("responsePort", std::to_string(vdrPort));
 
     if (auto res = client->Post("/StreamUrl", params)) {
         if (res->status != 200) {

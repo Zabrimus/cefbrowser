@@ -32,7 +32,7 @@ BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string
     this->renderHeight = height;
 
     // create clients
-    transcoderRemoteClient = new TranscoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort);
+    transcoderRemoteClient = new TranscoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort, vdrIp, vdrPort);
     vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
 }
 

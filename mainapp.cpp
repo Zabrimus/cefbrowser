@@ -40,7 +40,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     int _browserPort = browserPort;
     std::string _browserIp = browserIp;
     VdrRemoteClient vdrRemoteClient(vdrIp, vdrPort);
-    TranscoderRemoteClient transcoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort);
+    TranscoderRemoteClient transcoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort, vdrIp, vdrPort);
 
     if (static_path.empty()) {
         static_path = ".";

@@ -5,7 +5,7 @@
 
 class TranscoderRemoteClient {
 public:
-    explicit TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort);
+    explicit TranscoderRemoteClient(std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, std::string vdrIp, int vdrPort);
     ~TranscoderRemoteClient();
 
     std::string
@@ -24,4 +24,7 @@ private:
 
     std::string browserIp;
     int browserPort;
+
+    std::string vdrIp;
+    int vdrPort;
 };

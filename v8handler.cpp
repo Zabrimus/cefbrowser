@@ -40,7 +40,7 @@ void V8Handler::stopVdrVideo() {
 V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std::string vdrIp, int vdrPort)
         : browserIp(bIp), browserPort(bPort), transcoderIp(tIp), transcoderPort(tPort), vdrIp(vdrIp), vdrPort(vdrPort)
 {
-    transcoderRemoteClient = new TranscoderRemoteClient(tIp, tPort, bIp, bPort);
+    transcoderRemoteClient = new TranscoderRemoteClient(tIp, tPort, bIp, bPort, vdrIp, vdrPort);
     vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
 
     lastVideoX = lastVideoY = lastVideoW = lastVideoH = 0;
