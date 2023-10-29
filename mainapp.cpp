@@ -147,6 +147,11 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.set_content("ok", "text/plain");
     });
 
+    svr.Get("/Heartbeat", [](const httplib::Request &req, httplib::Response &res) {
+        res.status = 200;
+        res.set_content("ok", "text/plain");
+    });
+
     svr.Post("/StartApplication", [_browserIp, _browserPort, static_path](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 

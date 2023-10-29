@@ -18,8 +18,10 @@ std::string TranscoderRemoteClient::Probe(std::string url, std::string cookies, 
     params.emplace("cookies", cookies);
     params.emplace("referer", referer);
     params.emplace("userAgent", userAgent);
-    params.emplace("responseIp", vdrIp);
-    params.emplace("responsePort", std::to_string(vdrPort));
+    params.emplace("responseIp", browserIp);
+    params.emplace("responsePort", std::to_string(browserPort));
+    params.emplace("vdrIp", vdrIp);
+    params.emplace("vdrPort", std::to_string(vdrPort));
 
     params.emplace("postfix", postfix);
 
@@ -44,8 +46,10 @@ bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies, std
     params.emplace("cookies", cookies);
     params.emplace("referer", referer);
     params.emplace("userAgent", userAgent);
-    params.emplace("responseIp", vdrIp);
-    params.emplace("responsePort", std::to_string(vdrPort));
+    params.emplace("responseIp", browserIp);
+    params.emplace("responsePort", std::to_string(browserPort));
+    params.emplace("vdrIp", vdrIp);
+    params.emplace("vdrPort", std::to_string(vdrPort));
 
     if (auto res = client->Post("/StreamUrl", params)) {
         if (res->status != 200) {
