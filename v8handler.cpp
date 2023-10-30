@@ -186,6 +186,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             DEBUG("V8Handler::Execute SeekVideo Argument Pos {}", position);
 
             transcoderRemoteClient->Seek(position);
+            vdrRemoteClient->ResetVideo(videoInfo);
         }
 
         retval = CefV8Value::CreateBool(true);
