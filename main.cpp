@@ -16,7 +16,7 @@ const char kZygoteProcess[] = "zygote";
 std::string configFilename;
 std::string profilePath;
 std::string cachePath;
-std::string staticPath;
+std::string staticPath = ".";
 
 // log level
 int loglevel;
