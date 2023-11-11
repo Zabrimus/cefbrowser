@@ -1,4 +1,6 @@
 #include "database.h"
+
+#include <utility>
 #include "cef_includes.h"
 #include "logger.h"
 
@@ -41,6 +43,14 @@ Database::Database() {
 
     sqlite3_prepare_v3(db, insertHbbtvSql.c_str(), (int)insertHbbtvSql.length(), SQLITE_PREPARE_PERSISTENT, &insertHbbtvStmt, nullptr);
     sqlite3_prepare_v3(db, insertChannelSql.c_str(), (int)insertChannelSql.length(), SQLITE_PREPARE_PERSISTENT, &insertChannelStmt, nullptr);
+
+    // read user_agent.ini
+    mINI::INIFile file(browserdb + "/user_agent.ini");
+    auto result = file.read(userAgents);
+
+    if (!result) {
+        INFO("Configuration file {} not found. Use default UserAgent.", browserdb + "/user_agent.ini");
+    }
 }
 
 Database::~Database() {
@@ -195,6 +205,28 @@ std::string Database::getMainApp(std::string channelId) {
     return std::string();
 }
 
+std::string Database::getUserAgent(std::string channelId) {
+    TRACE("----> IN {}", channelId);
+    std::string ua = userAgents[channelId]["UserAgent"];
+    if (ua.empty()) {
+        TRACE("UserAgent for channelId {} not found", channelId);
+
+        // try to find the default value
+        ua = userAgents["default"]["UserAgent"];
+        if (ua.empty()) {
+            TRACE("No default configuration for UserAgent found, use system wide default");
+
+            // still no UserAgent. Return system wide default value
+            return "HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome";
+        } else {
+            TRACE("Found default configuration for UserAgent: {}", ua);
+            return ua;
+        }
+    } else {
+        TRACE("Found UserAgent {} for channelId", ua, channelId);
+        return ua;
+    }
+}
 
 void Database::createTables() {
     char *errMsg = nullptr;

@@ -16,5 +16,6 @@ _Pragma("GCC diagnostic ignored \"-Wunused-parameter\"")
 #include "include/wrapper/cef_message_router.h"
 #include "include/wrapper/cef_stream_resource_handler.h"
 #include "include/wrapper/cef_helpers.h"
+#include "include/cef_devtools_message_observer.h"
 
 _Pragma("GCC diagnostic pop")

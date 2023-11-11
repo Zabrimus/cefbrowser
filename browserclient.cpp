@@ -150,6 +150,9 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
     LOG_CURRENT_THREAD();
     TRACE("BrowserClient::OnAfterCreated");
+
+    CefRefPtr<DevToolsMessageObserver> devToolsObserver = new DevToolsMessageObserver();
+    registration = browser->GetHost()->AddDevToolsMessageObserver(devToolsObserver);
 }
 
 void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
@@ -409,3 +412,40 @@ bool BrowserClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_seve
     return false;
 }
 
+void BrowserClient::ChangeUserAgent(CefRefPtr<CefBrowser> browser, std::string agent) {
+    DEBUG("Change User Agent to {}", agent);
+
+    CefRefPtr<CefDictionaryValue> params = CefDictionaryValue::Create();
+    params->SetString("userAgent", agent);
+
+    int status = browser->GetHost()->ExecuteDevToolsMethod(0, "Network.setUserAgentOverride", params);
+    DEBUG("Status: {}", status);
+}
+
+bool DevToolsMessageObserver::OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) {
+    std::string m;
+    m.assign((const char*)message, message_size);
+
+    DEBUG("DevToolsMessageObserver::OnDevToolsMessage: message {}", m);
+
+    return false;
+}
+
+void DevToolsMessageObserver::OnDevToolsMethodResult(CefRefPtr<CefBrowser> browser, int message_id, bool success, const void* result, size_t result_size) {
+    std::string m;
+    m.assign((const char*)result, result_size);
+
+    DEBUG("DevToolsMessageObserver::OnDevToolsMethodResult: id {}, success {}, message {}", message_id, success, m);
+}
+
+void DevToolsMessageObserver::OnDevToolsEvent(CefRefPtr<CefBrowser> browser, const CefString& method, const void* params, size_t params_size) {
+    DEBUG("DevToolsMessageObserver::OnDevToolsEvent: method {}", method.ToString());
+}
+
+void DevToolsMessageObserver::OnDevToolsAgentAttached(CefRefPtr<CefBrowser> browser) {
+    DEBUG("DevToolsMessageObserver::OnDevToolsAgentAttached");
+}
+
+void DevToolsMessageObserver::OnDevToolsAgentDetached(CefRefPtr<CefBrowser> browser) {
+    DEBUG("DevToolsMessageObserver::OnDevToolsAgentDetached");
+}

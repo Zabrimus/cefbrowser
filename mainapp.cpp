@@ -128,6 +128,12 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
                 _dynamic.close();
 
+                CefRefPtr<CefClient> currentClient = currentBrowser->GetHost()->GetClient();
+                auto c = dynamic_cast<BrowserClient *>(currentClient.get());
+
+                TRACE("-----> ChannelId {}", channelId);
+                c->ChangeUserAgent(currentBrowser, database.getUserAgent(channelId));
+
                 // load url
                 if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possible, that MainFrame is null?
                     currentBrowser->GetMainFrame()->LoadURL(url);

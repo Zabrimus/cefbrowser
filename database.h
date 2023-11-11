@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "mini/ini.h"
 #include "sqlite3.h"
 
 class Database {
@@ -14,6 +15,7 @@ public:
     std::string getRedButtonUrl(std::string channelId);
     std::string getChannel(std::string channelId);
     std::string getMainApp(std::string channelId);
+    std::string getUserAgent(std::string channelId);
 
     void shutdown();
     void printFatal();
@@ -28,6 +30,8 @@ private:
 
     sqlite3_stmt* insertHbbtvStmt;
     sqlite3_stmt* insertChannelStmt;
+
+    mINI::INIStructure userAgents;
 };
 
 extern Database database;

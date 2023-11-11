@@ -81,6 +81,9 @@ public:
     void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override;
     bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
 
+    // Change User Agent
+    void ChangeUserAgent(CefRefPtr<CefBrowser> browser, std::string agent);
+
 private:
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);
 
@@ -111,6 +114,24 @@ private:
 
     std::string static_path;
 
+    CefRefPtr<CefRegistration> registration;
+
 private:
     IMPLEMENT_REFCOUNTING(BrowserClient);
+};
+
+class DevToolsMessageObserver : public CefDevToolsMessageObserver {
+
+public:
+    DevToolsMessageObserver() = default;
+
+    bool OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) override;
+    void OnDevToolsMethodResult(CefRefPtr<CefBrowser> browser, int message_id, bool success, const void* result, size_t result_size) override;
+    void OnDevToolsEvent(CefRefPtr<CefBrowser> browser, const CefString& method, const void* params, size_t params_size) override;
+    void OnDevToolsAgentAttached(CefRefPtr<CefBrowser> browser) override;
+    void OnDevToolsAgentDetached(CefRefPtr<CefBrowser> browser) override;
+
+private:
+    IMPLEMENT_REFCOUNTING(DevToolsMessageObserver);
+    DISALLOW_COPY_AND_ASSIGN(DevToolsMessageObserver);
 };
