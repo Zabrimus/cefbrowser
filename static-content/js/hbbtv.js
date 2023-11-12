@@ -253,17 +253,22 @@
         '<audio_profile name=\"HEAAC\" type=\"audio/mp4\"/>' +
         '<video_profile name=\"TS_AVC_SD_25_HEAAC\" type=\"video/mpeg\"/>' +
         '<video_profile name=\"TS_AVC_HD_25_HEAAC\" type=\"video/mpeg\"/>' +
+        '<video_profile name=\"TS_AVC_UHD_25_HEAAC\" type=\"video/mpeg\"/>' +
         '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\"/>' +
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\"/>' +
+        '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\"/>' +
         '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
+        '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
         '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
+        '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
         '</profilelist>';
     var videoProfiles = currentCapabilities.split('video_profile');
     window.oipfCapabilities.xmlCapabilities = (new window.DOMParser()).parseFromString(currentCapabilities, 'text/xml');
     window.oipfCapabilities.extraSDVideoDecodes = videoProfiles.length > 1 ? videoProfiles.slice(1).join().split('_SD_').slice(1).length : 0;
     window.oipfCapabilities.extraHDVideoDecodes = videoProfiles.length > 1 ? videoProfiles.slice(1).join().split('_HD_').slice(1).length : 0;
+    window.oipfCapabilities.extraUHDVideoDecodes = videoProfiles.length > 1 ? videoProfiles.slice(1).join().split('_UHD_').slice(1).length : 0;
     window.oipfCapabilities.hasCapability = function (capability) {
         return !!~new window.XMLSerializer().serializeToString(window.oipfCapabilities.xmlCapabilities).indexOf(capability.toString() || '??');
     };
