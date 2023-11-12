@@ -131,8 +131,9 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 CefRefPtr<CefClient> currentClient = currentBrowser->GetHost()->GetClient();
                 auto c = dynamic_cast<BrowserClient *>(currentClient.get());
 
-                TRACE("-----> ChannelId {}", channelId);
-                c->ChangeUserAgent(currentBrowser, database.getUserAgent(channelId));
+                std::string newUserAgent = database.getUserAgent(channelId);
+                INFO("Use UserAgent {} for {}", newUserAgent, channelId);
+                c->ChangeUserAgent(currentBrowser, newUserAgent);
 
                 // load url
                 if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possible, that MainFrame is null?
