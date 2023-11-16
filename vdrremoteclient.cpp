@@ -51,7 +51,7 @@ bool VdrRemoteClient::ProcessOsdUpdate(int disp_width, int disp_height, int x, i
 bool VdrRemoteClient::ProcessOsdUpdateQoi(int disp_width, int disp_height, int x, int y, const std::string& imageQoi) {
     const std::lock_guard<std::mutex> lock(httpMutex);
 
-    TRACE("Call VdrRemoteClient::ProcessOsdUpdateQoi");
+    // TRACE("Call VdrRemoteClient::ProcessOsdUpdateQoi");
 
     if (auto res = client->Post("/ProcessOsdUpdateQOI", std::to_string(disp_width) + ":" + std::to_string(disp_height) + ":" + std::to_string(x) + ":" + std::to_string(y) + ":" + imageQoi, "text/plain")) {
         if (res->status != 200) {
