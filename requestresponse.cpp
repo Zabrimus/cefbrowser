@@ -182,6 +182,8 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     std::string newUrl;
 
     httplib::Client _client(tmp_url);
+    _client.set_read_timeout(15, 0);
+
     if (auto res = _client.Head(path)) {
         DEBUG("http-lib: HEAD location {}, path {}, query {}, status {}", res->location, path, query, res->status);
 

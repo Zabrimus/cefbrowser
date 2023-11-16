@@ -7,6 +7,7 @@ VdrRemoteClient::VdrRemoteClient(std::string vdrIp, int vdrPort) {
     TRACE("Create new VdrRemoteClient");
 
     client = new httplib::Client(vdrIp, vdrPort);
+    client->set_read_timeout(15, 0);
 
     // Send Hello
     SendHello();
