@@ -149,13 +149,14 @@ function addVideoNode(node, url) {
                 node.speed = speed;
                 node.playState = PLAY_STATES.playing;
                 video.playbackRate = speed;
-                video.play().catch((e) => {
-                    console.error(e.message);
-                    node.error = 5;
-                });
-
-                window.start_video_quirk();
-
+                video.play()
+                    .then((v) => {
+                        window.start_video_quirk();
+                    })
+                    .catch((e) => {
+                        console.error(e.message);
+                        node.error = 5;
+                    });
             }, 0);
         } else if (speed < 0) {
             node.speed = speed;
