@@ -73,42 +73,31 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         recList.emplace_back(rect);
     }
 
+#if ONPAINT_MEASURE_TIME == 1
+    auto begin = std::chrono::high_resolution_clock::now();
+#endif
+
     // iterate overall dirty recs
     for (auto r : recList) {
-        uint32_t* outbuffer = new uint32_t[r.width * r.height];
-
-        // copy the region
-        uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
-        uint32_t* co = (uint32_t *) outbuffer;
-
-        for (int dry = 0; dry < r.height; ++dry) {
-            memcpy(co, ci, r.width * 4);
-            ci += width;
-            co += r.width;
-        }
-
-        // delete parts of the OSD where a video shall be visible
-        for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
-            if (outbuffer[i] == 0xfffe2e9a) {
-                outbuffer[i] = 0x00fe2e9a;
-            }
-        }
-
         if (osdqoi == QOI) {
-            /*
-            // encode qoi image
-            for (int i = 0; i < r.width * r.height; ++i) {
-                // Source: BGRA = 0xAARRGGBB
-                // Dest:   RGBA = 0xAABBGGRR
-                outbuffer[i] =
-                        ((outbuffer[i] & 0xFF00FF00)) | // AA__GG__
-                        ((outbuffer[i] & 0x00FF0000) >> 16) | // __RR____ -> ______RR
-                        ((outbuffer[i] & 0x000000FF) << 16);  // ______BB -> __BB____
+            uint32_t* outbuffer = new uint32_t[r.width * r.height];
+
+            // copy the region
+            uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
+            uint32_t* co = (uint32_t *) outbuffer;
+
+            for (int dry = 0; dry < r.height; ++dry) {
+                memcpy(co, ci, r.width * 4);
+                ci += width;
+                co += r.width;
             }
-            */
-#if ONPAINT_MEASURE_TIME == 1
-            auto begin = std::chrono::high_resolution_clock::now();
-#endif
+
+            // delete parts of the OSD where a video shall be visible
+            for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
+                if (outbuffer[i] == 0xfffe2e9a) {
+                    outbuffer[i] = 0x00fe2e9a;
+                }
+            }
 
             qoi_desc desc{
                     .width = static_cast<unsigned int>(r.width),
@@ -120,12 +109,6 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             int out_len;
             char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
 
-#if ONPAINT_MEASURE_TIME == 1
-            auto end = std::chrono::high_resolution_clock::now();
-            std::cout << "OnPaint QOI Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
-                      << "ms, size " << out_len << std::endl;
-#endif
-
             if (!vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
@@ -133,18 +116,40 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             }
 
             free(encoded_image);
-
+            delete[] outbuffer;
         } else {
-            sharedMemory.Write((uint8_t *)outbuffer, r.width * r.height * 4);
+            // copy the region
+            uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
+            uint32_t* co = (uint32_t *) sharedMemory.Get();
+
+            for (int dry = 0; dry < r.height; ++dry) {
+                memcpy(co, ci, r.width * 4);
+                ci += width;
+                co += r.width;
+            }
+
+            // delete parts of the OSD where a video shall be visible
+            co = (uint32_t *) sharedMemory.Get();
+            for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
+                if (co[i] == 0xfffe2e9a) {
+                    co[i] = 0x00fe2e9a;
+                }
+            }
+
             if (!vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height)) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
                 sharedMemory.Clear();
             }
         }
-
-        delete[] outbuffer;
     }
+
+#if ONPAINT_MEASURE_TIME == 1
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "OnPaint Duration: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count()
+                      << "ms" << std::endl;
+#endif
+
 }
 
 void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
