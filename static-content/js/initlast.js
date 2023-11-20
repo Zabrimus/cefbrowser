@@ -56,3 +56,10 @@ prepareElements();
 
 document.body.style["font-family"] = "Tiresias";
 document.body.style["overflow"] = "hidden";
+
+// hack for ZDF.
+// ARD channels also uses window.GLOBALS.htmlfive. But the application is not yet prepared.
+if (window.GLOBALS) {
+    let location = document.location.toString();
+    window.GLOBALS.htmlfive = location.includes("hbbtv.zdf.de");
+}

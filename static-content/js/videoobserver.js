@@ -122,7 +122,7 @@ function addNodeFunctions(node) {
     };
 }
 
-function addVideoNode(node, url) {
+function addVideoNodeTypeObject(node, url) {
     let video = document.createElement('video');
     video.type = "video/webm";
     video.src = url;
@@ -340,14 +340,86 @@ function addVideoNode(node, url) {
     }, 0);
 }
 
+function addVideoNodeTypeVideo(node, url) {
+    let video = node;
+
+    // check if source element exists
+    let videoSrc = video;
+    let videoSrcElementArr = video.getElementsByTagName('source');
+
+    if (videoSrcElementArr && videoSrcElementArr.length > 0) {
+        videoSrc = videoSrcElementArr[0];
+    }
+
+    videoSrc.src = url;
+    video.type = "video/webm";
+
+    video && video.addEventListener && video.addEventListener('playing', function () {
+        console.log("video tag playing");
+        if (video.playState === PLAY_STATES.paused) {
+            window.cefResumeVideo(String(video.currentTime));
+        }
+
+        video.playState = PLAY_STATES.playing;
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('pause', function () {
+        console.log("video tag pause");
+        video.playState = PLAY_STATES.paused;
+        window.cefPauseVideo();
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('ended', function () {
+        console.log("video tag ended: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('error', function (e) {
+        console.log("video tag error: ");
+        if (video.playState !== PLAY_STATES.error) {
+            window.cefStopVideo();
+        }
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('durationchange', () => {
+        console.log("video tag durationchange");
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('timeupdate', function () {
+
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('ratechange', function () {
+        console.log("video tag ratechange");
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('seeked', function () {
+        console.log("video tag seeked" + video.currentTime);
+        window.cefSeekVideo(String(video.currentTime));
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('loadedmetadata', function () {
+        console.log("video tag loadedmetadata, duration " + video.duration);
+    }, false);
+
+    console.log("video.duration: " + video.duration);
+
+    setTimeout(() => {
+        video.load();
+        video.play();
+    }, 0);
+}
+
+
 function checkPositionObjectNode(summary) {
     // collect all nodes
     let nodeSet = new Set();
 
     for (const attribute of ['width', 'height', 'left', 'top', 'style']) {
-        let arr = summary.attributeChanged[attribute];
-        for (let i = 0; i < arr.length; ++i) {
-            nodeSet.add(arr[i]);
+        if (summary.attributeChanged !== undefined) {
+            let arr = summary.attributeChanged[attribute];
+            for (let i = 0; i < arr.length; ++i) {
+                nodeSet.add(arr[i]);
+            }
         }
     }
 
@@ -389,10 +461,19 @@ function checkAddedObjectNode(summaries) {
         console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
 
-        let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
-        addVideoNode(node, newUrl);
-        addNodeFunctions(node);
-        promoteVideoSize(node);
+        let location = document.location.toString();
+        let checkVideoTag = location.includes("hbbtv.zdf.de");
+
+        if (node.nodeName === 'object') {
+            let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
+            addVideoNodeTypeObject(node, newUrl);
+            addNodeFunctions(node);
+            promoteVideoSize(node);
+        } else if (node.nodeName === 'video' && checkVideoTag) {
+            let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent);
+            addVideoNodeTypeVideo(node, newUrl);
+            promoteVideoSize(node);
+        }
     } else {
         // ignore all others
         console.log("Ignore type " + node.type);
@@ -412,6 +493,9 @@ const ms = new MutationSummary({
         {
             element: 'object',
             elementAttributes: 'data type width height left top style',
-        }
+        },
+        {
+            element: 'video',
+        },
     ]
 });
