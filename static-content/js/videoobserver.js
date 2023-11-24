@@ -417,8 +417,10 @@ function checkPositionObjectNode(summary) {
     for (const attribute of ['width', 'height', 'left', 'top', 'style']) {
         if (summary.attributeChanged !== undefined) {
             let arr = summary.attributeChanged[attribute];
-            for (let i = 0; i < arr.length; ++i) {
-                nodeSet.add(arr[i]);
+            if (arr !== undefined) {
+                for (let i = 0; i < arr.length; ++i) {
+                    nodeSet.add(arr[i]);
+                }
             }
         }
     }
@@ -474,6 +476,12 @@ function checkAddedObjectNode(summaries) {
             addVideoNodeTypeVideo(node, newUrl);
             promoteVideoSize(node);
         }
+    } else if (node.type === 'video/webm') { // webm video
+        // RTL changes only data attribute, but not the type
+        let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
+        addVideoNodeTypeObject(node, newUrl);
+        addNodeFunctions(node);
+        promoteVideoSize(node);
     } else {
         // ignore all others
         console.log("Ignore type " + node.type);
