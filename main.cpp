@@ -39,6 +39,8 @@ double zoom_level;
 
 bool use_dirty_recs;
 
+bool bindAll;
+
 enum ProcessType {
     PROCESS_TYPE_BROWSER,
     PROCESS_TYPE_RENDERER,
@@ -85,6 +87,7 @@ void parseCommandLine(int argc, char *argv[]) {
             { "cachePath",   optional_argument, nullptr, 'a' },
             { "profilePath", optional_argument, nullptr, 'p' },
             { "staticPath",  optional_argument, nullptr, 's' },
+            { "bindall",     optional_argument, nullptr, 'b' },
             { nullptr }
     };
 
@@ -96,8 +99,9 @@ void parseCommandLine(int argc, char *argv[]) {
     zoom_height = 720;
     zoom_level = 1.0f;
     use_dirty_recs = true;
+    bindAll = false;
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fa:p:s:", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fa:p:s:b", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -159,6 +163,10 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 's':
                 staticPath = optarg;
+                break;
+
+            case 'b':
+                bindAll = true;
                 break;
 
             default:
@@ -252,7 +260,7 @@ int main(int argc, char *argv[]) {
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height, use_dirty_recs, staticPath), nullptr);
+    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height, use_dirty_recs, staticPath, bindAll), nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
@@ -262,7 +270,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Main browser process
-    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height, use_dirty_recs, staticPath);
+    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height, use_dirty_recs, staticPath, bindAll);
     CefRefPtr<BrowserApp> app(browserApp);
 
     // Specify CEF global settings here.

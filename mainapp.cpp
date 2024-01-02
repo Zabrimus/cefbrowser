@@ -36,7 +36,7 @@ void hideVolumebar() {
     VolumeProgressRunning = false;
 }
 
-void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string static_path) {
+void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string static_path, bool bindAll) {
     int _browserPort = browserPort;
     std::string _browserIp = browserIp;
     VdrRemoteClient vdrRemoteClient(vdrIp, vdrPort);
@@ -376,18 +376,19 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.status = 500;
     });
 
-    if (!svr.listen(browserIp, browserPort)) {
-        CRITICAL("Call of listen failed: ip {}, port {}, Reason: {}", browserIp, browserPort, strerror(errno));
+    std::string listenIp = bindAll ? "0.0.0.0" : browserIp;
+    if (!svr.listen(listenIp, browserPort)) {
+        CRITICAL("Call of listen failed: ip {}, port {}, Reason: {}", listenIp, browserPort, strerror(errno));
         exit(1);
     }
 }
 
 // BrowserApp
-BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs, std::string static_path) :
+BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs, std::string static_path, bool bindAll) :
         browserIp(browserIp), browserPort(browserPort),
         transcoderIp(transcoderIp), transcoderPort(transcoderPort),
         vdrIp(vdrIp), vdrPort(vdrPort), osdqoi(osdqoi), zoom_width(zoom_width), zoom_height(zoom_height),
-        use_dirty_recs(use_dirty_recs), static_path(static_path) {
+        use_dirty_recs(use_dirty_recs), static_path(static_path), bindAll(bindAll) {
 
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
@@ -437,7 +438,7 @@ void BrowserApp::OnContextInitialized() {
 
     INFO("Start Http Server on {}:{} with static path {}", browserIp, browserPort, static_path);
 
-    std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort, static_path);
+    std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort, static_path, bindAll);
     t1.detach();
 }
 
