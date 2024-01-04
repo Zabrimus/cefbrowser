@@ -43,9 +43,9 @@ sqlite3_dep = declare_dependency(
   link_with: libsqlite3,
 )
 
-pkgconfig = import('pkgconfig')
-pkgconfig.generate(
-  libsqlite3,
-  description: 'An embedded SQL database engine',
-  version: meson.project_version(),
-)
+#pkgconfig = import('pkgconfig')
+#pkgconfig.generate(
+#  libsqlite3,
+#  description: 'An embedded SQL database engine',
+#  version: meson.project_version(),
+#)
