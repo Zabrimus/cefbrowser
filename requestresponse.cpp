@@ -270,7 +270,7 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
     return false;
 }
 
-void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64 &response_length, CefString &redirectUrl) {
+void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
     DEBUG("RequestResponse::GetResponseHeader: Error1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
             (int)url_request->GetResponse()->GetError(), (int)url_request->GetRequestError(),
             (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),
@@ -332,7 +332,7 @@ void RequestResponse::Cancel() {
 void RequestResponse::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
                                              CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response,
                                              CefResourceRequestHandler::URLRequestStatus status,
-                                             int64 received_content_length) {
+                                             int64_t received_content_length) {
     DEBUG("RequestResponse::OnResourceLoadComplete: {} -> {}", (int)status, received_content_length);
 
     CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status,
@@ -368,11 +368,11 @@ void RequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     callback->Continue();
 }
 
-void RequestClient::OnUploadProgress(CefRefPtr<CefURLRequest> request, int64 current, int64 total) {
+void RequestClient::OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) {
     upload_total = total;
 }
 
-void RequestClient::OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64 current, int64 total) {
+void RequestClient::OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) {
     download_total = total;
 }
 

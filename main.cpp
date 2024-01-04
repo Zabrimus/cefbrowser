@@ -286,18 +286,22 @@ int main(int argc, char *argv[]) {
     // check if a custom profile/cachePath exists, otherwise use the default values
     std::string exepath = getexepath();
 
+    printf("Cache: %s\n", cachePath.c_str());
+    printf("Profile: %s\n", profilePath.c_str());
+
+    /*
     if (cachePath.empty()) {
-        std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
+        std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile/cache";
         CefString(&settings.cache_path).FromASCII(cache_path.c_str());
     } else {
         CefString(&settings.cache_path).FromASCII(cachePath.c_str());
     }
-
+    */
     if (profilePath.empty()) {
         std::string profile_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
-        CefString(&settings.user_data_path).FromASCII(profile_path.c_str());
+        CefString(&settings.root_cache_path).FromASCII(profile_path.c_str());
     } else {
-        CefString(&settings.user_data_path).FromASCII(profilePath.c_str());
+        CefString(&settings.root_cache_path).FromASCII(profilePath.c_str());
     }
 
     // Initialize CEF for the browser process. The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.
