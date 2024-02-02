@@ -36,7 +36,6 @@ std::unordered_map<std::string, int> keyCodes = {
         {"VK_SHIFT",     0x0010},    // Shift-Taste
         {"VK_CONTROL",   0x0011},    // STRG
         {"VK_MENU",      0x0012},    // Win95 Tastatur Menu
-        {"VK_PAUSE",     0x0013},    // Pause-Taste
         {"VK_CAPITAL",   0x0014},    // CAPS LOCK
         {"VK_ESCAPE",    0x001B},    // ESC-Taste
         {"VK_SPACE",     0x0020},    // Leertaste
