@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Stable
+# Current Beta
 
-CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_120.1.10%2Bg3ce3184%2Bchromium-120.0.6099.129_linux64_minimal.tar.bz2"
-CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_120.1.10%2Bg3ce3184%2Bchromium-120.0.6099.129_linux64_minimal.tar.bz2"
-CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_120.1.10%2Bg3ce3184%2Bchromium-120.0.6099.129_linuxarm_minimal.tar.bz2"
+CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_125.0.15%2Bg6da73a3%2Bchromium-125.0.6422.41_linux64_beta_minimal.tar.bz2"
+CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_125.0.15%2Bg6da73a3%2Bchromium-125.0.6422.41_linuxarm64_beta_minimal.tar.bz2"
+CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_125.0.15%2Bg6da73a3%2Bchromium-125.0.6422.41_linuxarm_beta_minimal.tar.bz2"
 
 # Default
 CEF_FILE=${CEF_FILE_X86}

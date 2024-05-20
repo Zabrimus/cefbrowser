@@ -1,12 +1,5 @@
-# Warning
-- highly instable 
-- does not works as desired 
-- could destroy your system 
-- in development phase
-
-
-## cefbrowser (Part 2)
-Works together with ```vdr-plugin-web``` and ```remotetranscoder```
+# cefbrowser 
+Works together with [vdr-plugin-web](https://github.com/Zabrimus/vdr-plugin-web) and [remotetranscode](https://github.com/Zabrimus/remotetranscode) to show HbbTV application and stream videos.
 
 ### Dependencies (cross compile, Ubuntu 22.04)
 #### arm
