@@ -372,9 +372,16 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
     return false;
 }
 
+
 void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string) {
     CRITICAL("[Crash] Render process terminated, errorcode: {}, error message: {}", error_code, error_string.ToString());
 }
+
+/*
+void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) {
+}
+*/
+
 
 void BrowserClient::OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString &value) {
     TRACE("[JS] StatusMessage: {}", value.ToString());

@@ -1,10 +1,13 @@
 #!/bin/bash
 
-# Current Beta
+# This version doesn't work anymore. Some strange error occurs.
+# Needs some investigation
+# CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_124.3.1%2Bg6d871a1%2Bchromium-124.0.6367.60_linux64_minimal.tar.bz2"
 
-CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_125.0.15%2Bg6da73a3%2Bchromium-125.0.6422.41_linux64_beta_minimal.tar.bz2"
-CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_125.0.15%2Bg6da73a3%2Bchromium-125.0.6422.41_linuxarm64_beta_minimal.tar.bz2"
-CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_125.0.15%2Bg6da73a3%2Bchromium-125.0.6422.41_linuxarm_beta_minimal.tar.bz2"
+# These are the last working versions
+CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_124.2.3%2Bgccc63c9%2Bchromium-124.0.6367.60_linux64_beta_minimal.tar.bz2"
+CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_124.2.3%2Bgccc63c9%2Bchromium-124.0.6367.60_linuxarm64_beta_minimal.tar.bz2"
+CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_124.2.3%2Bgccc63c9%2Bchromium-124.0.6367.60_linuxarm_beta_minimal.tar.bz2"
 
 # Default
 CEF_FILE=${CEF_FILE_X86}
