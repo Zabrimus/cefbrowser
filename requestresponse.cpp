@@ -46,7 +46,7 @@ std::string readPreJavascript(std::string browserIp, int browserPort) {
 
 std::string readPreCSS(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = { "TiresiasPCfont.css", "volume.css", "videoquirks.css" };
+    std::string files[] = { "TiresiasPCfont.css", "videoquirks.css" };
 
     for (const auto & file : files) {
         result += readFile((static_path + "/css/" + file).c_str());
@@ -79,7 +79,7 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
 
 std::string readPostHTML() {
     std::string result;
-    std::string files[] = { "volume.html", "videoimage.html" };
+    std::string files[] = { "videoimage.html" };
 
     for (const auto & file : files) {
         result += readFile((static_path + "/js/" + file).c_str());
