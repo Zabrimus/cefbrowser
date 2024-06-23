@@ -377,12 +377,6 @@ void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, Ter
     CRITICAL("[Crash] Render process terminated, errorcode: {}, error message: {}", error_code, error_string.ToString());
 }
 
-/*
-void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) {
-}
-*/
-
-
 void BrowserClient::OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString &value) {
     TRACE("[JS] StatusMessage: {}", value.ToString());
 }

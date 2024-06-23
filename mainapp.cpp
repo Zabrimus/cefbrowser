@@ -369,7 +369,6 @@ void BrowserApp::OnContextInitialized() {
 
     CefWindowInfo window_info;
     window_info.SetAsWindowless(0);
-    // window_info.shared_texture_enabled = true;
     window_info.shared_texture_enabled = false;
 
     CefRefPtr<CefDictionaryValue> extra_info = CefDictionaryValue::Create();
