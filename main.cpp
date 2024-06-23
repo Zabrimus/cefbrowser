@@ -15,7 +15,6 @@ const char kZygoteProcess[] = "zygote";
 // commandline arguments
 std::string configFilename;
 std::string profilePath;
-std::string cachePath;
 std::string staticPath = ".";
 
 // log level
@@ -84,7 +83,6 @@ void parseCommandLine(int argc, char *argv[]) {
             { "osdqoi",      optional_argument, nullptr, 'q' },
             { "zoom",        optional_argument, nullptr, 'z' },
             { "fullosd",     optional_argument, nullptr, 'f' },
-            { "cachePath",   optional_argument, nullptr, 'a' },
             { "profilePath", optional_argument, nullptr, 'p' },
             { "staticPath",  optional_argument, nullptr, 's' },
             { "bindall",     optional_argument, nullptr, 'b' },
@@ -101,7 +99,7 @@ void parseCommandLine(int argc, char *argv[]) {
     use_dirty_recs = true;
     bindAll = false;
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fa:p:s:b", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:b", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -151,10 +149,6 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 'f':
                 use_dirty_recs = false;
-                break;
-
-            case 'a':
-                cachePath = optarg;
                 break;
 
             case 'p':
@@ -283,21 +277,14 @@ int main(int argc, char *argv[]) {
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
     CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
 
-    // check if a custom profile/cachePath exists, otherwise use the default values
+    // check if a custom profile exists, otherwise use the default values
     std::string exepath = getexepath();
-
-    if (cachePath.empty()) {
-        std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/cache";
-        CefString(&settings.cache_path).FromASCII(cache_path.c_str());
-    } else {
-        CefString(&settings.cache_path).FromASCII(cachePath.c_str());
-    }
 
     if (profilePath.empty()) {
         std::string profile_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
-        CefString(&settings.user_data_path).FromASCII(profile_path.c_str());
+        CefString(&settings.root_cache_path).FromASCII(profile_path.c_str());
     } else {
-        CefString(&settings.user_data_path).FromASCII(profilePath.c_str());
+        CefString(&settings.root_cache_path).FromASCII(profilePath.c_str());
     }
 
     // Initialize CEF for the browser process. The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.

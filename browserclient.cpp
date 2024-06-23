@@ -106,7 +106,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
                     .colorspace = QOI_LINEAR
             };
 
-            int out_len;
+            int out_len = 0;
             char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
 
             if (!vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
@@ -372,7 +372,9 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
     return false;
 }
 
-void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) {
+
+void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string) {
+    CRITICAL("[Crash] Render process terminated, errorcode: {}, error message: {}", error_code, error_string.ToString());
 }
 
 void BrowserClient::OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString &value) {

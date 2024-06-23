@@ -75,7 +75,7 @@ public:
 
     // RequestHandler
     bool OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, bool user_gesture, bool is_redirect) override;
-    void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status) override;
+    void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string) override;
 
     // CefDisplayHandler
     void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override;
