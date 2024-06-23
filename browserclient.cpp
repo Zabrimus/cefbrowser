@@ -106,7 +106,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
                     .colorspace = QOI_LINEAR
             };
 
-            int out_len;
+            int out_len = 0;
             char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
 
             if (!vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {

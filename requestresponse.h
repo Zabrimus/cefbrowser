@@ -72,9 +72,9 @@ public:
                             const CefString &scheme, CefRefPtr<CefAuthCallback> callback) override;
 
 private:
-    int64_t upload_total;
-    int64_t download_total;
-    int64_t offset;
+    size_t upload_total;
+    size_t download_total;
+    size_t offset;
     std::string download_data;
 
     CefResponse::HeaderMap headerMap;

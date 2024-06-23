@@ -1,8 +1,9 @@
 #!/bin/bash
 
-CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_124.3.8%2Bgc712fb4%2Bchromium-124.0.6367.207_linux64_minimal.tar.bz2"
-CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_124.3.8%2Bgc712fb4%2Bchromium-124.0.6367.207_linuxarm64_minimal.tar.bz2"
-CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_124.3.8%2Bgc712fb4%2Bchromium-124.0.6367.207_linuxarm_minimal.tar.bz2"
+
+CEF_FILE_X86="https://cef-builds.spotifycdn.com/cef_binary_126.2.7%2Bg300bb05%2Bchromium-126.0.6478.115_linux64_minimal.tar.bz2"
+CEF_FILE_ARM64="https://cef-builds.spotifycdn.com/cef_binary_126.2.7%2Bg300bb05%2Bchromium-126.0.6478.115_linuxarm64_minimal.tar.bz2"
+CEF_FILE_ARM="https://cef-builds.spotifycdn.com/cef_binary_126.2.7%2Bg300bb05%2Bchromium-126.0.6478.115_linuxarm_minimal.tar.bz2"
 
 # Default
 CEF_FILE=${CEF_FILE_X86}
