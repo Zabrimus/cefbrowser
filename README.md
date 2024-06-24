@@ -55,7 +55,7 @@ It's up to you to decide what you want to use and test ;)
          Valid values are: 1280, 1920, 2560 and 3840
 -q / --osdqoi The images between the browser and VDR are compressed using [qoi](https://qoiformat.org/) and are transferred via TCP/IP over the network.
          With this option the browser can be started on a different machine as VDR.                      
--f / --fulloas Normally only changed parts of the OSD are exchanged between the browser and VDR.
+-f / --fullosd Normally only changed parts of the OSD are exchanged between the browser and VDR.
          With this option the full OSD will exchanged. This is much slower but could be lead to visual better results.
 -p / --profilePath <path> Defines the path where cefbrowser shall save his profile data
 -s / --staticPath <path> Mandatory static content can be found in this directory.
