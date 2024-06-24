@@ -41,6 +41,28 @@ or if you don't need the possibility to debug the application in Chrome
 
 ```./cefbrowser  --config=/path/to/sockets.ini```
 
+### Parameters
+cefbrowser knows parameters which exists exclusively for the browser. 
+Apart from these parameter a huge list of other parameters exists. 
+Nearly of parameters of Chromium can be used. See e.g. [here](https://peter.sh/experiments/chromium-command-line-switches/). 
+It's up to you to decide what you want to use and test ;)
+
+```
+-c / --config </path/to/sockets.ini>   (mandatory parameter)
+-l / --loglevel <level> (from 0 to 4, where 4 means very, very verbose logging)
+-z / --zoom <value> Zooms the http page to the desired width. The result often looks much better than the default value 1280.
+         The downside is, that more data needs to be processed or send.
+         Valid values are: 1280, 1920, 2560 and 3840
+-q / --osdqoi The images between the browser and VDR are compressed using [qoi](https://qoiformat.org/) and are transferred via TCP/IP over the network.
+         With this option the browser can be started on a different machine as VDR.                      
+-f / --fulloas Normally only changed parts of the OSD are exchanged between the browser and VDR.
+         With this option the full OSD will exchanged. This is much slower but could be lead to visual better results.
+-p / --profilePath <path> Defines the path where cefbrowser shall save his profile data
+-s / --staticPath <path> Mandatory static content can be found in this directory.
+        E.g. css, html, javascript and so on.
+-b / --bindall The browser uses every network interface. Could lead to interesting effects if Docker/Incus/LXD is also installed.                  
+```
+
 ### Logging
 Log entries will be written to stdout/stderr.
 
