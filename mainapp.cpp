@@ -11,7 +11,6 @@ scoped_refptr<CefBrowser> currentBrowser;
 
 httplib::Server svr;
 std::mutex httpServerMutex;
-
 std::string lastInsertChannel = "";
 
 void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string static_path, bool bindAll) {
@@ -26,21 +25,10 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
     DEBUG("Mount static path {}", static_path);
 
-    auto ret = svr.set_mount_point("/js", static_path + "/js");
-    if (!ret) {
-        // must not happen
-        ERROR("http mount point {}/js does not exists. Application will not work as desired.", static_path);
-        return;
-    }
-
-    ret = svr.set_mount_point("/css", static_path + "/css");
-    if (!ret) {
-        // must not happen
-        ERROR("http mount point {}/css does not exists. Application will not work as desired.", static_path);
-        return;
-    }
-
-    ret = svr.set_mount_point("/application", static_path + "/application");
+    // application header
+    httplib::Headers applicationHeaders = httplib::Headers();
+    applicationHeaders.insert(std::make_pair("Content-Type", std::move("application/vnd.hbbtv.xhtml+xml;charset=utf-8")));
+    auto ret = svr.set_mount_point("/application", static_path + "/application", applicationHeaders);
     if (!ret) {
         // must not happen
         ERROR("http mount point {}/application does not exists. Application will not work as desired.", static_path);
@@ -112,6 +100,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 std::string newUserAgent = database.getUserAgent(channelId);
                 INFO("Use UserAgent {} for {}", newUserAgent, channelId);
                 c->ChangeUserAgent(currentBrowser, newUserAgent);
+                c->enableProcessing(true);
 
                 // load url
                 if (currentBrowser->GetMainFrame() != nullptr) { // Why is it possible, that MainFrame is null?
@@ -140,22 +129,62 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     svr.Post("/StartApplication", [_browserIp, _browserPort, static_path](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
-        auto channelId = req.get_param_value("channelId");
-        auto appId = req.get_param_value("appId");
+        auto channelId = get_header_value(req.headers, "channelId");
+        auto appId = get_header_value(req.headers, "appId");
+        auto paramCookie = get_header_value(req.headers, "appCookie");
+        auto paramReferrer = get_header_value(req.headers, "appReferrer");
+        auto paramUserAgent = get_header_value(req.headers, "appUserAgent");
+        auto paramBody = req.body;
+
         INFO("Start Application, channelId {}, appId {}", channelId, appId);
 
-        if (channelId.empty()) {
+        if (channelId == nullptr || strlen(channelId) == 0) {
             res.status = 404;
         } else {
-            // write channel information
             std::string channel = database.getChannel(channelId);
             std::ofstream _dynamic;
             _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
+
+            // write channel information and parameters
             _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
+
+            if (paramBody.empty()) {
+                _dynamic << "window.HBBTV_POLYFILL_NS.paramBody = '';" << std::endl;
+            } else {
+                _dynamic << "window.HBBTV_POLYFILL_NS.paramBody = " << paramBody << std::endl;
+            }
+
             _dynamic.close();
 
+            CefRefPtr<CefClient> currentClient = currentBrowser->GetHost()->GetClient();
+            auto c = dynamic_cast<BrowserClient *>(currentClient.get());
+
+            if ((paramUserAgent != nullptr) && (strlen(paramUserAgent) != 0)) {
+                c->ChangeUserAgent(currentBrowser, paramUserAgent);
+            } else {
+                c->ChangeUserAgent(currentBrowser, "");
+            }
+
+            std::string url;
+
             // create application url
-            std::string url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/main/main.html";
+            if (strcmp(appId, "MAIN") == 0) {
+                url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/main/main.html";
+                c->enableProcessing(true);
+            } else if (strcmp(appId, "URL") == 0) {
+                url = paramBody;
+                c->enableProcessing(false);
+            } else if (strcmp(appId, "M3U") == 0) {
+                url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/iptv/catalogue/index.html";
+                c->enableProcessing(true);
+            }
+
+            DEBUG("Load URL: {}", url);
+
+            // sanity check
+            if (url.empty()) {
+                url = "http://gibbet.nix.da";
+            }
 
             // load url
             currentBrowser->GetMainFrame()->LoadURL(url);
@@ -444,6 +473,12 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     CefRefPtr<CefV8Value> startApp = CefV8Value::CreateFunction("StartApp", handler);
     object->SetValue("cefStartApp", startApp, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> audioInfo = CefV8Value::CreateFunction("AudioInfo", handler);
+    object->SetValue("cefAudioInfo", audioInfo, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> audioTrack = CefV8Value::CreateFunction("SelectAudioTrack", handler);
+    object->SetValue("cefSelectAudioTrack", audioTrack, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {

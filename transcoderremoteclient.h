@@ -15,6 +15,7 @@ public:
     bool Seek(std::string seekTo);
     bool Resume(std::string position);
     bool Stop(std::string& reason) const;
+    std::string GetAudioInfo();
 
 private:
     httplib::Client *client;

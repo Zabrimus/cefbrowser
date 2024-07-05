@@ -84,6 +84,9 @@ public:
     // Change User Agent
     void ChangeUserAgent(CefRefPtr<CefBrowser> browser, std::string agent);
 
+    // process the whole URL loading
+    void enableProcessing(bool processUrl);
+
 private:
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);
 
@@ -91,6 +94,8 @@ private:
     int renderWidth;
     int renderHeight;
     bool fullscreen;
+
+    bool processorEnabled;
 
     std::string vdrIp;
     int vdrPort;

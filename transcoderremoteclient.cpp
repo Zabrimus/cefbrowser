@@ -143,3 +143,22 @@ bool TranscoderRemoteClient::Stop(std::string& reason) const {
 
     return true;
 }
+
+std::string TranscoderRemoteClient::GetAudioInfo() {
+    httplib::Params params;
+    params.emplace("streamId", browserIp + "_" + std::to_string(browserPort));
+
+    if (auto res = client->Post("/AudioInfo", params)) {
+        if (res->status != 200) {
+            TRACE("Http result: {}", res->status);
+            return "{}";
+        } else {
+            TRACE("AudioInfo: {}", res->status);
+            return res->body;
+        }
+    } else {
+        auto err = res.error();
+        ERROR("Http error: {}", httplib::to_string(err));
+        return "{}";
+    }
+}

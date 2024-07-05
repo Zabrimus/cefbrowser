@@ -36,12 +36,7 @@ std::string readPreJavascript(std::string browserIp, int browserPort) {
         result += readFile((static_path + "/js/" + file).c_str());
     }
 
-    std::ofstream _dynamic;
-    _dynamic.open (static_path + "/js/_dynamic_head.js", std::ios_base::trunc);
-    _dynamic << result << std::endl;
-    _dynamic.close();
-
-    return "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_head.js\"></script>\n";
+    return std::string("\n<script type=\"text/javascript\">\n//<![CDATA[\n") + result + "\n// ]]>\n</script>\n";
 }
 
 std::string readPreCSS(std::string browserIp, int browserPort) {
@@ -52,12 +47,7 @@ std::string readPreCSS(std::string browserIp, int browserPort) {
         result += readFile((static_path + "/css/" + file).c_str());
     }
 
-    std::ofstream _dynamic;
-    _dynamic.open (static_path + "/css/_dynamic.css", std::ios_base::trunc);
-    _dynamic << result << std::endl;
-    _dynamic.close();
-
-    return "\n<link rel=\"stylesheet\" type=\"text/css\" href=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/css/_dynamic.css\"></link>\n";
+    return std::string("\n<style>\n") + result + "\n</style>\n";
 }
 
 std::string readPostJavascript(std::string browserIp, int browserPort) {
@@ -68,13 +58,7 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
         result += readFile((static_path + "/js/" + file).c_str());
     }
 
-    std::ofstream _dynamic;
-    _dynamic.open (static_path + "/js/_dynamic_body.js", std::ios_base::trunc);
-    _dynamic << result << std::endl;
-    _dynamic.close();
-
-    std::string post = "\n<script type=\"text/javascript\" src=\"http://" + browserIp + ":" + std::to_string(browserPort) + "/js/_dynamic_body.js\"></script>\n";
-    return post;
+    return std::string("\n<script type=\"text/javascript\">\n//<![CDATA[\n") + result + "\n// ]]>\n</script>\n";
 }
 
 std::string readPostHTML() {
@@ -192,6 +176,10 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
             DEBUG("Redirect to new URL {} ", newUrl);
 
             // redirect
+            if (startsWith(newUrl, "/")) {
+                newUrl = tmp_url + newUrl;
+            }
+
             request->SetURL(newUrl);
             return RV_CONTINUE;
         }

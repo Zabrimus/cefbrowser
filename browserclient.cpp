@@ -30,6 +30,7 @@ BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string
 
     this->renderWidth = width;
     this->renderHeight = height;
+    this->processorEnabled = true;
 
     // create clients
     transcoderRemoteClient = new TranscoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort, vdrIp, vdrPort);
@@ -255,6 +256,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     std::string url = request->GetURL().ToString();
 
+    // let cef handle the whole URL loading. For HbbTV pages, this does not makes sense.
+    if (!processorEnabled) {
+        return nullptr;
+    }
+
     if (!startsWith(url, "http://" + browserIp + ":" + std::to_string(browserPort) + "/application") && (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + browserIp))  ) {
         // let the browser handle this
         return nullptr;
@@ -372,7 +378,6 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
     return false;
 }
 
-
 void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string) {
     CRITICAL("[Crash] Render process terminated, errorcode: {}, error message: {}", error_code, error_string.ToString());
 }
@@ -427,6 +432,10 @@ void BrowserClient::ChangeUserAgent(CefRefPtr<CefBrowser> browser, std::string a
 
     int status = browser->GetHost()->ExecuteDevToolsMethod(0, "Network.setUserAgentOverride", params);
     DEBUG("Status: {}", status);
+}
+
+void BrowserClient::enableProcessing(bool processUrl) {
+    processorEnabled = processUrl;
 }
 
 bool DevToolsMessageObserver::OnDevToolsMessage(CefRefPtr<CefBrowser> browser, const void* message, size_t message_size) {

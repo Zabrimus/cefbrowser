@@ -273,6 +273,19 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
         retval = CefV8Value::CreateBool(true);
         return true;
+    } else if (name == "AudioInfo") {
+        std::string result = transcoderRemoteClient->GetAudioInfo();
+        retval = CefV8Value::CreateString(result);
+        return true;
+    } else if (name == "SelectAudioTrack") {
+        if (!arguments.empty()) {
+            const auto nr = arguments.at(0)->GetIntValue();
+            bool result = vdrRemoteClient->SelectAudioTrack(nr);
+            retval = CefV8Value::CreateBool(result);
+            return true;
+        }
+        retval = CefV8Value::CreateBool(true);
+        return true;
     } else {
         ERROR("Javascript function {} is not implemented.", name.ToString());
     }

@@ -1,0 +1,34 @@
+#debugScreen{
+	display : none;
+	position: absolute;
+	top:0px;
+	left:0px;
+	padding:30px;
+	background: rgba(0,0,0,0.75);
+	width:450px;
+	height: 640px;
+	z-index: 999;
+}
+#debugText{
+	position:absolute;
+	bottom:0px;
+	color:white;
+}
+#debugButton {
+    position: absolute;
+    bottom: 40px;
+    right: 40px;
+    background-color: blue;
+    border-radius: 25px;
+    height: 25px;
+    width: 140px;
+}
+#debugButtonText {
+    position: absolute;
+    left: 15px;
+    color: white;
+    width: 130px;
+	height: 25px;
+    background-color: black;
+    text-align: center;
+}

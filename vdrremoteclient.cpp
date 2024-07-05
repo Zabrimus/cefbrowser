@@ -251,3 +251,25 @@ bool VdrRemoteClient::ResetVideo(std::string videoInfo) {
 
     return true;
 }
+
+bool VdrRemoteClient::SelectAudioTrack(int nr) {
+    const std::lock_guard<std::mutex> lock(httpMutex);
+
+    TRACE("Call VdrRemoteClient::SelectAudioTrack");
+
+    httplib::Params params;
+    params.emplace("audioTrack", std::to_string(nr));
+
+    if (auto res = client->Post("/SelectAudioTrack", params)) {
+        if (res->status != 200) {
+            ERROR("Http result: {}", res->status);
+            return false;
+        }
+    } else {
+        auto err = res.error();
+        ERROR("HTTP error (ResetVideo): {}", httplib::to_string(err));
+        return false;
+    }
+
+    return true;
+}

@@ -21,6 +21,8 @@ public:
     bool VideoSize(int x, int y, int w, int h);
     bool VideoFullscreen();
 
+    bool SelectAudioTrack(int nr);
+
     bool SendHello();
 private:
     httplib::Client* client;

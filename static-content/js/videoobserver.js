@@ -447,7 +447,10 @@ function checkAddedObjectNode(summaries) {
     }
 
     let node = summaries.added[0];
+    checkSingleObjectNode(node);
+}
 
+function checkSingleObjectNode(node) {
     if (node.type === 'video/broadcast') {
         console.log("Found TV on node: " + node);
         window.addVideoOverlay(node);
@@ -466,12 +469,12 @@ function checkAddedObjectNode(summaries) {
         let location = document.location.toString();
         let checkVideoTag = location.includes("hbbtv.zdf.de");
 
-        if (node.nodeName === 'object') {
+        if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
             let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
             addVideoNodeTypeObject(node, newUrl);
             addNodeFunctions(node);
             promoteVideoSize(node);
-        } else if (node.nodeName === 'video' && checkVideoTag) {
+        } else if (node.nodeName.toUpperCase() === 'video'.toUpperCase() && checkVideoTag) {
             let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent);
             addVideoNodeTypeVideo(node, newUrl);
             promoteVideoSize(node);
@@ -488,22 +491,25 @@ function checkAddedObjectNode(summaries) {
     }
 }
 
-const ms = new MutationSummary({
-    callback(summaries) {
-        summaries.forEach((summary) => {
-            console.log(summary);
+// if an local application is loaded, then don't a create a MutationSummary
+if (!document.location.href.includes('application/iptv/catalogue/index.html')) {
+    const ms = new MutationSummary({
+        callback(summaries) {
+            summaries.forEach((summary) => {
+                console.log(summary);
 
-            checkAddedObjectNode(summary);
-            checkPositionObjectNode(summary);
-        });
-    },
-    queries: [
-        {
-            element: 'object',
-            elementAttributes: 'data type width height left top style',
+                checkAddedObjectNode(summary);
+                checkPositionObjectNode(summary);
+            });
         },
-        {
-            element: 'video',
-        },
-    ]
-});
+        queries: [
+            {
+                element: 'object',
+                elementAttributes: 'data type width height left top style',
+            },
+            {
+                element: 'video',
+            },
+        ]
+    });
+}

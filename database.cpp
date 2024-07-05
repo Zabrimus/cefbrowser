@@ -247,6 +247,8 @@ void Database::createTables() {
                       )";
 
     sqlite3_exec(db, sqlHbbtvUrls.c_str(), unused_callback, nullptr, &errMsg);
+    sqlite3_free(errMsg);
+    errMsg = nullptr;
 
     std::string sqlChannels = R"(
                          CREATE TABLE CHANNELS (
@@ -258,6 +260,8 @@ void Database::createTables() {
                       )";
 
     sqlite3_exec(db, sqlChannels.c_str(), unused_callback, nullptr, &errMsg);
+    sqlite3_free(errMsg);
+    errMsg = nullptr;
 }
 
 std::string Database::getAppUrl(const std::string channelId, const std::string appId) {
