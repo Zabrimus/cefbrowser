@@ -113,6 +113,11 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             oldVideoInfo = videoInfo;
             videoInfo = transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now));
 
+            if (videoInfo.empty()) {
+                ERROR("Probe failed: Wrong video URL, a server error or another error.");
+                return false;
+            }
+
             TRACE("Video Info:  {} -> {}", oldVideoInfo, videoInfo);
             if (!oldVideoInfo.empty() && oldVideoInfo != videoInfo) {
                 INFO("--> Video format change");
