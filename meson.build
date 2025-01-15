@@ -34,8 +34,8 @@ cef_lib = cef_proj.dependency('libcef_dll_wrapper')
 #
 # spdlog
 #
-spdlog_proj = subproject('spdlog', default_options: ['tests=false', 'external_fmt=disabled'])
-spdlog_dep = spdlog_proj.get_variable('spdlog_dep')
+spdlog_proj = subproject('spdlog')
+spdlog_dep = spdlog_proj.get_variable('spdlog_dep', ['tests=disabled', 'compile_library=true'] )
 
 #
 # tiny-process-library
