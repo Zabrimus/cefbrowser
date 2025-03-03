@@ -129,16 +129,16 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     svr.Post("/StartApplication", [_browserIp, _browserPort, static_path](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
-        auto channelId = get_header_value(req.headers, "channelId");
-        auto appId = get_header_value(req.headers, "appId");
-        auto paramCookie = get_header_value(req.headers, "appCookie");
-        auto paramReferrer = get_header_value(req.headers, "appReferrer");
-        auto paramUserAgent = get_header_value(req.headers, "appUserAgent");
+        auto channelId = req.get_header_value("channelId");
+        auto appId = req.get_header_value("appId");
+        auto paramCookie = req.get_header_value("appCookie");
+        auto paramReferrer = req.get_header_value("appReferrer");
+        auto paramUserAgent = req.get_header_value("appUserAgent");
         auto paramBody = req.body;
 
         INFO("Start Application, channelId {}, appId {}", channelId, appId);
 
-        if (channelId == nullptr || strlen(channelId) == 0) {
+        if (channelId.empty()) {
             res.status = 404;
         } else {
             std::string channel = database.getChannel(channelId);
@@ -159,7 +159,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
             CefRefPtr<CefClient> currentClient = currentBrowser->GetHost()->GetClient();
             auto c = dynamic_cast<BrowserClient *>(currentClient.get());
 
-            if ((paramUserAgent != nullptr) && (strlen(paramUserAgent) != 0)) {
+            if (!paramUserAgent.empty()) {
                 c->ChangeUserAgent(currentBrowser, paramUserAgent);
             } else {
                 c->ChangeUserAgent(currentBrowser, "");
@@ -168,13 +168,13 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
             std::string url;
 
             // create application url
-            if (strcmp(appId, "MAIN") == 0) {
+            if (appId == "MAIN") {
                 url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/main/main.html";
                 c->enableProcessing(true);
-            } else if (strcmp(appId, "URL") == 0) {
+            } else if (appId == "URL") {
                 url = paramBody;
                 c->enableProcessing(false);
-            } else if (strcmp(appId, "M3U") == 0) {
+            } else if (appId == "M3U") {
                 url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/iptv/catalogue/index.html";
                 c->enableProcessing(true);
             }
@@ -353,6 +353,9 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.set_content(buf, "text/html");
         res.status = 500;
     });
+
+    svr.set_keep_alive_max_count(50);
+    svr.set_keep_alive_timeout(5);
 
     std::string listenIp = bindAll ? "0.0.0.0" : browserIp;
     if (!svr.listen(listenIp, browserPort)) {

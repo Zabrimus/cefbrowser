@@ -7,6 +7,7 @@ TranscoderRemoteClient::TranscoderRemoteClient(std::string transcoderIp, int tra
                                       vdrIp(vdrIp), vdrPort(vdrPort) {
     client = new httplib::Client(transcoderIp, transcoderPort);
     client->set_read_timeout(15, 0);
+    client->set_keep_alive(true);
 }
 
 TranscoderRemoteClient::~TranscoderRemoteClient() {
