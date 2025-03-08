@@ -90,7 +90,6 @@ void parseCommandLine(int argc, char *argv[]) {
             { "staticPath",  optional_argument, nullptr, 's' },
             { "bindall",     optional_argument, nullptr, 'b' },
             { "uagent",      optional_argument, nullptr, 'u' },
-            { "browserdb",   optional_argument, nullptr, 'd' },
             { nullptr }
     };
 
@@ -104,7 +103,7 @@ void parseCommandLine(int argc, char *argv[]) {
     use_dirty_recs = true;
     bindAll = false;
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -292,7 +291,6 @@ int main(int argc, char *argv[]) {
     bParameter.static_path = staticPath;
     bParameter.bindAll = bindAll;
     bParameter.user_agent_path = userAgentPath;
-    bParameter.browserdb_path = browserDbPath;
 
     // Main browser process
     auto browserApp = new BrowserApp(bParameter);

@@ -9,6 +9,8 @@ public:
     Database();
     ~Database();
 
+    void readUserAgents(std::string path);
+
     bool insertHbbtv(std::string json);
     bool insertChannel(std::string json);
 

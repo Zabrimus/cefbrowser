@@ -44,17 +44,23 @@ Database::Database() {
     sqlite3_prepare_v3(db, insertHbbtvSql.c_str(), (int)insertHbbtvSql.length(), SQLITE_PREPARE_PERSISTENT, &insertHbbtvStmt, nullptr);
     sqlite3_prepare_v3(db, insertChannelSql.c_str(), (int)insertChannelSql.length(), SQLITE_PREPARE_PERSISTENT, &insertChannelStmt, nullptr);
 
-    // read user_agent.ini
-    mINI::INIFile file(browserdb + "/user_agent.ini");
-    auto result = file.read(userAgents);
-
-    if (!result) {
-        INFO("Configuration file {} not found. Use default UserAgent.", browserdb + "/user_agent.ini");
-    }
+    // initial reading of user agents. Could be overwritten later.
+    readUserAgents(browserdb);
 }
 
 Database::~Database() {
     shutdown();
+}
+
+
+void Database::readUserAgents(std::string path) {
+    // read user_agent.ini
+    mINI::INIFile file(path + "/user_agent.ini");
+    auto result = file.read(userAgents);
+
+    if (!result) {
+        INFO("Configuration file {} not found. Use default UserAgent.", path + "/user_agent.ini");
+    }
 }
 
 void Database::shutdown() {

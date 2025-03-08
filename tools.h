@@ -26,7 +26,6 @@ typedef struct BrowserParameter {
 
     std::string static_path;
     std::string user_agent_path;
-    std::string browserdb_path;
 
     bool bindAll;
 

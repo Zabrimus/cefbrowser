@@ -410,6 +410,11 @@ void BrowserApp::OnContextInitialized() {
     CefRefPtr<BrowserClient> client = new BrowserClient(false, bParameter);
     currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
 
+    // read user agents if configured
+    if (!bParameter.user_agent_path.empty()) {
+        database.readUserAgents(bParameter.user_agent_path);
+    }
+
     INFO("Start Http Server on {}:{} with static path {}", bParameter.browserIp, bParameter.browserPort, bParameter.static_path);
 
     std::thread t1(startHttpServer, bParameter);
