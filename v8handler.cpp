@@ -37,11 +37,10 @@ void V8Handler::stopVdrVideo() {
     stopVideoThreadRunning = false;
 }
 
-V8Handler::V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std::string vdrIp, int vdrPort)
-        : browserIp(bIp), browserPort(bPort), transcoderIp(tIp), transcoderPort(tPort), vdrIp(vdrIp), vdrPort(vdrPort)
+V8Handler::V8Handler(BrowserParameter bParam) : bParam(bParam)
 {
-    transcoderRemoteClient = new TranscoderRemoteClient(tIp, tPort, bIp, bPort, vdrIp, vdrPort);
-    vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
+    transcoderRemoteClient = new TranscoderRemoteClient(bParam.transcoderIp, bParam.transcoderPort, bParam.browserIp, bParam.browserPort, bParam.vdrIp, bParam.vdrPort);
+    vdrRemoteClient = new VdrRemoteClient(bParam.vdrIp, bParam.vdrPort);
 
     lastVideoX = lastVideoY = lastVideoW = lastVideoH = 0;
     lastFullscreen = false;
@@ -151,7 +150,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             }
         }
 
-        std::string newVideoUrl = "http://"+ transcoderIp + ":" + std::to_string(transcoderPort) + "/movie/transparent-video-" + browserIp + "_" + std::to_string(browserPort) + "-" + std::to_string(now) + ".webm";
+        std::string newVideoUrl = "http://"+ bParam.transcoderIp + ":" + std::to_string(bParam.transcoderPort) + "/movie/transparent-video-" + bParam.browserIp + "_" + std::to_string(bParam.browserPort) + "-" + std::to_string(now) + ".webm";
         TRACE("Javascript return new Video URL: {}", newVideoUrl);
 
         retval = CefV8Value::CreateString(newVideoUrl);

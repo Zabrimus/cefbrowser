@@ -3,23 +3,17 @@
 #include "cef_includes.h"
 #include "transcoderremoteclient.h"
 #include "vdrremoteclient.h"
+#include "tools.h"
 
 class V8Handler : public CefV8Handler {
 public:
-    V8Handler(std::string bIp, int bPort, std::string tIp, int tPort, std::string vdrIp, int vdrPort);
+    V8Handler(BrowserParameter bParam);
     ~V8Handler();
 
     bool Execute(const CefString& name, CefRefPtr<CefV8Value> object, const CefV8ValueList& arguments, CefRefPtr<CefV8Value>& retval, CefString& exception) override;
 
 private:
-    std::string browserIp;
-    int browserPort;
-
-    std::string transcoderIp;
-    int transcoderPort;
-
-    std::string vdrIp;
-    int vdrPort;
+    BrowserParameter bParam;
 
     VdrRemoteClient* vdrRemoteClient;
     TranscoderRemoteClient* transcoderRemoteClient;

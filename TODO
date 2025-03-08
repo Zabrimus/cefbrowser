@@ -5,3 +5,6 @@
       Wird die Mediathek mit RED geschlossen, dann scheint auch der komplette MainFrame geschlossen zu werden.
       und nachfolgende Aktionen schlagen fehl. Der Browser crasht nicht mehr, aber es passiert auch nix mehr.
       Zu prüfen ist, ob das Öffnen eines neues Frames das Problem löst.
+
+- Logging verkleinern InsertHbbtv, browser is not available
+- UserAgent Pfad als Parameter übergeben

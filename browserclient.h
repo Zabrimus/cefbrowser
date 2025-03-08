@@ -15,13 +15,7 @@ class BrowserClient : public CefClient,
                       public CefDisplayHandler {
 
 public:
-    explicit BrowserClient(bool fullscreen, int width, int height,
-                           std::string vdrIp, int vdrPort,
-                           std::string transcoderIp, int transcoderPort,
-                           std::string browserIp, int browserPort,
-                           image_type_enum osdqoi,
-                           bool use_dirty_recs,
-                           std::string static_path);
+    explicit BrowserClient(bool fullscreen, BrowserParameter bParameter);
 
     ~BrowserClient() override;
 
@@ -97,17 +91,7 @@ private:
 
     bool processorEnabled;
 
-    std::string vdrIp;
-    int vdrPort;
-
-    std::string transcoderIp;
-    int transcoderPort;
-
-    std::string browserIp;
-    int browserPort;
-
-    image_type_enum osdqoi;
-    bool use_dirty_recs;
+    BrowserParameter bParam;
 
     int videoX, videoY, videoW, videoH;
     bool videoIsFullscreen;
@@ -116,8 +100,6 @@ private:
     TranscoderRemoteClient *transcoderRemoteClient;
 
     SharedMemory sharedMemory;
-
-    std::string static_path;
 
     CefRefPtr<CefRegistration> registration;
 

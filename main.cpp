@@ -30,6 +30,9 @@ int transcoderPort;
 std::string vdrIp;
 int vdrPort;
 
+std::string userAgentPath;
+std::string browserDbPath;
+
 image_type_enum image_type;
 
 int zoom_width;
@@ -86,6 +89,8 @@ void parseCommandLine(int argc, char *argv[]) {
             { "profilePath", optional_argument, nullptr, 'p' },
             { "staticPath",  optional_argument, nullptr, 's' },
             { "bindall",     optional_argument, nullptr, 'b' },
+            { "uagent",      optional_argument, nullptr, 'u' },
+            { "browserdb",   optional_argument, nullptr, 'd' },
             { nullptr }
     };
 
@@ -99,7 +104,7 @@ void parseCommandLine(int argc, char *argv[]) {
     use_dirty_recs = true;
     bindAll = false;
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:b", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -161,6 +166,14 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 'b':
                 bindAll = true;
+                break;
+
+            case 'u':
+                userAgentPath = optarg;
+                break;
+
+            case 'd':
+                browserDbPath = optarg;
                 break;
 
             default:
@@ -251,10 +264,12 @@ int main(int argc, char *argv[]) {
         default: logger->set_level(spdlog::level::err); break;
     }
 
+    BrowserParameter bParameter;
+
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height, use_dirty_recs, staticPath, bindAll), nullptr);
+    int exit_code = CefExecuteProcess(main_args, new BrowserApp(bParameter), nullptr);
     if (exit_code >= 0) {
         return exit_code;
     }
@@ -263,8 +278,24 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    // set all parameters again: new forked process, zygote
+    bParameter.vdrIp = vdrIp;
+    bParameter.vdrPort = vdrPort;
+    bParameter.transcoderIp = transcoderIp;
+    bParameter.transcoderPort = transcoderPort;
+    bParameter.browserIp = browserIp;
+    bParameter.browserPort = browserPort;
+    bParameter.image_type = image_type;
+    bParameter.zoom_width = zoom_width;
+    bParameter.zoom_height = zoom_height;
+    bParameter.use_dirty_recs = use_dirty_recs;
+    bParameter.static_path = staticPath;
+    bParameter.bindAll = bindAll;
+    bParameter.user_agent_path = userAgentPath;
+    bParameter.browserdb_path = browserDbPath;
+
     // Main browser process
-    auto browserApp = new BrowserApp(vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, image_type, zoom_width, zoom_height, use_dirty_recs, staticPath, bindAll);
+    auto browserApp = new BrowserApp(bParameter);
     CefRefPtr<BrowserApp> app(browserApp);
 
     // Specify CEF global settings here.

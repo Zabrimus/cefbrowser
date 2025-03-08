@@ -13,25 +13,23 @@ httplib::Server svr;
 std::mutex httpServerMutex;
 std::string lastInsertChannel = "";
 
-void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string static_path, bool bindAll) {
-    int _browserPort = browserPort;
-    std::string _browserIp = browserIp;
-    VdrRemoteClient vdrRemoteClient(vdrIp, vdrPort);
-    TranscoderRemoteClient transcoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort, vdrIp, vdrPort);
+void startHttpServer(BrowserParameter bParameter) {
+    VdrRemoteClient vdrRemoteClient(bParameter.vdrIp, bParameter.vdrPort);
+    TranscoderRemoteClient transcoderRemoteClient(bParameter.transcoderIp, bParameter.transcoderPort, bParameter.browserIp, bParameter.browserPort, bParameter.vdrIp, bParameter.vdrPort);
 
-    if (static_path.empty()) {
-        static_path = ".";
+    if (bParameter.static_path.empty()) {
+        bParameter.static_path = ".";
     }
 
-    DEBUG("Mount static path {}", static_path);
+    DEBUG("Mount static path {}", bParameter.static_path);
 
     // application header
     httplib::Headers applicationHeaders = httplib::Headers();
     applicationHeaders.insert(std::make_pair("Content-Type", std::move("application/vnd.hbbtv.xhtml+xml;charset=utf-8")));
-    auto ret = svr.set_mount_point("/application", static_path + "/application", applicationHeaders);
+    auto ret = svr.set_mount_point("/application", bParameter.static_path + "/application", applicationHeaders);
     if (!ret) {
         // must not happen
-        ERROR("http mount point {}/application does not exists. Application will not work as desired.", static_path);
+        ERROR("http mount point {}/application does not exists. Application will not work as desired.", bParameter.static_path);
         return;
     }
 
@@ -59,7 +57,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         }
     });
 
-    svr.Post("/RedButton", [static_path](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/RedButton", [bParameter](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         auto channelId = req.get_param_value("channelId");
@@ -90,7 +88,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
                 // write channel information
                 std::string channel = database.getChannel(channelId);
                 std::ofstream _dynamic;
-                _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
+                _dynamic.open (bParameter.static_path + "/js/_dynamic.js", std::ios_base::trunc);
                 _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
                 _dynamic.close();
 
@@ -126,7 +124,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         res.set_content("ok", "text/plain");
     });
 
-    svr.Post("/StartApplication", [_browserIp, _browserPort, static_path](const httplib::Request &req, httplib::Response &res) {
+    svr.Post("/StartApplication", [bParameter](const httplib::Request &req, httplib::Response &res) {
         std::lock_guard<std::mutex> guard(httpServerMutex);
 
         auto channelId = req.get_header_value("channelId");
@@ -143,7 +141,7 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
         } else {
             std::string channel = database.getChannel(channelId);
             std::ofstream _dynamic;
-            _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
+            _dynamic.open (bParameter.static_path + "/js/_dynamic.js", std::ios_base::trunc);
 
             // write channel information and parameters
             _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
@@ -169,13 +167,13 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
 
             // create application url
             if (appId == "MAIN") {
-                url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/main/main.html";
+                url = "http://" + bParameter.browserIp + ":" + std::to_string(bParameter.browserPort) + "/application/main/main.html";
                 c->enableProcessing(true);
             } else if (appId == "URL") {
                 url = paramBody;
                 c->enableProcessing(false);
             } else if (appId == "M3U") {
-                url = "http://" + _browserIp + ":" + std::to_string(_browserPort) + "/application/iptv/catalogue/index.html";
+                url = "http://" + bParameter.browserIp + ":" + std::to_string(bParameter.browserPort) + "/application/iptv/catalogue/index.html";
                 c->enableProcessing(true);
             }
 
@@ -357,20 +355,15 @@ void startHttpServer(std::string browserIp, int browserPort, std::string vdrIp, 
     svr.set_keep_alive_max_count(50);
     svr.set_keep_alive_timeout(5);
 
-    std::string listenIp = bindAll ? "0.0.0.0" : browserIp;
-    if (!svr.listen(listenIp, browserPort)) {
-        CRITICAL("Call of listen failed: ip {}, port {}, Reason: {}", listenIp, browserPort, strerror(errno));
+    std::string listenIp = bParameter.bindAll ? "0.0.0.0" : bParameter.browserIp;
+    if (!svr.listen(listenIp, bParameter.browserPort)) {
+        CRITICAL("Call of listen failed: ip {}, port {}, Reason: {}", listenIp, bParameter.browserPort, strerror(errno));
         exit(1);
     }
 }
 
 // BrowserApp
-BrowserApp::BrowserApp(std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, int zoom_width, int zoom_height, bool use_dirty_recs, std::string static_path, bool bindAll) :
-        browserIp(browserIp), browserPort(browserPort),
-        transcoderIp(transcoderIp), transcoderPort(transcoderPort),
-        vdrIp(vdrIp), vdrPort(vdrPort), osdqoi(osdqoi), zoom_width(zoom_width), zoom_height(zoom_height),
-        use_dirty_recs(use_dirty_recs), static_path(static_path), bindAll(bindAll) {
-
+BrowserApp::BrowserApp(BrowserParameter bparam) : bParameter(bparam) {
     CefMessageRouterConfig config;
     config.js_query_function = "cefQuery";
     config.js_cancel_function = "cefQueryCancel";
@@ -404,22 +397,22 @@ void BrowserApp::OnContextInitialized() {
     window_info.shared_texture_enabled = false;
 
     CefRefPtr<CefDictionaryValue> extra_info = CefDictionaryValue::Create();
-    extra_info->SetString("browserIp", browserIp);
-    extra_info->SetInt("browserPort", browserPort);
-    extra_info->SetString("transcoderIp", transcoderIp);
-    extra_info->SetInt("transcoderPort", transcoderPort);
-    extra_info->SetString("vdrIp", vdrIp);
-    extra_info->SetInt("vdrPort", vdrPort);
+    extra_info->SetString("browserIp", bParameter.browserIp);
+    extra_info->SetInt("browserPort", bParameter.browserPort);
+    extra_info->SetString("transcoderIp", bParameter.transcoderIp);
+    extra_info->SetInt("transcoderPort", bParameter.transcoderPort);
+    extra_info->SetString("vdrIp", bParameter.vdrIp);
+    extra_info->SetInt("vdrPort", bParameter.vdrPort);
     extra_info->SetInt("LogLevel", logger->level());
-    extra_info->SetInt("osdqoi", (int)osdqoi);
-    extra_info->SetBool("dirtyRecs", use_dirty_recs);
+    extra_info->SetInt("osdqoi", (int)bParameter.osdqoi);
+    extra_info->SetBool("dirtyRecs", bParameter.use_dirty_recs);
 
-    CefRefPtr<BrowserClient> client = new BrowserClient(false, zoom_width, zoom_height, vdrIp, vdrPort, transcoderIp, transcoderPort, browserIp, browserPort, osdqoi, use_dirty_recs, static_path);
+    CefRefPtr<BrowserClient> client = new BrowserClient(false, bParameter);
     currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
 
-    INFO("Start Http Server on {}:{} with static path {}", browserIp, browserPort, static_path);
+    INFO("Start Http Server on {}:{} with static path {}", bParameter.browserIp, bParameter.browserPort, bParameter.static_path);
 
-    std::thread t1(startHttpServer, browserIp, browserPort, vdrIp, vdrPort, transcoderIp, transcoderPort, static_path, bindAll);
+    std::thread t1(startHttpServer, bParameter);
     t1.detach();
 }
 
@@ -427,14 +420,14 @@ void BrowserApp::OnWebKitInitialized() {
 }
 
 void BrowserApp::OnBrowserCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDictionaryValue> extra_info) {
-    browserIp = extra_info->GetString("browserIp");
-    browserPort = extra_info->GetInt("browserPort");
-    transcoderIp = extra_info->GetString("transcoderIp");
-    transcoderPort = extra_info->GetInt("transcoderPort");
-    vdrIp = extra_info->GetString("vdrIp");
-    vdrPort = extra_info->GetInt("vdrPort");
-    osdqoi = (image_type_enum)extra_info->GetInt("osdqoi");
-    use_dirty_recs = extra_info->GetBool("dirtyRecs");
+    bParameter.browserIp = extra_info->GetString("browserIp");
+    bParameter.browserPort = extra_info->GetInt("browserPort");
+    bParameter.transcoderIp = extra_info->GetString("transcoderIp");
+    bParameter.transcoderPort = extra_info->GetInt("transcoderPort");
+    bParameter.vdrIp = extra_info->GetString("vdrIp");
+    bParameter.vdrPort = extra_info->GetInt("vdrPort");
+    bParameter.osdqoi = (image_type_enum)extra_info->GetInt("osdqoi");
+    bParameter.use_dirty_recs = extra_info->GetBool("dirtyRecs");
 
     int logLevel = extra_info->GetInt("LogLevel");
     logger->set_level(static_cast<spdlog::level::level_enum>(logLevel));
@@ -445,7 +438,7 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     // register all native JS functions
     CefRefPtr<CefV8Value> object = context->GetGlobal();
-    handler = new V8Handler(browserIp, browserPort, transcoderIp, transcoderPort, vdrIp, vdrPort);
+    handler = new V8Handler(bParameter);
 
     CefRefPtr<CefV8Value> streamVideo = CefV8Value::CreateFunction("StreamVideo", handler);
     object->SetValue("cefStreamVideo", streamVideo, V8_PROPERTY_ATTRIBUTE_NONE);

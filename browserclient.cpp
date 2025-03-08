@@ -24,17 +24,16 @@ std::string urlBlockList[] {
         ".gvt2.com"  // testwise
 };
 
-BrowserClient::BrowserClient(bool fullscreen, int width, int height, std::string vdrIp, int vdrPort, std::string transcoderIp, int transcoderPort, std::string browserIp, int browserPort, image_type_enum osdqoi, bool use_dirty_recs, std::string static_path)
-                    : vdrIp(vdrIp), vdrPort(vdrPort), transcoderIp(transcoderIp), transcoderPort(transcoderPort), browserIp(browserIp), browserPort(browserPort), osdqoi(osdqoi), use_dirty_recs(use_dirty_recs), static_path(static_path) {
+BrowserClient::BrowserClient(bool fullscreen, BrowserParameter bp) : bParam(bp) {
     LOG_CURRENT_THREAD();
 
-    this->renderWidth = width;
-    this->renderHeight = height;
+    this->renderWidth = bParam.zoom_width;
+    this->renderHeight = bParam.zoom_height;
     this->processorEnabled = true;
 
     // create clients
-    transcoderRemoteClient = new TranscoderRemoteClient(transcoderIp, transcoderPort, browserIp, browserPort, vdrIp, vdrPort);
-    vdrRemoteClient = new VdrRemoteClient(vdrIp, vdrPort);
+    transcoderRemoteClient = new TranscoderRemoteClient(bParam.transcoderIp, bParam.transcoderPort, bParam.browserIp, bParam.browserPort, bParam.vdrIp, bParam.vdrPort);
+    vdrRemoteClient = new VdrRemoteClient(bParam.vdrIp, bParam.vdrPort);
 }
 
 BrowserClient::~BrowserClient() {
@@ -67,7 +66,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
     }
 
     RectList recList;
-    if (use_dirty_recs) {
+    if (bParam.use_dirty_recs) {
         recList = dirtyRects;
     } else {
         CefRect rect(0, 0, width, height);
@@ -80,7 +79,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
     // iterate overall dirty recs
     for (auto r : recList) {
-        if (osdqoi == QOI) {
+        if (bParam.osdqoi == QOI) {
             uint32_t* outbuffer = new uint32_t[r.width * r.height];
 
             // copy the region
@@ -179,7 +178,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             std::string channel = database.getChannel(channelId);
 
             std::ofstream _dynamic;
-            _dynamic.open (static_path + "/js/_dynamic.js", std::ios_base::trunc);
+            _dynamic.open (bParam.static_path + "/js/_dynamic.js", std::ios_base::trunc);
             _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
             _dynamic.close();
 
@@ -261,7 +260,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return nullptr;
     }
 
-    if (!startsWith(url, "http://" + browserIp + ":" + std::to_string(browserPort) + "/application") && (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + browserIp))  ) {
+    if (!startsWith(url, "http://" + bParam.browserIp + ":" + std::to_string(bParam.browserPort) + "/application") && (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + bParam.browserIp))  ) {
         // let the browser handle this
         return nullptr;
     }
@@ -360,7 +359,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         }
 
         return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
-                                   disable_default_handling, browserIp, browserPort, blockThis, static_path);
+                                   disable_default_handling, bParam.browserIp, bParam.browserPort, blockThis, bParam.static_path);
     }
 
     return nullptr;
