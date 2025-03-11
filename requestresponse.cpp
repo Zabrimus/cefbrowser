@@ -264,21 +264,6 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
 }
 
 void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
-    if (response == nullptr) {
-        DEBUG("==> response is null");
-    }
-
-    if (url_request == nullptr) {
-        DEBUG("==> url_request is null");
-    }
-
-    if (url_request->GetResponse() == nullptr) {
-        DEBUG("==> response is null");
-    }
-
-    DEBUG("==> url_request->GetResponse()->GetStatus() = {}", url_request->GetResponse()->GetStatus());
-
-
     DEBUG("RequestResponse::GetResponseHeader: Error1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
             (int)url_request->GetResponse()->GetError(), (int)url_request->GetRequestError(),
             (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),

@@ -355,7 +355,9 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     /* */
 
     /* Special handling for some requests. xhook replacement */
-    if ((request->GetResourceType()) == RT_XHR && (url.find("new-hbbtv.zdf.de/al/cms/content/") != std::string::npos)) {
+    if ((request->GetResourceType()) == RT_XHR &&
+            ((url.find("new-hbbtv.zdf.de/al/cms/content/") != std::string::npos) ||
+             (url.find("hbbtv.zdf.de/zdfm3/dyn/get.php") != std::string::npos))) {
         return new XhrInterception();
     }
 

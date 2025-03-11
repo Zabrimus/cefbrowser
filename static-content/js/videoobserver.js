@@ -122,7 +122,7 @@ function addNodeFunctions(node) {
     };
 }
 
-function addVideoNodeTypeObject(node, url) {
+function addVideoNodeTypeObject(node, url, originalUrl) {
     let video = document.createElement('video');
     video.type = "video/webm";
     video.src = url;
@@ -330,6 +330,7 @@ function addVideoNodeTypeObject(node, url) {
     node.error = -1;
     node.type = "video/webm";
     node.data = "http://gibbet.nix"; // url;
+    node.setAttribute("oldData", originalUrl);
     node.style.visibility = 'hidden';
 
     node.append(video);
@@ -471,18 +472,18 @@ function checkSingleObjectNode(node) {
 
         if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
             let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
-            addVideoNodeTypeObject(node, newUrl);
+            addVideoNodeTypeObject(node, newUrl, node.data);
             addNodeFunctions(node);
             promoteVideoSize(node);
         } else if (node.nodeName.toUpperCase() === 'video'.toUpperCase() && checkVideoTag) {
             let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent);
-            addVideoNodeTypeVideo(node, newUrl);
+            addVideoNodeTypeVideo(node, newUrl. node.data);
             promoteVideoSize(node);
         }
     } else if (node.type === 'video/webm') { // webm video
         // RTL changes only data attribute, but not the type
         let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
-        addVideoNodeTypeObject(node, newUrl);
+        addVideoNodeTypeObject(node, newUrl, node.data);
         addNodeFunctions(node);
         promoteVideoSize(node);
     } else {

@@ -57,7 +57,13 @@ prepareElements();
 document.body.style["font-family"] = "Tiresias";
 document.body.style["overflow"] = "hidden";
 
-// hack for ZDF.
+// hack for ZDF to force HTML5 video
+setTimeout(() => {
+    if (typeof appStorage != "undefined") {
+        appStorage.getItem('config').isHbbTv = false;
+    }
+}, 10);
+
 // ARD channels also uses window.GLOBALS.htmlfive. But the application is not yet prepared.
 if (window.GLOBALS) {
     let location = document.location.toString();

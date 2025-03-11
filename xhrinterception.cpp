@@ -92,12 +92,25 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     TRACE("XhrRequestClient::OnRequestComplete:  {}, {}, {}", (int)request->GetRequestStatus(), (int)request->GetRequestError(), request->GetResponse()->GetMimeType().ToString());
 
     request->GetResponse()->GetHeaderMap(headerMap);
-    DEBUG("Header by content: {}", request->GetResponse()->GetHeaderByName("Content-Type").ToString());
 
-    // TODO: Auf URL oder Sender beschränken, falls später weitere Aktionen notwendig sein sollten
-    auto dataJson = nlohmann::json::parse(download_data);
-    auto count = dataJson["data"].erase("ageControl");
-    download_data = dataJson.dump();
+    // hbbtv.zdf.de
+    if (request->GetRequest()->GetURL().ToString().find("hbbtv.zdf.de") != std::string::npos) {
+        auto dataJson = nlohmann::json::parse(download_data);
+
+        size_t count;
+
+        // neue Version
+        if (dataJson.find("data") != dataJson.end()) {
+            dataJson["data"].erase("ageControl");
+        }
+
+        // alte Version
+        if (dataJson.find("fsk") != dataJson.end()) {
+            dataJson["fsk"].erase("age");
+        }
+
+        download_data = dataJson.dump();
+    }
 
     callback->Continue();
 }

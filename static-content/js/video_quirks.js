@@ -64,6 +64,16 @@ function activate_quirks(isStart) {
             _quirk_remove_class('screen', null, null, 'quirk_background_color1');
             _quirk_remove_class(null, null, 'body', 'quirk_background_color2');
         }
+    } else if (document.location.href.search("new-hbbtv.zdf.de") > 0) {
+        if (isStart) {
+            _quirk_hide_element('root', null, null);
+            document.getElementsByTagName('html')[0].style.background = 'transparent';
+            document.body.style.background = 'transparent';
+        } else {
+            _quirk_unhide_element('root', null, null);
+            document.getElementsByTagName('html')[0].style.background = '#0d1118';
+            document.body.style.background = '#0d1118';
+        }
     }
 }
 
