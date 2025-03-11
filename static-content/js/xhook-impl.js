@@ -1,3 +1,6 @@
+/*
+TODO: This needs to be fixed.
+
 xhook.after(function (request, response) {
     if (response.finalUrl.match(/hbbtv\.zdf\.de\/zdfm3\/dyn\/get\.php/)) {
         try {
@@ -11,3 +14,4 @@ xhook.after(function (request, response) {
         }
     }
 });
+*/

@@ -22,13 +22,13 @@ function prepareElements() {
         } else if (mimeType.lastIndexOf("application/oipfapplicationmanager", 0) >= 0 ||
                    mimeType.lastIndexOf("application/oipfconfiguration", 0) >= 0 ||
                    mimeType.lastIndexOf("application/oipfcapabilities", 0) >= 0 ||
-                   mimeType.lastIndexOf("application/oipfdrmagent", 0) >= 0) {
+                   mimeType.lastIndexOf("application/oipfdrmagent", 0) >= 0 ||
+                   mimeType.lastIndexOf("application/hbbtvmediasynchroniser", 0) >= 0) {
             node.style.visibility = 'hidden';
             console.log('Hide Object ' + mimeType);
         } else {
             console.log('Unknown object ' + mimeType);
         }
-
     }
 
     const videoElement = document.getElementById('video');
