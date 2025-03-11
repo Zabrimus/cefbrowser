@@ -30,7 +30,7 @@ bool isVideoOrAudio(std::string& data) {
 
 std::string readPreJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = {"xhook.js", "xhook-impl.js", "mutation-summary.js", "init.js", "keyhandler.js", "_dynamic.js" };
+    std::string files[] = {"mutation-summary.js", "init.js", "keyhandler.js", "_dynamic.js" };
 
     for (const auto & file : files) {
         result += readFile((static_path + "/js/" + file).c_str());
@@ -171,6 +171,11 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     if (auto res = _client.Head(path)) {
         DEBUG("http-lib: HEAD location {}, path {}, query {}, status {}", res->location, path, query, res->status);
 
+        if (res->status >= 400) {
+            DEBUG("Head received status {}", res->status);
+            return RV_CONTINUE_ASYNC;
+        }
+
         if (res->status > 300 && res->status < 400) {
             newUrl = res->get_header_value("Location") + (!query.empty() ? "?" + query : "");
             DEBUG("Redirect to new URL {} ", newUrl);
@@ -259,6 +264,21 @@ bool RequestResponse::Read(void* data_out, int bytes_to_read, int& bytes_read, C
 }
 
 void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
+    if (response == nullptr) {
+        DEBUG("==> response is null");
+    }
+
+    if (url_request == nullptr) {
+        DEBUG("==> url_request is null");
+    }
+
+    if (url_request->GetResponse() == nullptr) {
+        DEBUG("==> response is null");
+    }
+
+    DEBUG("==> url_request->GetResponse()->GetStatus() = {}", url_request->GetResponse()->GetStatus());
+
+
     DEBUG("RequestResponse::GetResponseHeader: Error1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
             (int)url_request->GetResponse()->GetError(), (int)url_request->GetRequestError(),
             (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),
@@ -313,8 +333,6 @@ void RequestResponse::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_
 }
 
 void RequestResponse::Cancel() {
-    DEBUG("RequestResponse::Cancel: {}", url_request->GetRequest()->GetURL().ToString());
-    // url_request->Cancel();
 }
 
 void RequestResponse::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,

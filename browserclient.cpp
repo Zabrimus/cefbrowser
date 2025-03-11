@@ -255,6 +255,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     std::string url = request->GetURL().ToString();
 
+    TRACE("Request URL: {}", url);
+
     // let cef handle the whole URL loading. For HbbTV pages, this does not makes sense.
     if (!processorEnabled) {
         return nullptr;
@@ -285,7 +287,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         }
     }
 
-    /*
+    /* */
     if (logger->isTraceEnabled()) {
         switch(request->GetResourceType()) {
             case RT_MAIN_FRAME:
@@ -350,7 +352,12 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                 break;
         }
     }
-    */
+    /* */
+
+    /* Special handling for some requests. xhook replacement */
+    if ((request->GetResourceType()) == RT_XHR && (url.find("new-hbbtv.zdf.de/al/cms/content/") != std::string::npos)) {
+        return new XhrInterception();
+    }
 
     if ((is_navigation && request->GetResourceType() != RT_SUB_FRAME) || (request->GetResourceType() == RT_SUB_RESOURCE) || blockThis) {
         if (!blockThis) {

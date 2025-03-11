@@ -2,6 +2,7 @@
 
 #include "cef_includes.h"
 #include "requestresponse.h"
+#include "xhrinterception.h"
 #include "logger.h"
 #include "tools.h"
 #include "transcoderremoteclient.h"
