@@ -89,15 +89,26 @@ XhrRequestClient::XhrRequestClient(CefRefPtr<CefCallback>& resourceCallback) : u
 }
 
 void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
-    TRACE("XhrRequestClient::OnRequestComplete:  {}, {}, {}", (int)request->GetRequestStatus(), (int)request->GetRequestError(), request->GetResponse()->GetMimeType().ToString());
+    TRACE("XhrRequestClient::OnRequestComplete:  {}, {}, {}", (int) request->GetRequestStatus(),
+          (int) request->GetRequestError(), request->GetResponse()->GetMimeType().ToString());
 
     request->GetResponse()->GetHeaderMap(headerMap);
 
     // hbbtv.zdf.de
-    if (request->GetRequest()->GetURL().ToString().find("hbbtv.zdf.de") != std::string::npos) {
+    if (request->GetRequest()->GetURL().ToString().find("new-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
         auto dataJson = nlohmann::json::parse(download_data);
 
-        size_t count;
+        if (dataJson.find("dash") != dataJson.end()) {
+            dataJson["dash"] = false;
+        }
+
+        if (dataJson.find("dashJsInHbbtv") != dataJson.end()) {
+            // dataJson["dashJsInHbbtv"] = true;
+        }
+
+        download_data = dataJson.dump();
+    } else if (request->GetRequest()->GetURL().ToString().find("hbbtv.zdf.de") != std::string::npos) {
+        auto dataJson = nlohmann::json::parse(download_data);
 
         // neue Version
         if (dataJson.find("data") != dataJson.end()) {

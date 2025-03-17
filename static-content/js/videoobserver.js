@@ -330,7 +330,9 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     node.error = -1;
     node.type = "video/webm";
     node.data = "http://gibbet.nix"; // url;
-    node.setAttribute("oldData", originalUrl);
+    if (originalUrl != "http://gibbet.nix") {
+        node.setAttribute("olddata", originalUrl);
+    }
     node.style.visibility = 'hidden';
 
     node.append(video);
@@ -455,7 +457,7 @@ function checkSingleObjectNode(node) {
     async function checkMpd(nodedata) {
         let mpdStart = 0;
 
-        if (nodedata.endsWith(".mpd")) {
+        if (nodedata.endsWith(".mpd") && nodedata.indexOf("hbbtv.zdf.de/zdfm3/dyn/mpd.php") !== -1) {
             const mpd = await fetch(nodedata);
             const data = await mpd.text();
 
@@ -487,6 +489,7 @@ function checkSingleObjectNode(node) {
         (node.type === 'video/mpeg')) {              // mpeg-ts
         console.log("Found Video on node: " + node);
         console.log("Video URL: " + node.getAttribute('data'));
+        console.log("Node HTML: " + node.outerHTML);
 
         let location = document.location.toString();
         let checkVideoTag = location.includes("hbbtv.zdf.de");
@@ -504,11 +507,22 @@ function checkSingleObjectNode(node) {
             })();
         } else if (node.nodeName.toUpperCase() === 'video'.toUpperCase() && checkVideoTag) {
             (async() => {
+                // ZDF inserts a video node itself
                 console.log("node.data = " + node.data);
+                console.log("node.type = " + node.type);
+                console.log("node.src = " + node.src);
+
+                // Node HTML: <video xmlns="http://www.w3.org/1999/xhtml" autoplay="true" type="application/dash+xml" width="1280" height="720" src="https://zdf-dash-15.akamaized.net/dash/live/2016508/de/manifest.mpd" style="position: absolute; left: 0px; top: 0px; width: 1280px; height: 720px; outline: transparent;"></video>
+
                 if (node.data !== undefined) {
                     let mpdStart = await checkMpd(node.data);
                     let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
-                    addVideoNodeTypeVideo(node, newUrl.node.data);
+                    addVideoNodeTypeVideo(node, newUrl, node.src);
+                    promoteVideoSize(node);
+                } else if (node.src !== undefined) {
+                    let mpdStart = await checkMpd(node.src);
+                    let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
+                    addVideoNodeTypeVideo(node, newUrl, node.src);
                     promoteVideoSize(node);
                 }
             })();
