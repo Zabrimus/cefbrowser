@@ -457,7 +457,7 @@ function checkSingleObjectNode(node) {
     async function checkMpd(nodedata) {
         let mpdStart = 0;
 
-        if (nodedata.endsWith(".mpd") && nodedata.indexOf("hbbtv.zdf.de/zdfm3/dyn/mpd.php") !== -1) {
+        if (nodedata.endsWith(".mpd") || nodedata.indexOf("hbbtv.zdf.de/zdfm3/dyn/mpd.php") !== -1) {
             const mpd = await fetch(nodedata);
             const data = await mpd.text();
 
