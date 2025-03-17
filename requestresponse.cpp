@@ -30,7 +30,7 @@ bool isVideoOrAudio(std::string& data) {
 
 std::string readPreJavascript(std::string browserIp, int browserPort) {
     std::string result;
-    std::string files[] = {"mutation-summary.js", "init.js", "keyhandler.js", "_dynamic.js" };
+    std::string files[] = {"simple-tinyduration.js", "mutation-summary.js", "init.js", "keyhandler.js", "_dynamic.js" };
 
     for (const auto & file : files) {
         result += readFile((static_path + "/js/" + file).c_str());

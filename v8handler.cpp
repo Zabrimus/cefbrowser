@@ -106,6 +106,9 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto& userAgentParam = arguments.at(3);
             auto userAgent = userAgentParam.get()->GetStringValue();
 
+            const auto& mpdStartParam = arguments.at(4);
+            auto mpdStart = mpdStartParam.get()->GetIntValue();
+
             TRACE("Video URL: {}", url.ToString());
 
             // 1. Step call Probe
@@ -133,7 +136,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             }
 
             // 2. Step call StreamUrl
-            if (!transcoderRemoteClient->StreamUrl(url, cookies, referer, userAgent)) {
+            if (!transcoderRemoteClient->StreamUrl(url, cookies, referer, userAgent, mpdStart)) {
                 // transcoder not available
                 ERROR("Unable to send request to transcoder");
                 return false;

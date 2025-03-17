@@ -452,6 +452,27 @@ function checkAddedObjectNode(summaries) {
 }
 
 function checkSingleObjectNode(node) {
+    async function checkMpd(nodedata) {
+        let mpdStart = 0;
+
+        if (nodedata.endsWith(".mpd")) {
+            const mpd = await fetch(nodedata);
+            const data = await mpd.text();
+
+            let parser = new DOMParser();
+            let xmlDoc = parser.parseFromString(data, "text/xml");
+
+            let timeShiftBufferDepth = xmlDoc.documentElement.getAttribute("timeShiftBufferDepth");
+            let periodStart = xmlDoc.getElementsByTagName("Period")[0].getAttribute("start");
+
+            let startTime = durationToSeconds(parseWithTinyDuration(periodStart));
+            mpdStart = durationToSeconds(parseWithTinyDuration(timeShiftBufferDepth)) - startTime;
+            console.log("timeShiftBufferDepth: " + timeShiftBufferDepth + ", periodStart: " + periodStart + ", mpdStart: " + mpdStart);
+        }
+
+        return mpdStart;
+    }
+
     if (node.type === 'video/broadcast') {
         console.log("Found TV on node: " + node);
         window.addVideoOverlay(node);
@@ -471,21 +492,39 @@ function checkSingleObjectNode(node) {
         let checkVideoTag = location.includes("hbbtv.zdf.de");
 
         if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
-            let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
-            addVideoNodeTypeObject(node, newUrl, node.data);
-            addNodeFunctions(node);
-            promoteVideoSize(node);
+            (async() => {
+                console.log("node.data = " + node.data);
+                if (node.data !== undefined) {
+                    let mpdStart = await checkMpd(node.data);
+                    let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
+                    addVideoNodeTypeObject(node, newUrl, node.data);
+                    addNodeFunctions(node);
+                    promoteVideoSize(node);
+                }
+            })();
         } else if (node.nodeName.toUpperCase() === 'video'.toUpperCase() && checkVideoTag) {
-            let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent);
-            addVideoNodeTypeVideo(node, newUrl. node.data);
-            promoteVideoSize(node);
+            (async() => {
+                console.log("node.data = " + node.data);
+                if (node.data !== undefined) {
+                    let mpdStart = await checkMpd(node.data);
+                    let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
+                    addVideoNodeTypeVideo(node, newUrl.node.data);
+                    promoteVideoSize(node);
+                }
+            })();
         }
     } else if (node.type === 'video/webm') { // webm video
         // RTL changes only data attribute, but not the type
-        let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent);
-        addVideoNodeTypeObject(node, newUrl, node.data);
-        addNodeFunctions(node);
-        promoteVideoSize(node);
+        (async() => {
+            console.log("node.data = " + node.data);
+            if (node.data !== undefined) {
+                let mpdStart = await checkMpd(node.data);
+                let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
+                addVideoNodeTypeObject(node, newUrl, node.data);
+                addNodeFunctions(node);
+                promoteVideoSize(node);
+            }
+        })();
     } else {
         // ignore all others
         console.log("Ignore type " + node.type);

@@ -42,7 +42,7 @@ std::string TranscoderRemoteClient::Probe(std::string url, std::string cookies, 
     }
 }
 
-bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies, std::string referer, std::string userAgent) {
+bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies, std::string referer, std::string userAgent, int32_t mpdStart) {
     httplib::Params params;
     params.emplace("url", url);
     params.emplace("cookies", cookies);
@@ -52,6 +52,7 @@ bool TranscoderRemoteClient::StreamUrl(std::string url, std::string cookies, std
     params.emplace("responsePort", std::to_string(browserPort));
     params.emplace("vdrIp", vdrIp);
     params.emplace("vdrPort", std::to_string(vdrPort));
+    params.emplace("mpdStart", std::to_string(mpdStart));
 
     if (auto res = client->Post("/StreamUrl", params)) {
         if (res->status != 200) {
