@@ -95,7 +95,7 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     request->GetResponse()->GetHeaderMap(headerMap);
 
     // hbbtv.zdf.de
-    if (request->GetRequest()->GetURL().ToString().find("new-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
+    if (request->GetRequest()->GetURL().ToString().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
         auto dataJson = nlohmann::json::parse(download_data);
 
         if (dataJson.find("dash") != dataJson.end()) {

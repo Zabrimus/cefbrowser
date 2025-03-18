@@ -513,7 +513,6 @@ function checkSingleObjectNode(node) {
                 console.log("node.src = " + node.src);
 
                 // Node HTML: <video xmlns="http://www.w3.org/1999/xhtml" autoplay="true" type="application/dash+xml" width="1280" height="720" src="https://zdf-dash-15.akamaized.net/dash/live/2016508/de/manifest.mpd" style="position: absolute; left: 0px; top: 0px; width: 1280px; height: 720px; outline: transparent;"></video>
-
                 if (node.data !== undefined) {
                     let mpdStart = await checkMpd(node.data);
                     let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
