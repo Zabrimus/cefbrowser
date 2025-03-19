@@ -110,14 +110,21 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     } else if (request->GetRequest()->GetURL().ToString().find("hbbtv.zdf.de") != std::string::npos) {
         auto dataJson = nlohmann::json::parse(download_data);
 
-        // neue Version
+        // Version 1
         if (dataJson.find("data") != dataJson.end()) {
             dataJson["data"].erase("ageControl");
         }
 
-        // alte Version
-        if (dataJson.find("fsk") != dataJson.end()) {
+        // Version 2
+        if (dataJson["fsk"]["age"] != nullptr) {
             dataJson["fsk"].erase("age");
+        } if (dataJson["fsk"] != nullptr) {
+            dataJson.erase("fsk");
+        }
+
+        // Version 3
+        if (dataJson.find("videoMetaData") != dataJson.end()) {
+            dataJson["videoMetaData"].erase("fsk");
         }
 
         download_data = dataJson.dump();
