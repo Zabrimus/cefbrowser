@@ -96,7 +96,7 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
 
     // hbbtv.zdf.de
     if (request->GetRequest()->GetURL().ToString().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
-        auto dataJson = nlohmann::json::parse(download_data);
+        auto dataJson = nlohmann::ordered_json::parse(download_data);
 
         if (dataJson.find("dash") != dataJson.end()) {
             dataJson["dash"] = false;
@@ -108,7 +108,7 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
 
         download_data = dataJson.dump();
     } else if (request->GetRequest()->GetURL().ToString().find("hbbtv.zdf.de") != std::string::npos) {
-        auto dataJson = nlohmann::json::parse(download_data);
+        auto dataJson = nlohmann::ordered_json::parse(download_data);
 
         // Version 1
         if (dataJson.find("data") != dataJson.end()) {
