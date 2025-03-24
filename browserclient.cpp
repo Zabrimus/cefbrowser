@@ -4,6 +4,7 @@
 #include "sharedmemory.h"
 #include "database.h"
 #include "tools.h"
+#include "moviestream.h"
 
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
@@ -32,15 +33,20 @@ BrowserClient::BrowserClient(bool fullscreen, BrowserParameter bp) : bParam(bp) 
     this->processorEnabled = true;
 
     // create clients
-    transcoderRemoteClient = new TranscoderRemoteClient(bParam.transcoderIp, bParam.transcoderPort, bParam.browserIp, bParam.browserPort, bParam.vdrIp, bParam.vdrPort);
-    vdrRemoteClient = new VdrRemoteClient(bParam.vdrIp, bParam.vdrPort);
+    transcoderClient = new TranscoderClient(bParam.transcoderIp, bParam.transcoderPort);
+    vdrClient = new VdrClient(bParam.vdrIp, bParam.vdrPort);
+
+    streamId = bParam.browserIp + "_" + std::to_string(bParam.browserPort);
 }
 
 BrowserClient::~BrowserClient() {
     LOG_CURRENT_THREAD();
 
-    delete transcoderRemoteClient;
-    delete vdrRemoteClient;
+    delete transcoderClient;
+    transcoderClient = nullptr;
+
+    delete vdrClient;
+    vdrClient = nullptr;
 }
 
 void BrowserClient::setRenderSize(int width, int height) {
@@ -109,7 +115,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             int out_len = 0;
             char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
 
-            if (!vdrRemoteClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
+            if (!vdrClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
                 sharedMemory.Clear();
@@ -136,7 +142,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
                 }
             }
 
-            if (!vdrRemoteClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height)) {
+            if (!vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height)) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
                 sharedMemory.Clear();
@@ -235,10 +241,10 @@ void BrowserClient::loadUrl(CefRefPtr<CefBrowser> browser, const std::string& ur
     //  Bei manchen Seiten (z.B. ARD/Tagesschau) ist bei einem Wechsel des Videos innerhalb Seite kein StopVideo/Videofullscreen nötig.
     //  Es reicht, den Transcoder zu stoppen, obwohl selbst das muss nicht sein - denke ich - da der Transcoder das selbst managed.
 
-    vdrRemoteClient->StopVideo();
+    vdrClient->StopVideo();
 
     std::string reason = "BrowserClient::loadUrl";
-    transcoderRemoteClient->Stop(reason);
+    transcoderClient->Stop(streamId, reason);
 
     // load url
     browser->GetMainFrame()->LoadURL(url);
@@ -259,11 +265,6 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     // let cef handle the whole URL loading. For HbbTV pages, this does not makes sense.
     if (!processorEnabled) {
-        return nullptr;
-    }
-
-    if (!startsWith(url, "http://" + bParam.browserIp + ":" + std::to_string(bParam.browserPort) + "/application") && (startsWith(url, "http://localhost") || startsWith(url, "http://127.0.0.1") || startsWith(url, "http://" + bParam.browserIp))  ) {
-        // let the browser handle this
         return nullptr;
     }
 
@@ -352,7 +353,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                 break;
         }
     }
-    /* */
+
+    // internal video loading
+    if (url.find("http://localhost/movie/") != std::string::npos) {
+        return new MovieStream(transcoderClient);
+    }
 
     /* Special handling for some requests. xhook replacement */
     if ((request->GetResourceType()) == RT_XHR &&

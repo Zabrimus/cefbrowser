@@ -3,7 +3,6 @@
 #include "cef_includes.h"
 #include "v8handler.h"
 #include "tools.h"
-#include "httplib.h"
 
 class BrowserApp : public CefApp,
                    public CefBrowserProcessHandler,
@@ -16,7 +15,6 @@ public:
     CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override;
 
     void OnBeforeCommandLineProcessing(const CefString &process_type, CefRefPtr<CefCommandLine> command_line) override;
-    void OnRegisterCustomSchemes(CefRawPtr<CefSchemeRegistrar> registrar) override;
 
     // CefBrowserProcessHandler
     void OnContextInitialized() override;

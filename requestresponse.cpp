@@ -1,9 +1,8 @@
 #include "requestresponse.h"
-#include <cstdio>
-#include <fstream>
+#include <cstdio>>
+#include "httplib.h"
 #include "tools.h"
 #include "filetype.cpp"
-#include "httplib.h"
 
 std::string static_path;
 std::string preJavascript;
@@ -63,7 +62,7 @@ std::string readPostJavascript(std::string browserIp, int browserPort) {
 
 std::string readPostHTML() {
     std::string result;
-    std::string files[] = { "videoimage.html" };
+    std::string files[] = { };
 
     for (const auto & file : files) {
         result += readFile((static_path + "/js/" + file).c_str());
@@ -105,6 +104,10 @@ CefResourceRequestHandler::ReturnValue RequestResponse::OnBeforeResourceLoad(Cef
     }
 
     std::string url = request->GetURL();
+
+    if (startsWith(url, "client://")) {
+        return RV_CONTINUE;
+    }
 
     // check file extension and block all known binary formats.
     auto toBlock = endsWith(url,"view-source:'") ||

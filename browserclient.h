@@ -5,8 +5,8 @@
 #include "xhrinterception.h"
 #include "logger.h"
 #include "tools.h"
-#include "transcoderremoteclient.h"
-#include "vdrremoteclient.h"
+#include "thrift-services/src-client/TranscoderClient.h"
+#include "thrift-services/src-client/VdrClient.h"
 #include "sharedmemory.h"
 
 class BrowserClient : public CefClient,
@@ -82,6 +82,8 @@ public:
     // process the whole URL loading
     void enableProcessing(bool processUrl);
 
+    TranscoderClient* getCurrentTranscoderClient() { return transcoderClient; };
+
 private:
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);
 
@@ -89,6 +91,7 @@ private:
     int renderWidth;
     int renderHeight;
     bool fullscreen;
+    std::string streamId;
 
     bool processorEnabled;
 
@@ -97,8 +100,8 @@ private:
     int videoX, videoY, videoW, videoH;
     bool videoIsFullscreen;
 
-    VdrRemoteClient* vdrRemoteClient;
-    TranscoderRemoteClient *transcoderRemoteClient;
+    VdrClient* vdrClient;
+    TranscoderClient *transcoderClient;
 
     SharedMemory sharedMemory;
 

@@ -24,13 +24,13 @@ void V8Handler::stopVdrVideo() {
     if (startVideo) {
         TRACE("Thread stopVdrVideo, resetVideo");
 
-        vdrRemoteClient->ResetVideo(videoInfo);
+        vdrClient->ResetVideo(videoInfo);
         videoReset = true;
     } else {
         TRACE("Thread stopVdrVideo, stopVideo");
 
         videoInfo = "";
-        vdrRemoteClient->StopVideo();
+        vdrClient->StopVideo();
         videoReset = false;
     }
 
@@ -39,8 +39,9 @@ void V8Handler::stopVdrVideo() {
 
 V8Handler::V8Handler(BrowserParameter bParam) : bParam(bParam)
 {
-    transcoderRemoteClient = new TranscoderRemoteClient(bParam.transcoderIp, bParam.transcoderPort, bParam.browserIp, bParam.browserPort, bParam.vdrIp, bParam.vdrPort);
-    vdrRemoteClient = new VdrRemoteClient(bParam.vdrIp, bParam.vdrPort);
+    DEBUG("Create new V8Handler");
+    transcoderClient = new TranscoderClient(bParam.transcoderIp, bParam.transcoderPort);
+    vdrClient = new VdrClient(bParam.vdrIp, bParam.vdrPort);
 
     lastVideoX = lastVideoY = lastVideoW = lastVideoH = 0;
     lastFullscreen = false;
@@ -51,8 +52,8 @@ V8Handler::V8Handler(BrowserParameter bParam) : bParam(bParam)
 }
 
 V8Handler::~V8Handler() {
-    delete transcoderRemoteClient;
-    delete vdrRemoteClient;
+    delete transcoderClient;
+    delete vdrClient;
 }
 
 void V8Handler::sendMessageToProcess(std::string message) {
@@ -92,7 +93,11 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
     DEBUG("V8Handler::Execute: {}", name.ToString());
     time_t now = time(nullptr);
 
+    std::string streamId = bParam.browserIp + "_" + std::to_string(bParam.browserPort);
+
     if (name == "StreamVideo") {
+        startVideo = true;
+
         if (!arguments.empty()) {
             const auto& urlParam = arguments.at(0);
             auto url = urlParam.get()->GetStringValue();
@@ -113,7 +118,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             // 1. Step call Probe
             oldVideoInfo = videoInfo;
-            videoInfo = transcoderRemoteClient->Probe(url, cookies, referer, userAgent, std::to_string(now));
+            transcoderClient->Probe(videoInfo, url, cookies, referer, userAgent, bParam.browserIp, std::to_string(bParam.browserPort), bParam.vdrIp, std::to_string(bParam.vdrPort), std::to_string(now));
 
             if (videoInfo.empty()) {
                 ERROR("Probe failed: Wrong video URL, a server error or another error.");
@@ -127,8 +132,6 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 INFO("--> Video format equal");
             }
 
-            startVideo = true;
-
             if (videoInfo.empty()) {
                 // transcoder not available
                 ERROR("Probe failed: Transcoder not available, wrong video URL or another error.");
@@ -136,7 +139,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             }
 
             // 2. Step call StreamUrl
-            if (!transcoderRemoteClient->StreamUrl(url, cookies, referer, userAgent, mpdStart)) {
+            if (!transcoderClient->StreamUrl(url, cookies, referer, userAgent, bParam.browserIp, std::to_string(bParam.browserPort), bParam.vdrIp, std::to_string(bParam.vdrPort), std::to_string(mpdStart))) {
                 // transcoder not available
                 ERROR("Unable to send request to transcoder");
                 return false;
@@ -149,28 +152,34 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             TRACE("VideoReset: {}", videoReset);
 
             if (!videoReset) {
-                vdrRemoteClient->StartVideo(videoInfo);
+                vdrClient->StartVideo(videoInfo);
             }
         }
 
-        std::string newVideoUrl = "http://"+ bParam.transcoderIp + ":" + std::to_string(bParam.transcoderPort) + "/movie/transparent-video-" + bParam.browserIp + "_" + std::to_string(bParam.browserPort) + "-" + std::to_string(now) + ".webm";
+        std::string newVideoUrl = "http://localhost/movie/transparent-video-" + bParam.browserIp + "_" + std::to_string(bParam.browserPort) + "-" + std::to_string(now) + ".webm";
+
         TRACE("Javascript return new Video URL: {}", newVideoUrl);
 
         retval = CefV8Value::CreateString(newVideoUrl);
         return true;
     } else if (name == "StopVideo") {
+        DEBUG("V8Handler::Execute: in {}", name.ToString());
         std::string reason = "Javascript StopVideo";
-        transcoderRemoteClient->Stop(reason);
+        transcoderClient->Stop(streamId, reason);
+
+        DEBUG("V8Handler::Execute: Trancoder finished {}", name.ToString());
 
         stopVideoThreadRunning = true;
         std::thread stopThread(&V8Handler::stopVdrVideo, this);
         stopThread.detach();
 
+        DEBUG("V8Handler::Execute: Thread started {}", name.ToString());
+
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "PauseVideo") {
-        vdrRemoteClient->Pause();
-        transcoderRemoteClient->Pause();
+        vdrClient->Pause();
+        transcoderClient->Pause(streamId);
 
         retval = CefV8Value::CreateBool(true);
         return true;
@@ -180,8 +189,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
         DEBUG("RESUME at timestamp {}", position);
 
-        vdrRemoteClient->Resume();
-        transcoderRemoteClient->Resume(position);
+        vdrClient->Resume();
+        transcoderClient->Resume(streamId, position);
 
         retval = CefV8Value::CreateBool(true);
         return true;
@@ -192,8 +201,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             DEBUG("V8Handler::Execute SeekVideo Argument Pos {}", position);
 
-            transcoderRemoteClient->Seek(position);
-            vdrRemoteClient->ResetVideo(videoInfo);
+            transcoderClient->SeekTo(streamId, position);
+            vdrClient->ResetVideo(videoInfo);
         }
 
         retval = CefV8Value::CreateBool(true);
@@ -244,7 +253,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
                 lastVideoW = w;
                 lastFullscreen = false;
 
-                vdrRemoteClient->VideoSize(x, y, w, h);
+                vdrClient->VideoSize(x, y, w, h);
                 sendMessageToProcess("SetDirtyOSD");
             }
         }
@@ -259,7 +268,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             lastVideoW = 0;
             lastFullscreen = true;
 
-            vdrRemoteClient->VideoFullscreen();
+            vdrClient->VideoFullscreen();
         }
 
         retval = CefV8Value::CreateBool(true);
@@ -281,13 +290,14 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "AudioInfo") {
-        std::string result = transcoderRemoteClient->GetAudioInfo();
+        std::string result;
+        transcoderClient->AudioInfo(result, streamId);
         retval = CefV8Value::CreateString(result);
         return true;
     } else if (name == "SelectAudioTrack") {
         if (!arguments.empty()) {
-            const auto nr = arguments.at(0)->GetIntValue();
-            bool result = vdrRemoteClient->SelectAudioTrack(nr);
+            auto nr = std::to_string(arguments.at(0)->GetIntValue());
+            bool result = vdrClient->SelectAudioTrack(nr);
             retval = CefV8Value::CreateBool(result);
             return true;
         }

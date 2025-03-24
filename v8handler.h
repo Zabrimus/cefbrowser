@@ -1,8 +1,9 @@
 #pragma once
 
 #include "cef_includes.h"
-#include "transcoderremoteclient.h"
-#include "vdrremoteclient.h"
+
+#include "thrift-services/src-client/TranscoderClient.h"
+#include "thrift-services/src-client/VdrClient.h"
 #include "tools.h"
 
 class V8Handler : public CefV8Handler {
@@ -15,11 +16,11 @@ public:
 private:
     BrowserParameter bParam;
 
-    VdrRemoteClient* vdrRemoteClient;
-    TranscoderRemoteClient* transcoderRemoteClient;
-
     int lastVideoX, lastVideoY, lastVideoW, lastVideoH;
     bool lastFullscreen;
+
+    VdrClient *vdrClient;
+    TranscoderClient *transcoderClient;
 
 private:
     void sendMessageToProcess(std::string message);

@@ -1,6 +1,5 @@
 #include <cstdio>
 #include "tools.h"
-#include "httplib.h"
 #include "xhrinterception.h"
 #include "json.hpp"
 
