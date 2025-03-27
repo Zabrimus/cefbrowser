@@ -7,7 +7,6 @@
 #include "tools.h"
 #include "thrift-services/src-client/TranscoderClient.h"
 #include "thrift-services/src-client/VdrClient.h"
-#include "sharedmemory.h"
 
 class BrowserClient : public CefClient,
                       public CefRenderHandler,
@@ -102,8 +101,6 @@ private:
 
     VdrClient* vdrClient;
     TranscoderClient *transcoderClient;
-
-    SharedMemory sharedMemory;
 
     CefRefPtr<CefRegistration> registration;
 

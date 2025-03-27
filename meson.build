@@ -92,7 +92,7 @@ incdir = include_directories(['thrift-services/src-gen', 'thrift-services/src-cl
 
 exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp', 'httplib.cpp',
                  'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
-                 'sharedmemory.cpp', 'requestresponse.cpp', 'keycodes.cpp',
+                 'requestresponse.cpp', 'keycodes.cpp',
                  'v8handler.cpp', 'tools.cpp', 'database.cpp', 'xhrinterception.cpp',
                  'thrift-services/src-client/VdrClient.cpp', 'thrift-services/src-client/TranscoderClient.cpp',
                  'thrift-services/src-gen/CommonService.cpp', 'thrift-services/src-gen/common_types.cpp',

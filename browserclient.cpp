@@ -1,7 +1,6 @@
 #include <chrono>
 #include <algorithm>
 #include "browserclient.h"
-#include "sharedmemory.h"
 #include "database.h"
 #include "tools.h"
 #include "moviestream.h"
@@ -85,26 +84,27 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
     // iterate overall dirty recs
     for (auto r : recList) {
+        uint32_t* outbuffer = new uint32_t[r.width * r.height];
+        memset(outbuffer, 0, r.width * r.height);
+
+        // copy the region
+        uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
+        uint32_t* co = (uint32_t *) outbuffer;
+
+        for (int dry = 0; dry < r.height; ++dry) {
+            memcpy(co, ci, r.width * 4);
+            ci += width;
+            co += r.width;
+        }
+
+        // delete parts of the OSD where a video shall be visible
+        for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
+            if (outbuffer[i] == 0xfffe2e9a) {
+                outbuffer[i] = 0x00fe2e9a;
+            }
+        }
+
         if (bParam.osdqoi == QOI) {
-            uint32_t* outbuffer = new uint32_t[r.width * r.height];
-
-            // copy the region
-            uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
-            uint32_t* co = (uint32_t *) outbuffer;
-
-            for (int dry = 0; dry < r.height; ++dry) {
-                memcpy(co, ci, r.width * 4);
-                ci += width;
-                co += r.width;
-            }
-
-            // delete parts of the OSD where a video shall be visible
-            for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
-                if (outbuffer[i] == 0xfffe2e9a) {
-                    outbuffer[i] = 0x00fe2e9a;
-                }
-            }
-
             qoi_desc desc{
                     .width = static_cast<unsigned int>(r.width),
                     .height = static_cast<unsigned int>(r.height),
@@ -118,36 +118,19 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             if (!vdrClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
-                sharedMemory.Clear();
             }
 
             free(encoded_image);
-            delete[] outbuffer;
         } else {
-            // copy the region
-            uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
-            uint32_t* co = (uint32_t *) sharedMemory.Get();
+            std::string data = std::string((char *)outbuffer, r.width * r.height * 4);
 
-            for (int dry = 0; dry < r.height; ++dry) {
-                memcpy(co, ci, r.width * 4);
-                ci += width;
-                co += r.width;
-            }
-
-            // delete parts of the OSD where a video shall be visible
-            co = (uint32_t *) sharedMemory.Get();
-            for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
-                if (co[i] == 0xfffe2e9a) {
-                    co[i] = 0x00fe2e9a;
-                }
-            }
-
-            if (!vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height)) {
+            if (!vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height, data)) {
                 // OSD in VDR is not available
                 loadUrl(browser, "about:blank");
-                sharedMemory.Clear();
             }
         }
+
+        delete[] outbuffer;
     }
 
 #if ONPAINT_MEASURE_TIME == 1

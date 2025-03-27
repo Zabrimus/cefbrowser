@@ -2,7 +2,6 @@
 #include <csignal>
 #include <getopt.h>
 #include "mainapp.h"
-#include "sharedmemory.h"
 #include "logger.h"
 #include "mini/ini.h"
 #include "database.h"
