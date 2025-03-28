@@ -16,9 +16,6 @@ public:
 private:
     BrowserParameter bParam;
 
-    int lastVideoX, lastVideoY, lastVideoW, lastVideoH;
-    bool lastFullscreen;
-
     VdrClient *vdrClient;
     TranscoderClient *transcoderClient;
 

@@ -22,12 +22,12 @@ void V8Handler::stopVdrVideo() {
     }
 
     if (startVideo) {
-        TRACE("Thread stopVdrVideo, resetVideo");
+        DEBUG("Thread stopVdrVideo, resetVideo");
 
         vdrClient->ResetVideo(videoInfo);
         videoReset = true;
     } else {
-        TRACE("Thread stopVdrVideo, stopVideo");
+        DEBUG("Thread stopVdrVideo, stopVideo");
 
         videoInfo = "";
         vdrClient->StopVideo();
@@ -42,9 +42,6 @@ V8Handler::V8Handler(BrowserParameter bParam) : bParam(bParam)
     DEBUG("Create new V8Handler");
     transcoderClient = new TranscoderClient(bParam.transcoderIp, bParam.transcoderPort);
     vdrClient = new VdrClient(bParam.vdrIp, bParam.vdrPort);
-
-    lastVideoX = lastVideoY = lastVideoW = lastVideoH = 0;
-    lastFullscreen = false;
 
     videoInfo = "";
     videoReset = false;
@@ -238,38 +235,15 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto w = arguments.at(2)->GetIntValue();
             const auto h = arguments.at(3)->GetIntValue();
 
-            // TODO: Ist das noch notwendig? Aufgrund der Änderungen auf mutation-summary sollte das nicht mehr passieren.
-            if ((w <= 160 || h <= 100) || (w == 300 && h == 150 && x == 0)) {
-                // ignore these video sizes
-                retval = CefV8Value::CreateBool(true);
-                return true;
-            }
-
-            if ((x != lastVideoX) || (y != lastVideoY) || (w != lastVideoW) || (h != lastVideoH)) {
-                // send new VideoSize to Browser
-                lastVideoX = x;
-                lastVideoY = y;
-                lastVideoH = h;
-                lastVideoW = w;
-                lastFullscreen = false;
-
-                vdrClient->VideoSize(x, y, w, h);
-                sendMessageToProcess("SetDirtyOSD");
-            }
+            DEBUG("VideoSize New({}, {}, {}, {}", x,y,w,h);
+            vdrClient->VideoSize(x, y, w, h);
         }
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "VideoFullscreen") {
-        if (!lastFullscreen) {
-            lastVideoX = 0;
-            lastVideoY = 0;
-            lastVideoH = 0;
-            lastVideoW = 0;
-            lastFullscreen = true;
-
-            vdrClient->VideoFullscreen();
-        }
+        DEBUG("Set VideoFullScreen");
+        vdrClient->VideoFullscreen();
 
         retval = CefV8Value::CreateBool(true);
         return true;
