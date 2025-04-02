@@ -26,6 +26,8 @@ public:
     void OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) override;
     bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) override;
 
+    void shutdown();
+
 private:
     BrowserParameter bParameter;
     CefRefPtr<V8Handler> handler;

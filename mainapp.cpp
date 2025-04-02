@@ -54,6 +54,22 @@ void startServer(BrowserParameter bParam) {
     thriftServer->serve();
 }
 
+bool stopCheckVdrRegular = false;
+
+void checkVdrRegular() {
+    while (!stopCheckVdrRegular) {
+        std::string url = currentBrowser->GetMainFrame()->GetURL().ToString();
+        if (!url.empty() && url != "about:blank") {
+            auto c = dynamic_cast<BrowserClient *>(currentBrowser->GetHost()->GetClient().get());
+            if (!c->IsVdrWebActive()) {
+                currentBrowser->GetMainFrame()->LoadURL("about:blank");
+            }
+        }
+
+        sleep(2);
+    }
+}
+
 // BrowserApp
 BrowserApp::BrowserApp(BrowserParameter bparam) : bParameter(bparam) {
     CefMessageRouterConfig config;
@@ -108,6 +124,9 @@ void BrowserApp::OnContextInitialized() {
 
     std::thread t1(startServer, bParameter);
     t1.detach();
+
+    std::thread t2(checkVdrRegular);
+    t2.detach();
 }
 
 void BrowserApp::OnWebKitInitialized() {
@@ -180,5 +199,13 @@ bool BrowserApp::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefP
     TRACE("BrowserApp::OnProcessMessageReceived(Renderer) {}", message->GetName().ToString());
 
     return false;
+}
+
+void BrowserApp::shutdown() {
+    if (thriftServer) {
+        thriftServer->stop();
+    }
+
+    stopCheckVdrRegular = true;
 }
 

@@ -10,6 +10,8 @@
 
 #define ONPAINT_MEASURE_TIME 0
 
+extern scoped_refptr<CefBrowser> currentBrowser;
+
 std::string urlBlockList[] {
         ".block.this",
         ".nmrodam.com",
@@ -152,6 +154,10 @@ void BrowserClient::OnAfterCreated(CefRefPtr<CefBrowser> browser) {
 void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
     LOG_CURRENT_THREAD();
     TRACE("BrowserClient::OnBeforeClose");
+
+    if (currentBrowser->HasAtLeastOneRef()) {
+        currentBrowser->Release();
+    }
 }
 
 bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefProcessId source_process, CefRefPtr<CefProcessMessage> message) {

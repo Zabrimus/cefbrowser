@@ -66,9 +66,13 @@ void Database::readUserAgents(std::string path) {
 void Database::shutdown() {
     if (db) {
         sqlite3_finalize(insertHbbtvStmt);
+        insertHbbtvStmt = nullptr;
+
         sqlite3_finalize(insertChannelStmt);
+        insertChannelStmt = nullptr;
 
         sqlite3_close(db);
+        db = nullptr;
     }
 }
 

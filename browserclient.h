@@ -38,8 +38,6 @@ public:
     CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
         // Disabled
         return nullptr;
-
-        // return this;
     }
 
     // CefClient
@@ -82,6 +80,7 @@ public:
     void enableProcessing(bool processUrl);
 
     TranscoderClient* getCurrentTranscoderClient() { return transcoderClient; };
+    bool IsVdrWebActive() { return vdrClient->IsWebActive(); };
 
 private:
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);

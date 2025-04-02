@@ -42,6 +42,8 @@ bool use_dirty_recs;
 
 bool bindAll;
 
+CefRefPtr<BrowserApp> app;
+
 enum ProcessType {
     PROCESS_TYPE_BROWSER,
     PROCESS_TYPE_RENDERER,
@@ -73,9 +75,13 @@ ProcessType GetProcessType(const CefRefPtr<CefCommandLine>& command_line) {
 
 void signal_handler(int signal)
 {
+    app->shutdown();
+
     database.shutdown();
-    CefShutdown();
-    exit(1);
+    currentBrowser->StopLoad();
+    currentBrowser->GetHost()->CloseBrowser(true);
+
+    CefQuitMessageLoop();
 }
 
 void parseCommandLine(int argc, char *argv[]) {
@@ -293,7 +299,7 @@ int main(int argc, char *argv[]) {
 
     // Main browser process
     auto browserApp = new BrowserApp(bParameter);
-    CefRefPtr<BrowserApp> app(browserApp);
+    app = browserApp;
 
     // Specify CEF global settings here.
     CefSettings settings;
@@ -343,8 +349,6 @@ int main(int argc, char *argv[]) {
 
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.
     CefRunMessageLoop();
-
-    database.shutdown();
     CefShutdown();
 
     return 0;
