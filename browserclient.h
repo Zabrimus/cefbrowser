@@ -80,7 +80,7 @@ public:
     void enableProcessing(bool processUrl);
 
     TranscoderClient* getCurrentTranscoderClient() { return transcoderClient; };
-    bool IsVdrWebActive() { return vdrClient->IsWebActive(); };
+    bool IsVdrWebActive() { return vdrClient != nullptr ? vdrClient->IsWebActive() : true; };
 
 private:
     void loadUrl(CefRefPtr<CefBrowser> browser, const std::string& url);
