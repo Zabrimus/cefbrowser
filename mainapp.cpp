@@ -207,5 +207,8 @@ void BrowserApp::shutdown() {
     }
 
     stopCheckVdrRegular = true;
+
+    currentBrowser->Release();
+    currentBrowser = nullptr;
 }
 

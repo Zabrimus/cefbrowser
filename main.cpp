@@ -75,11 +75,9 @@ ProcessType GetProcessType(const CefRefPtr<CefCommandLine>& command_line) {
 
 void signal_handler(int signal)
 {
-    app->shutdown();
-
     database.shutdown();
-    currentBrowser->StopLoad();
     currentBrowser->GetHost()->CloseBrowser(true);
+    app = nullptr;
 
     CefQuitMessageLoop();
 }

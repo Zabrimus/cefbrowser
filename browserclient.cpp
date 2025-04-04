@@ -4,6 +4,8 @@
 #include "database.h"
 #include "tools.h"
 #include "moviestream.h"
+#include "httpinterception.h"
+#include "xhrinterception.h"
 
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
@@ -155,8 +157,8 @@ void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
     LOG_CURRENT_THREAD();
     TRACE("BrowserClient::OnBeforeClose");
 
-    if (currentBrowser->HasAtLeastOneRef()) {
-        currentBrowser->Release();
+    if (browser->IsSame(currentBrowser)) {
+        currentBrowser = nullptr;
     }
 }
 
@@ -343,7 +345,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         }
     }
 
-    // internal video loading
+    /* internal video loading */
     if (url.find("http://localhost/movie/") != std::string::npos) {
         return new MovieStream(transcoderClient);
     }
@@ -357,14 +359,9 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return new XhrInterception();
     }
 
-    if ((is_navigation && request->GetResourceType() != RT_SUB_FRAME) || (request->GetResourceType() == RT_SUB_RESOURCE) || blockThis) {
-        if (!blockThis) {
-            DEBUG("GetResourceRequestHandler: is_navigation:{}, URL:{}, Initiator:{}", is_navigation,
-                  request->GetURL().ToString(), request_initiator.ToString());
-        }
-
-        return new RequestResponse(browser, frame, request, is_navigation, is_download, request_initiator,
-                                   disable_default_handling, bParam.browserIp, bParam.browserPort, blockThis, bParam.static_path);
+    /* Main Frame */
+    if (is_navigation && request->GetResourceType() == RT_MAIN_FRAME) {
+        return new HttpInterception(bParam.static_path, blockThis);
     }
 
     return nullptr;

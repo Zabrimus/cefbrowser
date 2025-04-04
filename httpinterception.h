@@ -1,25 +1,37 @@
 #pragma once
 
 #include <string>
+#include <utility>
 #include "cef_includes.h"
 #include "logger.h"
 
-class RequestClient;
+class HttpRequestClient;
 
-class RequestResponse : public CefResourceRequestHandler,
-                        public CefResourceHandler {
+class PageModifier {
 public:
-    RequestResponse(CefRefPtr<CefBrowser> browser,
-                    CefRefPtr<CefFrame> frame,
-                    CefRefPtr<CefRequest> request,
-                    bool is_navigation,
-                    bool is_download,
-                    const CefString &request_initiator,
-                    bool &disable_default_handling,
-                    std::string browserIp,
-                    int browserPort,
-                    bool blockThis,
-                    std::string sp);
+    PageModifier() = default;
+
+    void init(std::string sp);
+
+    std::string injectAll(std::string& source);
+
+private:
+    inline std::string getDynamicJs();
+    inline std::string getDynamicZoom();
+
+    static std::string insertAfterHead(std::string& origStr, std::string& addStr);
+    static std::string insertBeforeEnd(std::string& origStr, std::string& addStr);
+
+private:
+    std::string staticPath;
+    std::map<std::string, std::string> cache;
+};
+
+
+class HttpInterception : public CefResourceRequestHandler,
+                       public CefResourceHandler {
+public:
+    HttpInterception(std::string staticPath, bool blockThis);
 
     // CefResourceRequestHandler
     CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
@@ -44,25 +56,28 @@ public:
 
     void Cancel() override;
 
-private:
-    CefRefPtr<RequestClient> client;
-    CefRefPtr<CefURLRequest> url_request;
-    bool blockThis;
+    static PageModifier modifier;
 
 private:
-    IMPLEMENT_REFCOUNTING(RequestResponse);
+    bool blockThis;
+
+    CefRefPtr<HttpRequestClient> client;
+    CefRefPtr<CefURLRequest> url_request;
+
+private:
+    IMPLEMENT_REFCOUNTING(HttpInterception);
 };
 
 
-class RequestClient : public CefURLRequestClient {
-    friend RequestResponse;
+class HttpRequestClient : public CefURLRequestClient {
+    friend HttpInterception;
 
 public:
-    explicit RequestClient(CefRefPtr<CefCallback>&);
+    explicit HttpRequestClient(CefRefPtr<CefCallback>&);
 
     void OnRequestComplete(CefRefPtr<CefURLRequest> request) override;
 
-    void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override;
+    void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override {};
 
     void OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override;
 
@@ -72,15 +87,12 @@ public:
                             const CefString &scheme, CefRefPtr<CefAuthCallback> callback) override;
 
 private:
-    size_t upload_total;
-    size_t download_total;
+    int64_t download_total;
     size_t offset;
     std::string download_data;
-
     CefResponse::HeaderMap headerMap;
-
     CefRefPtr<CefCallback> callback;
 
 private:
-    IMPLEMENT_REFCOUNTING(RequestClient);
+    IMPLEMENT_REFCOUNTING(HttpRequestClient);
 };
