@@ -6,6 +6,7 @@
 #include "moviestream.h"
 #include "httpinterception.h"
 #include "xhrinterception.h"
+#include "trackinginterception.h"
 
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
@@ -13,20 +14,6 @@
 #define ONPAINT_MEASURE_TIME 0
 
 extern scoped_refptr<CefBrowser> currentBrowser;
-
-std::string urlBlockList[] {
-        ".block.this",
-        ".nmrodam.com",
-        ".ioam.de",
-        ".xiti.com",
-        ".sensic.net",
-        ".tvping.com",
-        "tracking.redbutton.de",
-        "px.moatads.com",
-        "2mdn.net",
-        ".gvt1.com", // testwise
-        ".gvt2.com"  // testwise
-};
 
 BrowserClient::BrowserClient(bool fullscreen, BrowserParameter bp) : bParam(bp) {
     LOG_CURRENT_THREAD();
@@ -259,16 +246,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return nullptr;
     }
 
-    // check if URL has to be blocked
-    bool blockThis = false;
-    size_t found = url.find_first_of(':');
-    size_t found2 = url.substr(found + 3).find_first_of('/');
-
-    for (const auto & block : urlBlockList) {
-        if (url.substr(found + 3, found2).find(block) != std::string::npos) {
-            blockThis = true;
-        }
-    }
+    bool blockThis = TrackingInterception::IsTracker(url);
 
     if (!blockThis) {
         TRACE("GetResourceRequestHandler: is_navigation:{}, blockThis:{}, URL:{}, Initiator:{}", is_navigation,
@@ -343,6 +321,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                 TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_SUB_FRAME");
                 break;
         }
+    }
+
+    /* Tracking */
+    if (blockThis) {
+        return new TrackingInterception(request->GetResourceType());
     }
 
     /* internal video loading */

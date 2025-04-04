@@ -130,7 +130,7 @@ bool HttpInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request,
 }
 
 bool HttpInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
-    DEBUG("HttpInterception::Read: {}, Size {}, Offset {}", bytes_to_read, client->download_data.length(), client->offset);
+    TRACE("HttpInterception::Read: {}, Size {}, Offset {}", bytes_to_read, client->download_data.length(), client->offset);
 
     size_t size = client->download_data.length();
     if (client->offset < size) {
@@ -187,6 +187,8 @@ void HttpInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64
     response->SetHeaderMap(responseHeader);
 
     response_length = client->download_total;
+
+    TRACE("RequestHeader: response_length {}", response_length);
 }
 
 void HttpInterception::Cancel() {
@@ -214,11 +216,12 @@ void HttpRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
 }
 
 void HttpRequestClient::OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) {
+    TRACE("HttpRequestClient::OnDownloadProgress: current({}), total({})", current, total);
     download_total = total;
 }
 
 void HttpRequestClient::OnDownloadData(CefRefPtr<CefURLRequest> request, const void *data, size_t data_length) {
-    DEBUG("HttpRequestClient::OnDownloadData: {}: {} -> {}", request->GetRequest()->GetURL().ToString(), data_length, download_data.length());
+    TRACE("HttpRequestClient::OnDownloadData: {}: {} -> {}", request->GetRequest()->GetURL().ToString(), data_length, download_data.length());
 
     std::string downloadChunk = std::string(static_cast<const char*>(data), data_length);
     download_data += downloadChunk;

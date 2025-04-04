@@ -58,11 +58,13 @@ bool stopCheckVdrRegular = false;
 
 void checkVdrRegular() {
     while (!stopCheckVdrRegular) {
-        std::string url = currentBrowser->GetMainFrame()->GetURL().ToString();
-        if (!url.empty() && url != "about:blank") {
-            auto c = dynamic_cast<BrowserClient *>(currentBrowser->GetHost()->GetClient().get());
-            if (!c->IsVdrWebActive()) {
-                currentBrowser->GetMainFrame()->LoadURL("about:blank");
+        if (currentBrowser != nullptr) {
+            std::string url = currentBrowser->GetMainFrame()->GetURL().ToString();
+            if (!url.empty() && url != "about:blank") {
+                auto c = dynamic_cast<BrowserClient *>(currentBrowser->GetHost()->GetClient().get());
+                if (!c->IsVdrWebActive()) {
+                    currentBrowser->GetMainFrame()->LoadURL("about:blank");
+                }
             }
         }
 

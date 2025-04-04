@@ -1,6 +1,6 @@
 project('cefbrowser', 'cpp', 'c',
   version : '0.1',
-  default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static', 'optimization=3', 'buildtype=release' ],
+  default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static', 'optimization=3', 'buildtype=debug' ],
   meson_version: '>=0.63.0')
 
 # add_global_arguments('-O3', language : 'cpp')
@@ -92,7 +92,7 @@ incdir = include_directories(['thrift-services/src-gen', 'thrift-services/src-cl
 
 exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
-                 'httpinterception.cpp', 'keycodes.cpp',
+                 'httpinterception.cpp', 'keycodes.cpp', 'trackinginterception.cpp',
                  'v8handler.cpp', 'tools.cpp', 'database.cpp', 'xhrinterception.cpp',
                  'thrift-services/src-client/VdrClient.cpp', 'thrift-services/src-client/TranscoderClient.cpp',
                  'thrift-services/src-gen/CommonService.cpp', 'thrift-services/src-gen/common_types.cpp',

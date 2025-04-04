@@ -5,7 +5,7 @@
 
 // CefResourceRequestHandler
 CefResourceRequestHandler::ReturnValue XhrInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    TRACE("XhrRequestResponse::OnBeforeResourceLoad: {}", request->GetURL().ToString());
+    TRACE("XhrInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
 
     client = new XhrRequestClient(callback);
     url_request = CefURLRequest::Create(request, client.get(), nullptr);
@@ -24,7 +24,7 @@ bool XhrInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request, 
 }
 
 bool XhrInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
-    DEBUG("XhrInterception::Read: {}, Size {}, Offset {}", bytes_to_read, client->download_data.length(), client->offset);
+    // DEBUG("XhrInterception::Read: {}, Size {}, Offset {}", bytes_to_read, client->download_data.length(), client->offset);
 
     size_t size = client->download_data.length();
     if (client->offset < size) {
@@ -141,7 +141,7 @@ void XhrRequestClient::OnDownloadProgress(CefRefPtr<CefURLRequest> request, int6
 }
 
 void XhrRequestClient::OnDownloadData(CefRefPtr<CefURLRequest> request, const void *data, size_t data_length) {
-    DEBUG("XhrRequestClient::OnDownloadData: {}: {} -> {}", request->GetRequest()->GetURL().ToString(), data_length, download_data.length());
+    // DEBUG("XhrRequestClient::OnDownloadData: {}: {} -> {}", request->GetRequest()->GetURL().ToString(), data_length, download_data.length());
 
     std::string downloadChunk = std::string(static_cast<const char*>(data), data_length);
     download_data += downloadChunk;
