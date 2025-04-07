@@ -60,15 +60,15 @@ void checkVdrRegular() {
     while (!stopCheckVdrRegular) {
         if (currentBrowser != nullptr) {
             std::string url = currentBrowser->GetMainFrame()->GetURL().ToString();
-            if (!url.empty() && url != "about:blank") {
+            if (!url.empty() && url != BLANK_PAGE) {
                 auto c = dynamic_cast<BrowserClient *>(currentBrowser->GetHost()->GetClient().get());
                 if (!c->IsVdrWebActive()) {
-                    currentBrowser->GetMainFrame()->LoadURL("about:blank");
+                    currentBrowser->GetMainFrame()->LoadURL(BLANK_PAGE);
                 }
             }
         }
 
-        sleep(2);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 }
 

@@ -25,7 +25,7 @@ void BrowserServer::ping() {
 bool BrowserServer::LoadUrl(const LoadUrlType &input) {
     INFO("Load URL: {}", input.url);
 
-    if (input.url == "about:blank") {
+    if (input.url == BLANK_PAGE) {
         // special case
         StopVideoType stopType;
         stopType.reason = input.url;

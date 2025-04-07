@@ -10,7 +10,8 @@ class BrowserClient : public CefClient,
                       public CefRenderHandler,
                       public CefLifeSpanHandler,
                       public CefRequestHandler,
-                      public CefDisplayHandler {
+                      public CefDisplayHandler,
+                      public CefFrameHandler {
 
 public:
     explicit BrowserClient(bool fullscreen, BrowserParameter bParameter);
@@ -36,6 +37,11 @@ public:
     CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
         // Disabled
         return nullptr;
+    }
+
+    // CefFrameHandler
+    CefRefPtr<CefFrameHandler> GetFrameHandler() override {
+        return this;
     }
 
     // CefClient
@@ -70,6 +76,12 @@ public:
     // CefDisplayHandler
     void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override;
     bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
+
+    // CefFrameHandler
+    void OnFrameCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override;
+    void OnFrameAttached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, bool reattached) override;
+    void OnFrameDetached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) override;
+    void OnMainFrameChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> old_frame, CefRefPtr<CefFrame> new_frame) override;
 
     // Change User Agent
     void ChangeUserAgent(CefRefPtr<CefBrowser> browser, std::string agent);

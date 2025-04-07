@@ -108,7 +108,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
             if (!vdrClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
                 // OSD in VDR is not available
-                loadUrl(browser, "about:blank");
+                loadUrl(browser, BLANK_PAGE);
             }
 
             free(encoded_image);
@@ -117,7 +117,7 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
 
             if (!vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height, data)) {
                 // OSD in VDR is not available
-                loadUrl(browser, "about:blank");
+                loadUrl(browser, BLANK_PAGE);
             }
         }
 
@@ -248,15 +248,6 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     bool blockThis = TrackingInterception::IsTracker(url);
 
-    if (!blockThis) {
-        TRACE("GetResourceRequestHandler: is_navigation:{}, blockThis:{}, URL:{}, Initiator:{}", is_navigation,
-              blockThis, request->GetURL().ToString(), request_initiator.ToString());
-
-        if (request->GetResourceType() == RT_MEDIA) {
-            TRACE("GetResourceRequestHandler: RT_MEDIA: {}", request->GetURL().ToString());
-        }
-    }
-
     /* */
     if (logger->isTraceEnabled()) {
         switch(request->GetResourceType()) {
@@ -324,7 +315,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     }
 
     /* Tracking */
-    if (blockThis) {
+    if (blockThis || url == BLANK_PAGE) {
         return new TrackingInterception(request->GetResourceType());
     }
 
@@ -346,6 +337,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     if (is_navigation && request->GetResourceType() == RT_MAIN_FRAME) {
         return new HttpInterception(bParam.static_path, blockThis);
     }
+
+    TRACE("No special handler for request URL: {}", url);
 
     return nullptr;
 }
@@ -406,6 +399,23 @@ bool BrowserClient::OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_seve
     JSTRACE("[JS] {}", log_message);
 
     return false;
+}
+
+// CefFrameHandler
+void BrowserClient::OnFrameCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) {
+    TRACE("BrowserClient::OnFrameCreated");
+}
+
+void BrowserClient::OnFrameAttached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, bool reattached) {
+    TRACE("BrowserClient::OnFrameAttached");
+}
+
+void BrowserClient::OnFrameDetached(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame) {
+    TRACE("BrowserClient::OnFrameDetached");
+}
+
+void BrowserClient::OnMainFrameChanged(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> old_frame, CefRefPtr<CefFrame> new_frame) {
+    TRACE("BrowserClient::OnMainFrameChanged, old_frame {}", old_frame != nullptr ? "present" : "isNull");
 }
 
 void BrowserClient::ChangeUserAgent(CefRefPtr<CefBrowser> browser, std::string agent) {

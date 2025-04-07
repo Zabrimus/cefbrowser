@@ -8,7 +8,7 @@ CefResourceRequestHandler::ReturnValue XhrInterception::OnBeforeResourceLoad(Cef
     TRACE("XhrInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
 
     client = new XhrRequestClient(callback);
-    url_request = CefURLRequest::Create(request, client.get(), nullptr);
+    url_request = browser->GetMainFrame()->CreateURLRequest(request, client.get());
 
     return RV_CONTINUE_ASYNC;
 }
@@ -45,28 +45,23 @@ void XhrInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_
             (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),
             url_request->GetResponse()->GetStatusText().ToString() );
 
-    if (url_request->GetResponse()->GetStatus() != 200) {
-        response->SetStatus(url_request->GetResponse()->GetStatus());
-        response->SetStatusText(url_request->GetResponse()->GetStatusText());
-        response_length = 0;
-
-        return;
-    }
-
     CefResponse::HeaderMap responseHeader;
     url_request->GetResponse()->GetHeaderMap(responseHeader);
-    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ++itr) {
-        TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
+
+    if (logger->isTraceEnabled()) {
+        for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ++itr) {
+            TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
+        }
+
+        CefRequest::HeaderMap requestHeader;
+        url_request->GetRequest()->GetHeaderMap(requestHeader);
+        for (auto itr = requestHeader.begin(); itr != requestHeader.end(); ++itr) {
+            TRACE("RequestHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
+        }
     }
 
-    CefRequest::HeaderMap requestHeader;
-    url_request->GetRequest()->GetHeaderMap(requestHeader);
-    for (auto itr = requestHeader.begin(); itr != requestHeader.end(); ++itr) {
-        TRACE("RequestHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
-    }
-
-    response->SetStatus(200);
-    response->SetStatusText("OK");
+    response->SetStatus(url_request->GetResponse()->GetStatus());
+    response->SetStatusText(url_request->GetResponse()->GetStatusText());
     response->SetHeaderMap(responseHeader);
 
     response_length = client->download_total;
@@ -80,8 +75,6 @@ void XhrInterception::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefR
                                              CefResourceRequestHandler::URLRequestStatus status,
                                              int64_t received_content_length) {
     DEBUG("XhrInterception::OnResourceLoadComplete: {} -> {}", (int)status, received_content_length);
-
-    CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status, received_content_length);
 }
 
 XhrRequestClient::XhrRequestClient(CefRefPtr<CefCallback>& resourceCallback) : upload_total(0), download_total(0), offset(0), callback(resourceCallback) {

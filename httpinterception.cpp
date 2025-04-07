@@ -105,7 +105,7 @@ std::string PageModifier::injectAll(std::string &source) {
 
 // CefResourceRequestHandler
 CefResourceRequestHandler::ReturnValue HttpInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    TRACE("XhrRequestResponse::OnBeforeResourceLoad: {}", request->GetURL().ToString());
+    TRACE("HttpInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
 
     if (blockThis) {
         return RV_CANCEL;
@@ -203,7 +203,7 @@ void HttpInterception::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, Cef
     CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status, received_content_length);
 }
 
-HttpRequestClient::HttpRequestClient(CefRefPtr<CefCallback>& resourceCallback) : download_total(0), offset(0), callback(resourceCallback) {
+HttpRequestClient::HttpRequestClient(CefRefPtr<CefCallback>& resourceCallback) : download_total(0), offset(0), download_data(""), callback(resourceCallback) {
 }
 
 void HttpRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {

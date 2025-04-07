@@ -68,4 +68,9 @@ setTimeout(() => {
 if (window.GLOBALS) {
     let location = document.location.toString();
     window.GLOBALS.htmlfive = location.includes("hbbtv.zdf.de");
+
+    // ZDF (prevent pending CORS related requests)
+    if (location.includes("hbbtv.zdf.de")) {
+        window.GLOBALS.noapicall = true;
+    }
 }

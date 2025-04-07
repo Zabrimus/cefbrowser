@@ -2,6 +2,8 @@
 
 #include <string>
 
+const std::string BLANK_PAGE = "http://localhost/internal/blank/page";
+
 enum image_type_enum {
     NONE = 0,
     QOI = 1
