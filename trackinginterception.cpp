@@ -2,6 +2,7 @@
 #include "trackinginterception.h"
 
 std::string trackingUrlBlockList[] {
+/*
         ".nmrodam.com",
         ".ioam.de",
         ".xiti.com",
@@ -13,6 +14,7 @@ std::string trackingUrlBlockList[] {
         "mefo1.zdf.de",
         ".gvt1.com", // testwise
         ".gvt2.com"  // testwise
+*/
 };
 
 // CefResourceRequestHandler

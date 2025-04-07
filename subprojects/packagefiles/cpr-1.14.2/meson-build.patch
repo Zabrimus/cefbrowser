@@ -1,0 +1,52 @@
+diff -ru8bBwd a/include/cpr/meson.build b/include/cpr/meson.build
+--- a/include/cpr/meson.build	2026-02-19 21:59:58.000000000 +0100
++++ b/include/cpr/meson.build	2026-08-29 18:21:49.031000000 +0200
+@@ -11,12 +11,12 @@
+   version_splits[0].to_int() * 65536 + version_splits[1].to_int() * 256 + version_splits[2].to_int(),
+ )
+ 
+ configure_file(
+   input: meson.project_source_root() / 'cmake' / 'cprver.h.in',
+   output: 'cprver.h',
+   format: 'cmake',
+   configuration: cdata,
+-  install: true,
++  install: false,
+   install_dir: get_option('includedir') / 'cpr',
+   install_tag: 'devel',
+ )
+diff -ru8bBwd a/meson.build b/meson.build
+--- a/meson.build	2026-02-19 21:59:58.000000000 +0100
++++ b/meson.build	2026-08-29 18:17:00.650000000 +0200
+@@ -14,30 +14,25 @@
+ )
+ thread_dep = dependency('threads')
+ 
+ includes = include_directories('include')
+ subdir('include/cpr')
+ subdir('cpr')
+ 
+ includes = include_directories('include')
+-install_subdir(
+-  'include/cpr',
+-  install_dir: get_option('includedir'),
+-  exclude_files: 'meson.build',
+-)
+ 
+ cpr_lib = library(
+   'cpr',
+   include_directories: includes,
+   sources: cpr_src,
+   dependencies: [curl_dep, thread_dep],
+   override_options: override_cpp,
+   version: meson.project_version(),
+-  install: true,
++  install: false,
+ )
+ 
+ cpr_dep = declare_dependency(
+   include_directories: includes,
+   link_with: cpr_lib,
+   dependencies: [curl_dep, thread_dep],
+ )
+ meson.override_dependency('cpr', cpr_dep)

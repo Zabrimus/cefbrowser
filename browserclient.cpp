@@ -340,7 +340,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
          (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) ||
          ((url.find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (url.find("livestreams=true") != std::string::npos))
         )) {
-        return new XhrInterception();
+        return new XhrInterception(pool);
     }
 
     if (url.find("http://localhost/") != std::string::npos) {
@@ -351,12 +351,12 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     // Javascript interception
     if ((request->GetResourceType()) == RT_SCRIPT &&
         (url.find("new-hbbtv.zdf.de/static/js/main.") != std::string::npos)) {
-        return new JSInterception();
+        return new JSInterception(pool);
     }
 
     /* Main Frame */
     if (is_navigation && request->GetResourceType() == RT_MAIN_FRAME) {
-        return new HttpInterception(bParam.static_path, blockThis);
+        return new HttpInterception(bParam.static_path, blockThis, pool);
     }
 
     TRACE("No special handler for request URL: {}", url);

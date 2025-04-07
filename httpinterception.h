@@ -1,60 +1,26 @@
 #pragma once
 
 #include <string>
-#include <utility>
+
+#include "baseinterception.h"
 #include "cef_includes.h"
-#include "logger.h"
+#include "json.hpp"
 #include "pagemodifier.h"
-#include "lift.h"
 
 class HttpRequestClient;
 
-class HttpInterception : public CefResourceRequestHandler,
-                         public CefResourceHandler,
-                         public LiftCallback {
+class HttpInterception : public BaseInterception {
 public:
-    HttpInterception(std::string staticPath, bool blockThis);
+    HttpInterception(std::string staticPath, bool blockThis, const cpr::ConnectionPool& pool);
 
-    // CefResourceRequestHandler
-    CefRefPtr<CefResourceHandler> GetResourceHandler(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
-                                                     CefRefPtr<CefRequest> request) override {
-        return this;
-    }
+    CefResourceRequestHandler::ReturnValue OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) override;
 
-    CefResourceRequestHandler::ReturnValue
-    OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request,
-                         CefRefPtr<CefCallback> callback) override;
-
-    void OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request,
-                                CefRefPtr<CefResponse> response, URLRequestStatus status,
-                                int64_t received_content_length) override;
-
-    // CefResourceHandler
-    bool Open(CefRefPtr<CefRequest> request, bool &handle_request, CefRefPtr<CefCallback> callback) override;
-
-    bool Read(void *data_out, int bytes_to_read, int &bytes_read, CefRefPtr<CefResourceReadCallback> callback) override;
-
-    void GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) override;
-
-    void Cancel() override;
-
-    // LiftCallback
-    auto on_lift_complete(lift::request_ptr request_ptr, lift::response response) -> void override;
-
-    static PageModifier modifier;
+protected:
+    void modifyResponse() override;
 
 private:
     bool blockThis;
-
-    // will be filled in the lift callback (on_lift_complete)
-    CefResponse::HeaderMap responseHeaderMap;
-    int64_t download_total = 0;
-    size_t offset = 0;
-    std::string download_data;
-    std::string mime_type;
-    lift::http::status_code status_code;
-
-    CefRefPtr<CefCallback> callback;
+    static PageModifier modifier;
 
 private:
     IMPLEMENT_REFCOUNTING(HttpInterception);

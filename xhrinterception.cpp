@@ -1,115 +1,35 @@
-#include <cstdio>
-#include "tools.h"
 #include "xhrinterception.h"
 #include "json.hpp"
+#include "logger.h"
 
-void logLiftResponseHeader(std::string prefix, lift::response& response) {
-    if (logger->isTraceEnabled()) {
-        std::for_each(response.headers().begin(), response.headers().end(), [&](const lift::header &item) {
-            TRACE("{}{}:{}", prefix, item.name(), item.value());
-        });
-    }
-}
-
-// CefResourceRequestHandler
-CefResourceRequestHandler::ReturnValue XhrInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    TRACE("XhrInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
-
-    this->callback = callback;
-
-    // async version
-    LiftUtil::getInstance().get_lift_url(request, 30 * 1000, this);
-
-    // sync version
-    // LiftUtil::getInstance().get_lift_url_sync(request, 30 * 1000, this);
-
-    return RV_CONTINUE_ASYNC;
-}
-
-XhrInterception::XhrInterception() {
-}
-
-bool XhrInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
-    TRACE("XhrInterception::Open: {}", request->GetURL().ToString());
-
-    handle_request = true;
-    return true;
-}
-
-bool XhrInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
-    // DEBUG("XhrInterception::Read: {}, Size {}, Offset {}", bytes_to_read, client->download_data.length(), client->offset);
-
-    size_t size = download_data.length();
-    if (offset < size) {
-        int transfer_size = std::min(bytes_to_read, static_cast<int>(size - offset));
-        memcpy(data_out, download_data.c_str() + offset, transfer_size);
-        offset += transfer_size;
-
-        bytes_read = transfer_size;
-        return true;
-    }
-
-    return false;
-}
-
-void XhrInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
-    DEBUG("XhrInterception::GetResponseHeaders: StatusCode: {}, StatusText: {}", (int)status_code, lift::http::to_string(status_code));
-
-    response->SetHeaderMap(responseHeaderMap);
-    response_length = download_total;
-    // response->SetMimeType(mime_type);
-}
-
-void XhrInterception::Cancel() {
-}
-
-void XhrInterception::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
-                                             CefRefPtr<CefRequest> request, CefRefPtr<CefResponse> response,
-                                             CefResourceRequestHandler::URLRequestStatus status,
-                                             int64_t received_content_length) {
-    DEBUG("XhrInterception::OnResourceLoadComplete: {} -> {}", (int)status, received_content_length);
-}
-
-auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response response) -> void
-{
-    TRACE("[lift] on_lift_complete, status_code {}", (int)response.status_code());
-    logLiftResponseHeader("  ", response);
-
-    status_code = response.status_code();
-
+void XhrInterception::modifyResponse() {
     nlohmann::json dataJson;
 
-    if (response.lift_status() == lift::lift_status::success) {
-        DEBUG("[lift] Request Completed {} in {} ms", request->url(), response.total_time().count());
+    if (cprResponse.status_code < 300) {
+        DEBUG("[XhrInterception] Request Completed {} in {} ms", cprResponse.url.str(), cprResponse.elapsed);
 
         // hbbtv.zdf.de
         if (logger->isTraceEnabled()) {
-            TRACE("Downloaded data:\n{}\n", response.data());
+            TRACE("[XhrInterception] Downloaded data:\n{}\n", cprResponse.text);
         }
 
-        download_data = response.data();
-        download_total = download_data.length();
-
         try {
-            dataJson = nlohmann::ordered_json::parse(download_data);
+            dataJson = nlohmann::ordered_json::parse(cprResponse.text);
         } catch (nlohmann::json::parse_error &e) {
-            responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
-
-            // Json error -> continue
-            callback->Continue();
+            INFO("[XhrInterception] Json parse error: {}", e.what());
             return;
         }
 
         auto j_flat = dataJson.flatten();
         if (logger->isTraceEnabled()) {
-            TRACE("Json (flatten):\n{}", to_string(j_flat));
+            TRACE("[XhrInterception] Json (flatten):\n{}", to_string(j_flat));
         }
 
-        if ((request->url().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (request->url().find("livestreams=true") != std::string::npos)) {
+        if ((cprResponse.url.str().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (cprResponse.url.str().find("livestreams=true") != std::string::npos)) {
             for (auto& el : j_flat.items()) {
                 // std::cout << "key: " << el.key() << ", value:" << el.value() << '\n';
                 if (el.key().find("h264_aac_mp4_http_mpd_http") != std::string::npos && el.key().find("url") != std::string::npos) {
-                    TRACE("Found live URL: {}", el.value().get<std::string>());
+                    TRACE("[XhrInterception] Found live URL: {}", el.value().get<std::string>());
                     auto url = el.value().get<std::string>();
                     auto urlEncoded = CefBase64Encode(url.c_str(), url.length());
 
@@ -122,11 +42,11 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             dataJson = j_flat.unflatten();
         }
 
-        if (request->url().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
+        if (cprResponse.url.str().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
             if (dataJson.find("dash") != dataJson.end()) {
                 dataJson["dash"] = false;
             }
-        } else if (request->url().find("hbbtv.zdf.de") != std::string::npos) {
+        } else if (cprResponse.url.str().find("hbbtv.zdf.de") != std::string::npos) {
             // Version 1
             if (dataJson["data"] != nullptr) {
                 dataJson["data"].erase("ageControl");
@@ -145,7 +65,7 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             if (dataJson.find("videoMetaData") != dataJson.end() && dataJson["videoMetaData"] != nullptr) {
                 dataJson["videoMetaData"].erase("fsk");
             }
-        } else if (request->url().find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) {
+        } else if (cprResponse.url.str().find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) {
             // Version 1
             if (dataJson["video"]["meta"]["maturityContentRating"] != nullptr) {
                 // dataJson["video"]["meta"].erase("maturityContentRating");
@@ -154,21 +74,12 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             }
         }
     } else {
-        DEBUG("[lift] Error {}, Code {}, Text {} (Curl {}) in {} ms", request->url(), (int)status_code, lift::http::to_string(status_code), response.network_error_message(), response.total_time().count());
-        // add CORS header if needed
-        responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
-
-        callback->Continue();
-
+        DEBUG("[XhrInterception] Error {}, Code {}, Text {} in {} ms", cprResponse.url.str(), cprResponse.status_code, cprResponse.status_line, cprResponse.elapsed);
         return;
     }
 
+    cprResponse.header["Access-Control-Allow-Origin"] = "*";
+
     // save downloaded data
-    download_data = dataJson.dump();
-    download_total = download_data.length();
-
-    // add CORS header if needed
-    responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
-
-    callback->Continue();
+    cprResponse.text = dataJson.dump();
 }

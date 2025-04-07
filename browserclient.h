@@ -3,6 +3,7 @@
 #include "cef_includes.h"
 #include "logger.h"
 #include "tools.h"
+#include "cpr/connection_pool.h"
 #include "thrift-services/src-client/TranscoderClient.h"
 #include "thrift-services/src-client/VdrClient.h"
 
@@ -112,6 +113,8 @@ private:
     TranscoderClient *transcoderClient;
 
     CefRefPtr<CefRegistration> registration;
+
+    cpr::ConnectionPool pool;
 
 private:
     IMPLEMENT_REFCOUNTING(BrowserClient);
