@@ -140,7 +140,7 @@ bool BrowserServer::StartApplication(const StartApplicationType &input) {
 
     // sanity check
     if (url.empty()) {
-        url = "http://gibbet.nix.da";
+        url = BLANK_PAGE;
     }
 
     // load url
