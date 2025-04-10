@@ -14,7 +14,7 @@ const char kZygoteProcess[] = "zygote";
 // commandline arguments
 std::string configFilename;
 std::string profilePath;
-std::string staticPath = ".";
+std::string staticPath;
 
 // log level
 int loglevel;
@@ -82,6 +82,12 @@ void signal_handler(int signal)
     CefQuitMessageLoop();
 }
 
+std::string getexepath() {
+    char result[ PATH_MAX ];
+    ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+    return std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
+}
+
 void parseCommandLine(int argc, char *argv[]) {
     static struct option long_options[] = {
             { "config",      required_argument, nullptr, 'c' },
@@ -105,6 +111,9 @@ void parseCommandLine(int argc, char *argv[]) {
     zoom_level = 1.0f;
     use_dirty_recs = true;
     bindAll = false;
+
+    staticPath = getexepath();
+    staticPath = staticPath.substr(0, staticPath.find_last_of('/'));
 
     while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:", long_options, &option_index)) != -1)
     {
@@ -241,12 +250,6 @@ bool readConfiguration(std::string configFile) {
     }
 
     return true;
-}
-
-std::string getexepath() {
-    char result[ PATH_MAX ];
-    ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-    return std::string(result, static_cast<unsigned long>((count > 0) ? count : 0));
 }
 
 int main(int argc, char *argv[]) {

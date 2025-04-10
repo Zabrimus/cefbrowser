@@ -96,7 +96,7 @@ bool BrowserServer::ReloadOSD() {
 }
 
 bool BrowserServer::StartApplication(const StartApplicationType &input) {
-    INFO("Start Application, channelId {}, appId {}", input.channelId, input.appId);
+    INFO("Start Application, channelId {}, appId {}, url {}", input.channelId, input.appId, input.url);
 
     std::string channel = database.getChannel(input.channelId);
     std::ofstream _dynamic;

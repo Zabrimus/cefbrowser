@@ -7,6 +7,7 @@
 #include "httpinterception.h"
 #include "xhrinterception.h"
 #include "trackinginterception.h"
+#include "statichandler.h"
 
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
@@ -106,19 +107,11 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
             int out_len = 0;
             char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
 
-            if (!vdrClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len))) {
-                // OSD in VDR is not available
-                loadUrl(browser, BLANK_PAGE);
-            }
-
+            vdrClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len));
             free(encoded_image);
         } else {
             std::string data = std::string((char *)outbuffer, r.width * r.height * 4);
-
-            if (!vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height, data)) {
-                // OSD in VDR is not available
-                loadUrl(browser, BLANK_PAGE);
-            }
+            vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height, data);
         }
 
         delete[] outbuffer;
@@ -179,7 +172,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             loadUrl(browser, url);
             return true;
         } else {
-            ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
+            ERROR("BrowserClient::OnProcessMessageReceived: LoadUrl without an URL");
         }
     }  else if (message->GetName().ToString() == "StartApp") {
         if (message->GetArgumentList()->GetSize() == 3) {
@@ -236,6 +229,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
                                                 bool &disable_default_handling)
 {
     LOG_CURRENT_THREAD();
+
+    static std::string browserUrl = std::string("http://") + bParam.browserIp + std::string(":") + std::to_string(bParam.browserPort);
 
     std::string url = request->GetURL().ToString();
 
@@ -322,6 +317,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     /* internal video loading */
     if (url.find("http://localhost/movie/") != std::string::npos) {
         return new MovieStream(transcoderClient);
+    }
+
+    /* static content */
+    if (url.find(browserUrl) != std::string::npos) {
+        return new StaticHandler(bParam.static_path, url.substr(browserUrl.length(), url.length()-browserUrl.length()));
     }
 
     /* Special handling for some requests. xhook replacement */
