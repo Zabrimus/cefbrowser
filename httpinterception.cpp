@@ -55,37 +55,46 @@ void HttpInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64
             (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),
             url_request->GetResponse()->GetStatusText().ToString() );
 
-    CefResponse::HeaderMap responseHeader;
-    url_request->GetResponse()->GetHeaderMap(responseHeader);
-    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ++itr) {
-        TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
-    }
-
     CefRequest::HeaderMap requestHeader;
     url_request->GetRequest()->GetHeaderMap(requestHeader);
     for (auto itr = requestHeader.begin(); itr != requestHeader.end(); ++itr) {
         TRACE("RequestHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
     }
 
-    // TODO: Content-Type ändern, falls erforderlich
+    // find content-type
+    std::string contentType;
 
-    std::string contentType = response->GetHeaderByName("Content-Type").ToString();
+    CefResponse::HeaderMap responseHeader;
+    url_request->GetResponse()->GetHeaderMap(responseHeader);
+    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ++itr) {
+        TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
 
-    responseHeader.erase("Content-Type");
-    responseHeader.insert(std::make_pair("Content-Type","application/xhtml+xml;charset=UTF-8"));
+        auto pos = strcasestr(itr->first.ToString().c_str(), "content-type");
+        if(pos != nullptr) {
+            contentType = itr->second.ToString();
+            responseHeader.erase(itr->first.ToString());
+            TRACE("2.Received Content-Type: {} -> {}", contentType, contentType.empty());
+        }
+    }
+
+    TRACE("Received Content-Type: {} -> {}", contentType, contentType.empty());
 
     if (!contentType.empty()) {
         if (contentType.find("text/html") != std::string::npos) {
             response->SetMimeType("text/html");
+            responseHeader.insert(std::make_pair("Content-Type", "text/html"));
         } else if (contentType.find("application/vnd.hbbtv.xhtml+xml") != std::string::npos) {
             response->SetMimeType("application/xhtml+xml");
+            responseHeader.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
         } else {
             // default
             response->SetMimeType("application/xhtml+xml");
+            responseHeader.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
         }
     } else {
         // default
         response->SetMimeType("application/xhtml+xml");
+        responseHeader.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
     }
 
     response->SetHeaderMap(responseHeader);
