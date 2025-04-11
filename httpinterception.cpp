@@ -73,11 +73,9 @@ void HttpInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64
         if(pos != nullptr) {
             contentType = itr->second.ToString();
             responseHeader.erase(itr->first.ToString());
-            TRACE("2.Received Content-Type: {} -> {}", contentType, contentType.empty());
+            TRACE("Received Content-Type: {} -> {}", contentType, contentType.empty());
         }
     }
-
-    TRACE("Received Content-Type: {} -> {}", contentType, contentType.empty());
 
     if (!contentType.empty()) {
         if (contentType.find("text/html") != std::string::npos) {
