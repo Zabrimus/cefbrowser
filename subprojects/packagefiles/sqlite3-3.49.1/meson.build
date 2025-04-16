@@ -110,7 +110,7 @@ libsqlite3 = library(
   sources,
   c_args: sqlite_args,
   dependencies: [libdl, libm, libthreads],
-  install: true,
+  install: false,
   gnu_symbol_visibility: 'hidden',
   # ABI compatibility with autotools/libtool
   version: '0.8.6',
