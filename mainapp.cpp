@@ -119,7 +119,7 @@ void BrowserApp::OnContextInitialized() {
 
     // read user agents if configured
     if (!bParameter.user_agent_path.empty()) {
-        database.readUserAgents(bParameter.user_agent_path);
+        database->readUserAgents(bParameter.user_agent_path);
     }
 
     INFO("Start Server on {}:{} with static path {}", bParameter.browserIp, bParameter.browserPort, bParameter.static_path);

@@ -1,12 +1,13 @@
 #pragma once
 
 #include <string>
+
 #include "mini/ini.h"
 #include "sqlite3.h"
 
 class Database {
 public:
-    Database();
+    Database(std::string path);
     ~Database();
 
     void readUserAgents(std::string path);
@@ -36,4 +37,4 @@ private:
     mINI::INIStructure userAgents;
 };
 
-extern Database database;
+extern Database* database;

@@ -151,8 +151,8 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             std::string channelId = message->GetArgumentList()->GetString(0).ToString();
             DEBUG("BrowserClient::OnProcessMessageReceived: RedButton {}", channelId);
 
-            std::string url = database.getRedButtonUrl(channelId);
-            std::string channel = database.getChannel(channelId);
+            std::string url = database->getRedButtonUrl(channelId);
+            std::string channel = database->getChannel(channelId);
 
             std::ofstream _dynamic;
             _dynamic.open (bParam.static_path + "/js/_dynamic.js", std::ios_base::trunc);
@@ -183,7 +183,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             DEBUG("BrowserClient::OnProcessMessageReceived: StartApp {}, {}, {}", channelId, appId, args);
 
             // get AppUrl
-            std::string url = database.getAppUrl(channelId, appId);
+            std::string url = database->getAppUrl(channelId, appId);
             if (url.empty()) {
                 INFO("Application with appId {} for channelId {} not found -> ignore request");
                 return false;
@@ -235,6 +235,10 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     std::string url = request->GetURL().ToString();
 
     TRACE("Request URL: {}", url);
+
+    if (url.find("amazon.de") != std::string::npos) {
+        return nullptr;
+    }
 
     // let cef handle the whole URL loading. For HbbTV pages, this does not makes sense.
     if (!processorEnabled) {

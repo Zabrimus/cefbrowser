@@ -75,7 +75,9 @@ ProcessType GetProcessType(const CefRefPtr<CefCommandLine>& command_line) {
 
 void signal_handler(int signal)
 {
-    database.shutdown();
+    database->shutdown();
+    delete database;
+
     currentBrowser->GetHost()->CloseBrowser(true);
     app = nullptr;
 
@@ -99,6 +101,7 @@ void parseCommandLine(int argc, char *argv[]) {
             { "staticPath",  optional_argument, nullptr, 's' },
             { "bindall",     optional_argument, nullptr, 'b' },
             { "uagent",      optional_argument, nullptr, 'u' },
+            { "browserdb",   optional_argument, nullptr, 'd' },
             { nullptr }
     };
 
@@ -115,7 +118,7 @@ void parseCommandLine(int argc, char *argv[]) {
     staticPath = getexepath();
     staticPath = staticPath.substr(0, staticPath.find_last_of('/'));
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -282,6 +285,9 @@ int main(int argc, char *argv[]) {
     if (!readConfiguration(configFilename)) {
         return -1;
     }
+
+    // Init database
+    new Database(browserDbPath);
 
     // set all parameters again: new forked process, zygote
     bParameter.vdrIp = vdrIp;

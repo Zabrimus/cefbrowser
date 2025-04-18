@@ -21,12 +21,17 @@ int unused_callback(void *NotUsed, int argc, char **argv, char **azColName) {
    return 0;
 }
 
-Database::Database() {
+Database::Database(std::string path) : insertHbbtvStmt(nullptr), insertChannelStmt(nullptr) {
     std::string browserdb;
-    if (const char* env_p = std::getenv("BROWSER_DB_PATH")) {
-        browserdb = env_p;
+
+    if (path.empty()) {
+        if (const char *env_p = std::getenv("BROWSER_DB_PATH")) {
+            browserdb = env_p;
+        } else {
+            browserdb = "database";
+        }
     } else {
-        browserdb = "database";
+        browserdb = path;
     }
 
     int rc = sqlite3_open_v2((browserdb + "/hbbtv_urls.db").c_str(), &db, SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nullptr);
@@ -46,6 +51,8 @@ Database::Database() {
 
     // initial reading of user agents. Could be overwritten later.
     readUserAgents(browserdb);
+
+    database = this;
 }
 
 Database::~Database() {
@@ -299,4 +306,4 @@ std::string Database::getAppUrl(const std::string channelId, const std::string a
     return result;
 }
 
-Database database;
+Database* database;

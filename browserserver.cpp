@@ -48,7 +48,7 @@ bool BrowserServer::RedButton(const RedButtonType &input) {
 
     // iterate multiple times.
     for (int i = 0; i < 5; ++i) {
-        url = database.getRedButtonUrl(input.channelId);
+        url = database->getRedButtonUrl(input.channelId);
         if (!url.empty()) {
             break;
         }
@@ -64,7 +64,7 @@ bool BrowserServer::RedButton(const RedButtonType &input) {
         DEBUG("RedButton URL found: {}", url);
 
         // write channel information
-        std::string channel = database.getChannel(input.channelId);
+        std::string channel = database->getChannel(input.channelId);
         std::ofstream _dynamic;
         _dynamic.open (bParameterServer.static_path + "/js/_dynamic.js", std::ios_base::trunc);
         _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
@@ -73,7 +73,7 @@ bool BrowserServer::RedButton(const RedButtonType &input) {
         CefRefPtr<CefClient> currentClient = currentBrowser->GetHost()->GetClient();
         auto c = dynamic_cast<BrowserClient *>(currentClient.get());
 
-        std::string newUserAgent = database.getUserAgent(input.channelId);
+        std::string newUserAgent = database->getUserAgent(input.channelId);
         INFO("Use UserAgent {} for {}", newUserAgent, input.channelId);
         c->ChangeUserAgent(currentBrowser, newUserAgent);
         c->enableProcessing(true);
@@ -98,7 +98,7 @@ bool BrowserServer::ReloadOSD() {
 bool BrowserServer::StartApplication(const StartApplicationType &input) {
     INFO("Start Application, channelId {}, appId {}, url {}", input.channelId, input.appId, input.url);
 
-    std::string channel = database.getChannel(input.channelId);
+    std::string channel = database->getChannel(input.channelId);
     std::ofstream _dynamic;
     _dynamic.open (bParameterServer.static_path + "/js/_dynamic.js", std::ios_base::trunc);
 
@@ -212,7 +212,7 @@ bool BrowserServer::StreamError(const StreamErrorType &input) {
 
 bool BrowserServer::InsertHbbtv(const InsertHbbtvType &input) {
     // TRACE("InsertHbbtv: {}", body);
-    return database.insertHbbtv(input.hbbtv);
+    return database->insertHbbtv(input.hbbtv);
 }
 
 bool BrowserServer::InsertChannel(const InsertChannelType &input) {
@@ -229,7 +229,7 @@ bool BrowserServer::InsertChannel(const InsertChannelType &input) {
         lastInsertChannel = input.channel;
     }
 
-    return database.insertChannel(input.channel);
+    return database->insertChannel(input.channel);
 }
 
 bool BrowserServer::StopVideo(const StopVideoType &input) {
