@@ -340,12 +340,6 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &sigIntHandler, nullptr);
     sigaction(SIGQUIT, &sigIntHandler, nullptr);
 
-    if (!command_line->HasSwitch("config") && !command_line->HasSwitch("c")) {
-        ERROR("Argument --config not found. Exiting...");
-        logger->shutdown();
-        return -1;
-    }
-
     // write zoom level script
     std::ofstream _zoom_level;
     _zoom_level.open (staticPath + "/js/_zoom_level.js", std::ios_base::trunc);
