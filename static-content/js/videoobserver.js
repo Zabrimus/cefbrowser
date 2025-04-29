@@ -544,25 +544,22 @@ function checkSingleObjectNode(node) {
     }
 }
 
-// if an local application is loaded, then don't a create a MutationSummary
-if (!document.location.href.includes('application/iptv/catalogue/index.html')) {
-    const ms = new MutationSummary({
-        callback(summaries) {
-            summaries.forEach((summary) => {
-                console.log(summary);
+const ms = new MutationSummary({
+    callback(summaries) {
+        summaries.forEach((summary) => {
+            console.log(summary);
 
-                checkAddedObjectNode(summary);
-                checkPositionObjectNode(summary);
-            });
+            checkAddedObjectNode(summary);
+            checkPositionObjectNode(summary);
+        });
+    },
+    queries: [
+        {
+            element: 'object',
+            elementAttributes: 'data type width height left top style',
         },
-        queries: [
-            {
-                element: 'object',
-                elementAttributes: 'data type width height left top style',
-            },
-            {
-                element: 'video',
-            },
-        ]
-    });
-}
+        {
+            element: 'video',
+        },
+    ]
+});

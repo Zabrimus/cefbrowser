@@ -1,0 +1,141 @@
+body
+{
+    /* transparent background */
+    background-color: transparent;
+    /* we explicitly set the size of the body element */
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    /* white text in font supported by terminals */
+    color: white;
+    font-family: sans-serif;
+}
+
+/** application/oipfApplicationManager embedded object style  */
+object#applicationManager
+{
+    position: absolute;
+    left: 0px;
+    top: 0px; 
+    width: 0px; 
+    height: 0px;
+}
+
+/** safe area as recommended by standard */
+div.safe_area 
+{
+    position: absolute;
+    left: 128px; 
+    top: 36px; 
+    width: 1024px; 
+    height: 648px;
+    /** set background color and alpha */
+    background-color: rgba(0, 0, 0, .5);
+}
+
+/* set title text style */
+div.title_text
+{
+    padding-top: 25px;
+    padding-bottom: 20px;
+    font-size: 36px;
+    text-align: center;
+}
+
+/* set status text style */
+div.status_text
+{
+    padding-left: 5px;
+    padding-top: 5px;
+    padding-bottom: 3px;
+    font-size: 20px;
+    border-top: 2px solid #d3d3d3;
+}
+
+/* set bottom legend style */
+div.bottom_legend
+{
+    position: absolute;
+    top: 624px; 
+    width: 1024px; 
+    height: 24px;
+}
+
+/* set bottom legend cell style */
+div.legend_cell
+{
+    width: 250px;
+    height: 24px;
+    display: inline-block;
+}
+
+div.legend_button_red {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    background-color: red;
+}
+
+div.legend_button_green {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    background-color: green;
+}
+
+div.legend_button_yellow {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    background-color: yellow;
+}
+
+div.legend_button_blue {
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    background-color: blue;
+}
+
+/* set bottom legend cell style */
+span.legend_text {
+    position: relative;
+    top: -7px;
+    font-size: 16px;
+}
+
+.main-slider {
+    background-color: black;
+}
+
+/*
+.sub-slider {
+    background-color: darkgrey;
+}
+
+*/
+.main-selected {
+    // background-color: blue;
+    color: orange;
+    font-weight: bold;
+    height: 50px;
+    padding-top: 20px;
+}
+
+.main-unselected {
+    font-weight: normal;
+    height: 50px;
+    padding-top: 20px;
+}
+
+.sub-selected {
+    color: orange;
+    border: 3px solid black;
+    padding-top: 20px;
+    background-color: darkgrey;
+}
+
+.sub-unselected {
+    background-color: lightgrey;
+    padding-top: 20px;
+}

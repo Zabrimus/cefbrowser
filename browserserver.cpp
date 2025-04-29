@@ -132,7 +132,7 @@ bool BrowserServer::StartApplication(const StartApplicationType &input) {
         url = input.url;
         c->enableProcessing(false);
     } else if (input.appId == "M3U") {
-        url = "http://" + bParameterServer.browserIp + ":" + std::to_string(bParameterServer.browserPort) + "/application/iptv/catalogue/index.html";
+        url = "http://" + bParameterServer.browserIp + ":" + std::to_string(bParameterServer.browserPort) + "/application/iptv/index.html";
         c->enableProcessing(true);
     }
 
