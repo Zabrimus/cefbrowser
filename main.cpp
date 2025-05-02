@@ -198,6 +198,14 @@ void parseCommandLine(int argc, char *argv[]) {
 }
 
 bool readConfiguration(std::string configFile) {
+    // check at first if configFile really exists
+    struct stat path_stat;
+    stat(configFile.c_str(), &path_stat);
+    if (!S_ISREG(path_stat.st_mode)) {
+        ERROR("[vdrweb] Unable to read config file: %s. Reason: %s", configFile, strerror(errno));
+        return false;
+    }
+
     mINI::INIFile file(configFile.c_str());
     mINI::INIStructure ini;
     auto result = file.read(ini);
