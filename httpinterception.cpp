@@ -66,14 +66,16 @@ void HttpInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64
 
     CefResponse::HeaderMap responseHeader;
     url_request->GetResponse()->GetHeaderMap(responseHeader);
-    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ++itr) {
+    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ) {
         TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
 
         auto pos = strcasestr(itr->first.ToString().c_str(), "content-type");
         if(pos != nullptr) {
             contentType = itr->second.ToString();
-            responseHeader.erase(itr->first.ToString());
+            responseHeader.erase(itr);
             TRACE("Received Content-Type: {} -> {}", contentType, contentType.empty());
+        } else {
+            itr++;
         }
     }
 
