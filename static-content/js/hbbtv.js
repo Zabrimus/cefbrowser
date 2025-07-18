@@ -264,6 +264,8 @@
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
         '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
         '</profilelist>';
+    //'html5_media>true</html5_media>' +
+
     var videoProfiles = currentCapabilities.split('video_profile');
     window.oipfCapabilities.xmlCapabilities = (new window.DOMParser()).parseFromString(currentCapabilities, 'text/xml');
     window.oipfCapabilities.extraSDVideoDecodes = videoProfiles.length > 1 ? videoProfiles.slice(1).join().split('_SD_').slice(1).length : 0;

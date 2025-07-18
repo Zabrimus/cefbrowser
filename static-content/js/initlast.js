@@ -67,6 +67,7 @@ setTimeout(() => {
 // ARD channels also uses window.GLOBALS.htmlfive. But the application is not yet prepared.
 if (window.GLOBALS) {
     let location = document.location.toString();
+    // window.GLOBALS.htmlfive = location.includes("hbbtv.zdf.de") || location.includes("tv.ardmediathek.de");
     window.GLOBALS.htmlfive = location.includes("hbbtv.zdf.de");
 
     // ZDF (prevent pending CORS related requests)

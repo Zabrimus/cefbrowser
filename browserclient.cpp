@@ -251,64 +251,64 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     if (logger->isTraceEnabled()) {
         switch(request->GetResourceType()) {
             case RT_MAIN_FRAME:
-                TRACE("GetResourceRequestHandler: RT_MAIN_FRAME");
+                TRACE("GetResourceRequestHandler: RT_MAIN_FRAME, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_SUB_FRAME:
-                TRACE("GetResourceRequestHandler: RT_SUB_FRAME");
+                TRACE("GetResourceRequestHandler: RT_SUB_FRAME, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_STYLESHEET:
-                TRACE("GetResourceRequestHandler: RT_STYLESHEET");
+                TRACE("GetResourceRequestHandler: RT_STYLESHEET, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_SCRIPT:
-                TRACE("GetResourceRequestHandler: RT_SCRIPT");
+                TRACE("GetResourceRequestHandler: RT_SCRIPT, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_IMAGE:
-                TRACE("GetResourceRequestHandler: RT_IMAGE");
+                TRACE("GetResourceRequestHandler: RT_IMAGE, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_FONT_RESOURCE:
-                TRACE("GetResourceRequestHandler: RT_FONT_RESOURCE");
+                TRACE("GetResourceRequestHandler: RT_FONT_RESOURCE, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_SUB_RESOURCE:
-                TRACE("GetResourceRequestHandler: RT_SUB_RESOURCE");
+                TRACE("GetResourceRequestHandler: RT_SUB_RESOURCE, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_OBJECT:
-                TRACE("GetResourceRequestHandler: RT_OBJECT");
+                TRACE("GetResourceRequestHandler: RT_OBJECT, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_MEDIA:
-                TRACE("GetResourceRequestHandler: RT_MEDIA: {}", request->GetURL().ToString());
+                TRACE("GetResourceRequestHandler: RT_MEDIA: {}, Method: {}", request->GetURL().ToString(), request->GetMethod().ToString());
                 break;
             case RT_WORKER:
-                TRACE("GetResourceRequestHandler: RT_WORKER");
+                TRACE("GetResourceRequestHandler: RT_WORKER, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_SHARED_WORKER:
-                TRACE("GetResourceRequestHandler: RT_SHARED_WORKER");
+                TRACE("GetResourceRequestHandler: RT_SHARED_WORKER, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_PREFETCH:
-                TRACE("GetResourceRequestHandler: RT_PREFETCH");
+                TRACE("GetResourceRequestHandler: RT_PREFETCH, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_FAVICON:
-                TRACE("GetResourceRequestHandler: RT_FAVICON");
+                TRACE("GetResourceRequestHandler: RT_FAVICON, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_XHR:
-                TRACE("GetResourceRequestHandler: RT_XHR");
+                TRACE("GetResourceRequestHandler: RT_XHR, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_PING:
-                TRACE("GetResourceRequestHandler: RT_PING");
+                TRACE("GetResourceRequestHandler: RT_PING, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_SERVICE_WORKER:
-                TRACE("GetResourceRequestHandler: RT_SERVICE_WORKER");
+                TRACE("GetResourceRequestHandler: RT_SERVICE_WORKER, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_CSP_REPORT:
-                TRACE("GetResourceRequestHandler: RT_CSP_REPORT");
+                TRACE("GetResourceRequestHandler: RT_CSP_REPORT, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_PLUGIN_RESOURCE:
-                TRACE("GetResourceRequestHandler: RT_PLUGIN_RESOURCE");
+                TRACE("GetResourceRequestHandler: RT_PLUGIN_RESOURCE, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_NAVIGATION_PRELOAD_MAIN_FRAME:
-                TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_MAIN_FRAME");
+                TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_MAIN_FRAME, Method: {}", request->GetMethod().ToString());
                 break;
             case RT_NAVIGATION_PRELOAD_SUB_FRAME:
-                TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_SUB_FRAME");
+                TRACE("GetResourceRequestHandler: RT_NAVIGATION_PRELOAD_SUB_FRAME, Method: {}", request->GetMethod().ToString());
                 break;
         }
     }
@@ -332,7 +332,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     if ((request->GetResourceType()) == RT_XHR &&
             ((url.find("-hbbtv.zdf.de/al/cms/content/") != std::string::npos) ||
              (url.find("hbbtv.zdf.de/zdfm3/dyn/get.php") != std::string::npos) ||
-             (url.find("-hbbtv.zdf.de/ds/configuration") != std::string::npos)
+             (url.find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) ||
+             (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos)
              )) {
         return new XhrInterception();
     }

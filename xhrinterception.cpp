@@ -87,8 +87,19 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     request->GetResponse()->GetHeaderMap(headerMap);
 
     // hbbtv.zdf.de
+    if (logger->isTraceEnabled()) {
+        TRACE("Downloaded data:\n{}\n", download_data);
+    }
+
     if (request->GetRequest()->GetURL().ToString().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
-        auto dataJson = nlohmann::ordered_json::parse(download_data);
+        nlohmann::json dataJson;
+
+        try {
+            dataJson = nlohmann::ordered_json::parse(download_data);
+        } catch(nlohmann::json::parse_error& e) {
+            ERROR("Json Parse error: {}", e.what());
+            return;
+        }
 
         if (dataJson.find("dash") != dataJson.end()) {
             dataJson["dash"] = false;
@@ -100,7 +111,14 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
 
         download_data = dataJson.dump();
     } else if (request->GetRequest()->GetURL().ToString().find("hbbtv.zdf.de") != std::string::npos) {
-        auto dataJson = nlohmann::ordered_json::parse(download_data);
+        nlohmann::json dataJson;
+
+        try {
+            dataJson = nlohmann::ordered_json::parse(download_data);
+        } catch(nlohmann::json::parse_error& e) {
+            ERROR("Json Parse error: {}", e.what());
+            return;
+        }
 
         // Version 1
         if (dataJson.find("data") != dataJson.end()) {
@@ -117,6 +135,24 @@ void XhrRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
         // Version 3
         if (dataJson.find("videoMetaData") != dataJson.end()) {
             dataJson["videoMetaData"].erase("fsk");
+        }
+
+        download_data = dataJson.dump();
+    } else if (request->GetRequest()->GetURL().ToString().find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) {
+        nlohmann::json dataJson;
+
+        try {
+            dataJson = nlohmann::ordered_json::parse(download_data);
+        } catch(nlohmann::json::parse_error& e) {
+            ERROR("Json Parse error: {}", e.what());
+            return;
+        }
+
+        // Version 1
+        if (dataJson["video"]["meta"]["maturityContentRating"] != nullptr) {
+            // dataJson["video"]["meta"].erase("maturityContentRating");
+            // dataJson["video"]["meta"]["maturityContentRating"]["age"] = "6";
+            // dataJson["video"]["meta"]["maturityContentRating"]["isBlocked"] = false;
         }
 
         download_data = dataJson.dump();
