@@ -328,6 +328,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return new StaticHandler(bParam.static_path, url.substr(browserUrl.length(), url.length()-browserUrl.length()));
     }
 
+    if (url.find("http://localhost/") != std::string::npos) {
+        int length = strlen("http://localhost");
+        return new StaticHandler(bParam.static_path, url.substr(length, url.length()-length));
+    }
+
     /* Special handling for some requests. xhook replacement */
     if ((request->GetResourceType()) == RT_XHR &&
             ((url.find("-hbbtv.zdf.de/al/cms/content/") != std::string::npos) ||

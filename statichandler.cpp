@@ -106,8 +106,10 @@ std::string StaticHandler::guessMimeType(std::string &name) {
         return "image/gif";
     } else if (endsWith(name, ".xml")) {
         return "application/xml";
-    }  else if (endsWith(name, ".json")) {
+    } else if (endsWith(name, ".json")) {
         return "application/json";
+    } else if (endsWith(name, ".js")) {
+        return "text/javascript";
     }
 
     return "text/plain";

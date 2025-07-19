@@ -26,5 +26,4 @@ private:
 
 private:
     std::string staticPath;
-    std::map<std::string, std::string> cache;
 };

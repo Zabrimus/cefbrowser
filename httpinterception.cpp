@@ -123,7 +123,7 @@ void HttpRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
     TRACE("HttpRequestClient::OnRequestComplete:  {}, {}, {}", (int) request->GetRequestStatus(),
           (int) request->GetRequestError(), request->GetResponse()->GetMimeType().ToString());
 
-    // TODO: Seite ändern, falls erforderlich
+    // Seite ändern, falls erforderlich
     download_data = HttpInterception::modifier.injectAll(download_data);
     callback->Continue();
 }
