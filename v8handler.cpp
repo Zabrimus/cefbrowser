@@ -46,6 +46,7 @@ V8Handler::V8Handler(BrowserParameter bParam) : bParam(bParam)
     videoInfo = "";
     videoReset = false;
     stopVideoThreadRunning = false;
+    isVideoPaused = false;
 }
 
 V8Handler::~V8Handler() {
@@ -111,6 +112,13 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto& mpdStartParam = arguments.at(4);
             auto mpdStart = mpdStartParam.get()->GetIntValue();
 
+            // if video is pause, then some special handling is necessary
+            if (isVideoPaused) {
+                std::string reason = "Javascript StopVideo (Start after Pause)";
+                transcoderClient->Stop(streamId, reason);
+                videoReset = true;
+            }
+
             TRACE("Video URL: {}", url.ToString());
 
             // 1. Step call Probe
@@ -160,6 +168,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateString(newVideoUrl);
         return true;
     } else if (name == "StopVideo") {
+        isVideoPaused = false;
+
         DEBUG("V8Handler::Execute: in {}", name.ToString());
         std::string reason = "Javascript StopVideo";
         transcoderClient->Stop(streamId, reason);
@@ -175,13 +185,17 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "PauseVideo") {
+        isVideoPaused = true;
+
         vdrClient->Pause();
         transcoderClient->Pause(streamId);
 
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "ResumeVideo") {
-        const auto& param = arguments.at(0);
+        isVideoPaused = false;
+
+        const auto &param = arguments.at(0);
         auto position = param.get()->GetStringValue().ToString();
 
         DEBUG("RESUME at timestamp {}", position);
@@ -191,7 +205,16 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
         retval = CefV8Value::CreateBool(true);
         return true;
+    } else if (name == "UnfreezeDevice") {
+        isVideoPaused = false;
+        DEBUG("UnfreezeDevice");
+
+        vdrClient->Resume();
+        retval = CefV8Value::CreateBool(true);
+        return true;
     } else if (name == "SeekVideo") {
+        isVideoPaused = false;
+
         if (!arguments.empty()) {
             const auto& param = arguments.at(0);
             auto position = param.get()->GetStringValue().ToString();

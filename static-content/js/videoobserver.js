@@ -358,9 +358,11 @@ function addVideoNodeTypeVideo(node, url) {
     video.type = "video/webm";
 
     video && video.addEventListener && video.addEventListener('playing', function () {
-        console.log("video tag playing");
+        console.log("video tag playing: " + video.playState);
         if (video.playState === PLAY_STATES.paused) {
             window.cefResumeVideo(String(video.currentTime));
+        } else {
+            window.cefUnfreezeDevice();
         }
 
         video.playState = PLAY_STATES.playing;
@@ -377,8 +379,8 @@ function addVideoNodeTypeVideo(node, url) {
     }, false);
 
     video && video.addEventListener && video.addEventListener('error', function (e) {
-        console.log("video tag error: ");
-        if (video.playState !== PLAY_STATES.error) {
+        console.log("video tag error: video.PlayState=" + video.playState);
+        if (video.playState === PLAY_STATES.error) {
             window.cefStopVideo();
         }
     }, false);

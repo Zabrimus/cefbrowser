@@ -19,6 +19,8 @@ private:
     VdrClient *vdrClient;
     TranscoderClient *transcoderClient;
 
+    bool isVideoPaused;
+
 private:
     void sendMessageToProcess(std::string message);
     void sendMessageToProcess(std::string message, std::string parameter);

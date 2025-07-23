@@ -167,6 +167,9 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
     CefRefPtr<CefV8Value> resumeVideo = CefV8Value::CreateFunction("ResumeVideo", handler);
     object->SetValue("cefResumeVideo", resumeVideo, V8_PROPERTY_ATTRIBUTE_NONE);
 
+    CefRefPtr<CefV8Value> unfreezeDevice = CefV8Value::CreateFunction("UnfreezeDevice", handler);
+    object->SetValue("cefUnfreezeDevice", unfreezeDevice, V8_PROPERTY_ATTRIBUTE_NONE);
+
     CefRefPtr<CefV8Value> seekVideo = CefV8Value::CreateFunction("SeekVideo", handler);
     object->SetValue("cefSeekVideo", seekVideo, V8_PROPERTY_ATTRIBUTE_NONE);
 
