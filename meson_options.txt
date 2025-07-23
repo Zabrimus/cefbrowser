@@ -1,1 +1,2 @@
 option('arch', type : 'combo', choices : ['x86', 'arm', 'arm64'], value : 'x86')
+option('debug_thrift', type: 'boolean', value: false, description: 'Enable more debug logging')

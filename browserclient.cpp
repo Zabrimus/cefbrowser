@@ -234,7 +234,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
 
     std::string url = request->GetURL().ToString();
 
-    TRACE("Request URL: {}", url);
+    bool blockThis = TrackingInterception::IsTracker(url);
+
+    if (logger->isTraceEnabled() && !blockThis) {
+        TRACE("Request URL: {}", url);
+    }
 
     if (url.find("amazon.de") != std::string::npos) {
         return nullptr;
@@ -245,10 +249,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return nullptr;
     }
 
-    bool blockThis = TrackingInterception::IsTracker(url);
-
     /* */
-    if (logger->isTraceEnabled()) {
+    if (logger->isTraceEnabled() && !blockThis) {
         switch(request->GetResourceType()) {
             case RT_MAIN_FRAME:
                 TRACE("GetResourceRequestHandler: RT_MAIN_FRAME, Method: {}", request->GetMethod().ToString());

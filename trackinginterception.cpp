@@ -16,13 +16,13 @@ std::string trackingUrlBlockList[] {
 
 // CefResourceRequestHandler
 CefResourceRequestHandler::ReturnValue TrackingInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
-    TRACE("TrackingInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
+    // TRACE("TrackingInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
 
     return RV_CONTINUE_ASYNC;
 }
 
 bool TrackingInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
-    TRACE("TrackingInterception::Open: {}", request->GetURL().ToString());
+    // TRACE("TrackingInterception::Open: {}", request->GetURL().ToString());
 
     handle_request = true;
     return true;

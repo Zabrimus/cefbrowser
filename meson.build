@@ -90,6 +90,11 @@ foreach lib_name : shared_libs
 endforeach
 
 incdir = include_directories(['thrift-services/src-gen', 'thrift-services/src-client'])
+browser_compile_args = ['-DPHTTPLIB_ZLIB_SUPPORT', '-DCPPHTTPLIB_OPENSSL_SUPPORT']
+
+if get_option('debug_thrift')
+    browser_compile_args += '-DDEBUG_THRIFTCLIENT'
+endif
 
 exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
@@ -101,7 +106,7 @@ exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  'thrift-services/src-gen/VdrPluginWeb.cpp', 'thrift-services/src-gen/pluginweb_types.cpp',
                  'thrift-services/src-gen/RemoteTranscoder.cpp', 'thrift-services/src-gen/remotetranscoder_types.cpp',
                  include_directories : incdir,
-                 cpp_args : ['-DPHTTPLIB_ZLIB_SUPPORT', '-DCPPHTTPLIB_OPENSSL_SUPPORT'],
+                 cpp_args : browser_compile_args,
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
                  dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep, dep_ssl, dep_crypto, thrift_dep])
