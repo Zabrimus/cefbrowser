@@ -15,7 +15,7 @@ public:
 
     void init(std::string sp);
 
-    std::string injectAll(std::string& source);
+    std::string injectAll(std::string_view source);
 
 private:
     inline std::string getDynamicJs();

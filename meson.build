@@ -3,7 +3,7 @@ project('cefbrowser', 'cpp', 'c',
   default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static', 'optimization=3', 'buildtype=debug' ],
   meson_version: '>=0.63.0')
 
-# add_global_arguments('-O3', language : 'cpp')
+add_global_arguments('-O3', language : 'cpp')
 
 arch=get_option('arch')
 
@@ -58,11 +58,12 @@ sqlite3_dep = sqlite3_proj.get_variable('sqlite3_dep')
 #
 # ssl
 #
-dep_ssl = dependency('libssl')
-dep_crypto = dependency('libcrypto')
+ssl_dep = dependency('libssl')
+crypto_dep = dependency('libcrypto')
 
+#
 # thrift
-# thrift
+#
 thrift_opts = cmake.subproject_options()
 thrift_opts.add_cmake_defines({'WITH_AS3': 'OFF',
                                'WITH_QT5': 'OFF',
@@ -79,6 +80,33 @@ thrift_opts.add_cmake_defines({'WITH_AS3': 'OFF',
 
 thrift_proj = cmake.subproject('thrift', options: thrift_opts)
 thrift_dep = thrift_proj.get_variable('thrift_dep')
+
+#
+# curl
+#
+curl_opts = cmake.subproject_options()
+curl_opts.add_cmake_defines({ 'BUILD_CURL_EXE':'OFF',
+                              'BUILD_SHARED_LIBS':'OFF',
+                              'HTTP_ONLY':'ON'
+                            })
+curl_opts.set_install(false)
+
+curl_proj = cmake.subproject('curl', options: curl_opts)
+curl_dep = curl_proj.get_variable('libcurl_dep')
+
+#
+# libuv
+#
+libuv_proj = subproject('libuv', default_options: ['build_tests=false', 'build_benchmarks=false'])
+libuv_dep = libuv_proj.get_variable('libuv_dep')
+
+#
+# liblifthttp
+#
+liblifthttp_proj = subproject('liblifthttp', default_options: [])
+liblifthttp_dep = liblifthttp_proj.get_variable('liblifthttp_dep')
+
+libidn2 = dependency('libidn2', required: true)
 
 #
 # Build browser
@@ -100,6 +128,7 @@ exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
                  'httpinterception.cpp', 'keycodes.cpp', 'trackinginterception.cpp', 'statichandler.cpp',
                  'v8handler.cpp', 'tools.cpp', 'database.cpp', 'xhrinterception.cpp', 'pagemodifier.cpp',
+                 'lift.cpp',
                  'thrift-services/src-client/VdrClient.cpp', 'thrift-services/src-client/TranscoderClient.cpp',
                  'thrift-services/src-gen/CommonService.cpp', 'thrift-services/src-gen/common_types.cpp',
                  'thrift-services/src-gen/CefBrowser.cpp', 'thrift-services/src-gen/cefbrowser_types.cpp',
@@ -109,7 +138,7 @@ exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
                  cpp_args : browser_compile_args,
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep, dep_ssl, dep_crypto, thrift_dep])
+                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep, ssl_dep, crypto_dep, thrift_dep, curl_dep, libuv_dep, liblifthttp_dep, libidn2])
 
 
 #

@@ -3,11 +3,11 @@
 #include <string>
 #include "cef_includes.h"
 #include "logger.h"
-
-class XhrRequestClient;
+#include "lift.h"
 
 class XhrInterception : public CefResourceRequestHandler,
-                       public CefResourceHandler {
+                        public CefResourceHandler,
+                        public LiftCallback {
 public:
     XhrInterception();
 
@@ -34,42 +34,19 @@ public:
 
     void Cancel() override;
 
-private:
-    CefRefPtr<XhrRequestClient> client;
-    CefRefPtr<CefURLRequest> url_request;
+    // LiftCallback
+    auto on_lift_complete(lift::request_ptr request_ptr, lift::response response) -> void override;
 
 private:
-    IMPLEMENT_REFCOUNTING(XhrInterception);
-};
-
-
-class XhrRequestClient : public CefURLRequestClient {
-    friend XhrInterception;
-
-public:
-    explicit XhrRequestClient(CefRefPtr<CefCallback>&);
-
-    void OnRequestComplete(CefRefPtr<CefURLRequest> request) override;
-
-    void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override;
-
-    void OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override;
-
-    void OnDownloadData(CefRefPtr<CefURLRequest> request, const void *data, size_t data_length) override;
-
-    bool GetAuthCredentials(bool isProxy, const CefString &host, int port, const CefString &realm,
-                            const CefString &scheme, CefRefPtr<CefAuthCallback> callback) override;
-
-private:
-    size_t upload_total;
-    size_t download_total;
-    size_t offset;
+    // will be filled in the lift callback (on_lift_complete)
+    CefResponse::HeaderMap responseHeaderMap;
+    int64_t download_total = 0;
+    size_t offset = 0;
     std::string download_data;
-
-    CefResponse::HeaderMap headerMap;
+    std::string mime_type;
+    lift::http::status_code status_code;
 
     CefRefPtr<CefCallback> callback;
-
 private:
-    IMPLEMENT_REFCOUNTING(XhrRequestClient);
+    IMPLEMENT_REFCOUNTING(XhrInterception);
 };

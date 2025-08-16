@@ -38,8 +38,8 @@ std::string PageModifier::getDynamicZoom() {
     return std::string("\n<script type=\"text/javascript\">\n//<![CDATA[\n") + dynamicJs + "\n// ]]>\n</script>\n";
 }
 
-std::string PageModifier::injectAll(std::string &source) {
-    std::string result = source;
+std::string PageModifier::injectAll(std::string_view source) {
+    std::string result = std::string{source};
 
     std::string preJs[] = {"simple-tinyduration.js", "mutation-summary.js", "init.js", "keyhandler.js" };
     for (const auto & file : preJs) {
