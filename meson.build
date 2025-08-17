@@ -114,6 +114,19 @@ curl_opts.add_cmake_defines({ 'BUILD_CURL_EXE':'OFF',
                             })
 curl_opts.set_install(false)
 
+if arch == 'arm'
+    curl_opts.add_cmake_defines({'PROJECT_ARCH': 'armhf'})
+elif arch == 'arm64'
+    curl_opts.add_cmake_defines({'PROJECT_ARCH': 'arm64'})
+elif arch == 'x86_64'
+    curl_opts.add_cmake_defines({'PROJECT_ARCH': 'x86_64'})
+endif
+
+if get_option('vdrsternelec')
+    curl_opts.add_cmake_defines({'CMAKE_CXX_FLAGS': subarch})
+    curl_opts.add_cmake_defines({'CMAKE_C_FLAGS': subarch})
+endif
+
 curl_proj = cmake.subproject('curl', options: curl_opts)
 curl_dep = curl_proj.get_variable('libcurl_dep')
 
