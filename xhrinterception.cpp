@@ -10,10 +10,10 @@ CefResourceRequestHandler::ReturnValue XhrInterception::OnBeforeResourceLoad(Cef
     this->callback = callback;
 
     // async version
-    // LiftUtil::getInstance().get_lift_url(request, 30 * 1000, this);
+    LiftUtil::getInstance().get_lift_url(request, 30 * 1000, this);
 
     // sync version
-    LiftUtil::getInstance().get_lift_url_sync(request, 30 * 1000, this);
+    // LiftUtil::getInstance().get_lift_url_sync(request, 30 * 1000, this);
 
     return RV_CONTINUE_ASYNC;
 }
