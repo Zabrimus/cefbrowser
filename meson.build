@@ -1,11 +1,16 @@
 project('cefbrowser', 'cpp', 'c',
   version : '0.1',
   default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static', 'optimization=3', 'buildtype=debug' ],
-  meson_version: '>=0.63.0')
+  meson_version: '>=0.57.1')
 
 add_global_arguments('-O3', language : 'cpp')
 
 arch=get_option('arch')
+
+if get_option('vdrsternelec')
+    subarch = '-march=' + get_option('subarch')
+    install_prefix = get_option('prefix')
+endif
 
 cmake = import('cmake')
 CXX = meson.get_compiler('cpp')
@@ -23,7 +28,14 @@ cef_opt_var = cmake.subproject_options()
 if arch == 'arm'
     cef_opt_var.add_cmake_defines({'PROJECT_ARCH': 'armhf'})
 elif arch == 'arm64'
-    cef_opt_var.add_cmake_defines({'PROJECT_ARCH': 'aarch64'})
+    cef_opt_var.add_cmake_defines({'PROJECT_ARCH': 'arm64'})
+elif arch == 'x86_64'
+    cef_opt_var.add_cmake_defines({'PROJECT_ARCH': 'x86_64'})
+endif
+
+if get_option('vdrsternelec')
+    cef_opt_var.add_cmake_defines({'CMAKE_CXX_FLAGS': subarch})
+    cef_opt_var.add_cmake_defines({'CMAKE_C_FLAGS': subarch})
 endif
 
 cef_opt_var.append_compile_args('cpp', '-Wno-unused-variable')
@@ -64,22 +76,26 @@ crypto_dep = dependency('libcrypto')
 #
 # thrift
 #
-thrift_opts = cmake.subproject_options()
-thrift_opts.add_cmake_defines({'WITH_AS3': 'OFF',
-                               'WITH_QT5': 'OFF',
-                               'BUILD_JAVA': 'OFF',
-                               'BUILD_JAVASCRIPT': 'OFF',
-                               'BUILD_PYTHON': 'OFF',
-                               'BUILD_TESTING': 'OFF',
-                               'WITH_C_GLIB': 'OFF',
-                               'WITH_OPENSSL': 'OFF',
-                               'BUILD_SHARED_LIBS': 'OFF',
-                               'BUILD_COMPILER': 'OFF',
-                               'CMAKE_INSTALL_PREFIX': '.',
-                               'CMAKE_POSITION_INDEPENDENT_CODE': 'ON' })
+if get_option('vdrsternelec')
+    thrift_dep = dependency('thrift')
+else
+    thrift_opts = cmake.subproject_options()
+    thrift_opts.add_cmake_defines({'WITH_AS3': 'OFF',
+                                   'WITH_QT5': 'OFF',
+                                   'BUILD_JAVA': 'OFF',
+                                   'BUILD_JAVASCRIPT': 'OFF',
+                                   'BUILD_PYTHON': 'OFF',
+                                   'BUILD_TESTING': 'OFF',
+                                   'WITH_C_GLIB': 'OFF',
+                                   'WITH_OPENSSL': 'OFF',
+                                   'BUILD_SHARED_LIBS': 'OFF',
+                                   'BUILD_COMPILER': 'OFF',
+                                   'CMAKE_INSTALL_PREFIX': '.',
+                                   'CMAKE_POSITION_INDEPENDENT_CODE': 'ON' })
 
-thrift_proj = cmake.subproject('thrift', options: thrift_opts)
-thrift_dep = thrift_proj.get_variable('thrift_dep')
+    thrift_proj = cmake.subproject('thrift', options: thrift_opts)
+    thrift_dep = thrift_proj.get_variable('thrift_dep')
+endif
 
 #
 # curl
@@ -124,27 +140,47 @@ if get_option('debug_thrift')
     browser_compile_args += '-DDEBUG_THRIFTCLIENT'
 endif
 
-exe = executable('cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
-                 'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
-                 'httpinterception.cpp', 'keycodes.cpp', 'trackinginterception.cpp', 'statichandler.cpp',
-                 'v8handler.cpp', 'tools.cpp', 'database.cpp', 'xhrinterception.cpp', 'pagemodifier.cpp',
-                 'lift.cpp',
-                 'thrift-services/src-client/VdrClient.cpp', 'thrift-services/src-client/TranscoderClient.cpp',
-                 'thrift-services/src-gen/CommonService.cpp', 'thrift-services/src-gen/common_types.cpp',
-                 'thrift-services/src-gen/CefBrowser.cpp', 'thrift-services/src-gen/cefbrowser_types.cpp',
-                 'thrift-services/src-gen/VdrPluginWeb.cpp', 'thrift-services/src-gen/pluginweb_types.cpp',
-                 'thrift-services/src-gen/RemoteTranscoder.cpp', 'thrift-services/src-gen/remotetranscoder_types.cpp',
+sources = ['cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
+           'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
+           'httpinterception.cpp', 'keycodes.cpp', 'trackinginterception.cpp', 'statichandler.cpp',
+           'v8handler.cpp', 'tools.cpp', 'database.cpp', 'xhrinterception.cpp', 'pagemodifier.cpp',
+           'lift.cpp',
+           'thrift-services/src-client/VdrClient.cpp', 'thrift-services/src-client/TranscoderClient.cpp',
+           'thrift-services/src-gen/CommonService.cpp', 'thrift-services/src-gen/common_types.cpp',
+           'thrift-services/src-gen/CefBrowser.cpp', 'thrift-services/src-gen/cefbrowser_types.cpp',
+           'thrift-services/src-gen/VdrPluginWeb.cpp', 'thrift-services/src-gen/pluginweb_types.cpp',
+           'thrift-services/src-gen/RemoteTranscoder.cpp', 'thrift-services/src-gen/remotetranscoder_types.cpp']
+
+deps = [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep, ssl_dep, crypto_dep, thrift_dep, curl_dep, libuv_dep, liblifthttp_dep, libidn2]
+
+if get_option('vdrsternelec')
+    exe = executable(sources,
+                     include_directories : incdir,
+                     cpp_args : browser_compile_args,
+                     install : true,
+                     link_args: '-lrt',
+                     dependencies: deps)
+else
+    exe = executable(sources,
                  include_directories : incdir,
                  cpp_args : browser_compile_args,
                  install : true,
                  install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: [mini_dep, cef_lib, spdlog_dep, deps, sqlite3_dep, ssl_dep, crypto_dep, thrift_dep, curl_dep, libuv_dep, liblifthttp_dep, libidn2])
-
+                 dependencies: deps)
+endif
 
 #
 # install static content
 #
-install_subdir('static-content/js', install_dir : meson.current_build_dir() + '/Release')
-install_subdir('static-content/css', install_dir : meson.current_build_dir() + '/Release')
-install_subdir('static-content/database', install_dir : meson.current_build_dir() + '/Release')
-install_subdir('static-content/application', install_dir : meson.current_build_dir() + '/Release')
+if get_option('vdrsternelec')
+    install_subdir('static-content/js', install_dir : 'cefbrowser')
+    install_subdir('static-content/css', install_dir : 'cefbrowser')
+    install_subdir('static-content/database', install_dir : 'cefbrowser')
+    install_subdir('static-content/application', install_dir : 'cefbrowser')
+else
+    install_subdir('static-content/js', install_dir : meson.current_build_dir() + '/Release')
+    install_subdir('static-content/css', install_dir : meson.current_build_dir() + '/Release')
+    install_subdir('static-content/database', install_dir : meson.current_build_dir() + '/Release')
+    install_subdir('static-content/application', install_dir : meson.current_build_dir() + '/Release')
+endif
+
