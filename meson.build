@@ -109,7 +109,6 @@ curl_opts.add_cmake_defines({ 'BUILD_CURL_EXE':'OFF',
                               'BUILD_LIBCURL_DOCS': 'OFF',
                               'ENABLE_CURL_MANUAL': 'OFF',
                               'CURL_DISABLE_VERBOSE_STRINGS': 'OFF',
-                              'CURL_LTO': 'ON',
                               'CURL_DISABLE_TESTS': 'ON'
                             })
 curl_opts.set_install(false)
