@@ -131,24 +131,21 @@ void BrowserApp::OnContextInitialized() {
         auto cc = CefWriteJSON(prefValue, JSON_WRITER_DEFAULT);
         TRACE("Browser Preferences JSON:\n{}", cc.ToString());
 
-        // test set value
-
-        /*
-        CefString valueJson = "{ 'profile': { 'managed_insecure_content_allowed_for_urls': [ '[*]itv.ard.de', 'mein.test.de' ] } }";
-        CefRefPtr<CefValue> newValue = CefParseJSON(valueJson, JSON_PARSER_RFC);
-        CefString msg;
-         */
-
         // profile.content_settings.mixed_script
         //    [*.]ard.de,*
         //       last_modified: <unix time stamp>
         //       setting: 1
+        //    [*.]arte.tv,*
+        //       last_modified: <unix time stamp>
+        //       setting: 1
+
         auto lastModified = CefValue::Create();
         lastModified->SetInt(112233);
 
         auto setting = CefValue::Create();
         setting->SetInt(1);
 
+        // ard.de
         auto subDictValue = CefDictionaryValue::Create();
         subDictValue->SetValue("last_modified", lastModified);
         subDictValue->SetValue("setting", setting);
@@ -156,6 +153,14 @@ void BrowserApp::OnContextInitialized() {
         auto dictValue = CefDictionaryValue::Create();
         dictValue->SetDictionary("[*.]ard.de,*", subDictValue);
 
+        // arte.tv
+        auto subDictValue2 = CefDictionaryValue::Create();
+        subDictValue2->SetValue("last_modified", lastModified);
+        subDictValue2->SetValue("setting", setting);
+
+        dictValue->SetDictionary("[*.]arte.tv,*", subDictValue2);
+
+        // gesamt
         auto value = CefValue::Create();
         value->SetDictionary(dictValue);
 
