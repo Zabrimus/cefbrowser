@@ -100,7 +100,22 @@ endif
 #
 # curl
 #
-curl_dep = dependency('libcurl')
+curl_opts = cmake.subproject_options()
+curl_opts.add_cmake_defines({ 'BUILD_CURL_EXE':'OFF',
+                              'BUILD_SHARED_LIBS':'OFF',
+                              'HTTP_ONLY':'ON',
+                              'ENABLE_DEBUG': 'OFF',
+                              'ENABLE_CURLDEBUG': 'OFF',
+                              'BUILD_LIBCURL_DOCS': 'OFF',
+                              'ENABLE_CURL_MANUAL': 'OFF',
+                              'CURL_DISABLE_VERBOSE_STRINGS': 'OFF',
+                              'CURL_LTO': 'ON',
+                              'CURL_DISABLE_TESTS': 'ON'
+                            })
+curl_opts.set_install(false)
+
+curl_proj = cmake.subproject('curl', options: curl_opts)
+curl_dep = curl_proj.get_variable('libcurl_dep')
 
 #
 # libuv
