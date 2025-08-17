@@ -2,21 +2,40 @@
 #include <map>
 #include <utility>
 #include "tools.h"
+#include "lift.h"
 #include "httpinterception.h"
 #include "json.hpp"
 
 PageModifier HttpInterception::modifier;
 
+/*
+ * log a header map
+ */
+void logHeaderMap(std::string prefix, CefResponse::HeaderMap map) {
+    if (logger->isTraceEnabled()) {
+        for (auto itr = map.begin(); itr != map.end(); ++itr) {
+            TRACE("{}: {}: {}", prefix, itr->first.ToString(), itr->second.ToString());
+        }
+    }
+}
+
 // CefResourceRequestHandler
 CefResourceRequestHandler::ReturnValue HttpInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
     TRACE("HttpInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
+
+    LOG_CURRENT_THREAD();
 
     if (blockThis) {
         return RV_CANCEL;
     }
 
-    client = new HttpRequestClient(callback);
-    url_request = CefURLRequest::Create(request, client.get(), nullptr);
+    this->callback = callback;
+
+    // async version
+    LiftUtil::getInstance().get_lift_url(request, 30 * 1000, this);
+
+    // sync version
+    // LiftUtil::getInstance().get_lift_url_sync(request, 30 * 1000, this);
 
     return RV_CONTINUE_ASYNC;
 }
@@ -24,6 +43,8 @@ CefResourceRequestHandler::ReturnValue HttpInterception::OnBeforeResourceLoad(Ce
 HttpInterception::HttpInterception(std::string staticPath, bool blockThis) {
     modifier.init(std::move(staticPath));
     this->blockThis = blockThis;
+
+    offset = 0;
 }
 
 bool HttpInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
@@ -34,13 +55,13 @@ bool HttpInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request,
 }
 
 bool HttpInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
-    TRACE("HttpInterception::Read: {}, Size {}, Offset {}", bytes_to_read, client->download_data.length(), client->offset);
+    TRACE("HttpInterception::Read: {}, Size {}, Offset {}", bytes_to_read, download_data.length(), offset);
 
-    size_t size = client->download_data.length();
-    if (client->offset < size) {
-        int transfer_size = std::min(bytes_to_read, static_cast<int>(size - client->offset));
-        memcpy(data_out, client->download_data.c_str() + client->offset, transfer_size);
-        client->offset += transfer_size;
+    size_t size = download_data.length();
+    if (offset < size) {
+        int transfer_size = std::min(bytes_to_read, static_cast<int>(size - offset));
+        memcpy(data_out, download_data.c_str() + offset, transfer_size);
+        offset += transfer_size;
 
         bytes_read = transfer_size;
         return true;
@@ -50,58 +71,11 @@ bool HttpInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, 
 }
 
 void HttpInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
-    DEBUG("HttpInterception::HttpInterception: Error1={}, Error2={}, Status1={}, Status2={}, StatusText={}",
-            (int)url_request->GetResponse()->GetError(), (int)url_request->GetRequestError(),
-            (int)url_request->GetResponse()->GetStatus(), (int)url_request->GetRequestStatus(),
-            url_request->GetResponse()->GetStatusText().ToString() );
+    DEBUG("HttpInterception::GetResponseHeaders: StatusCode: {}, StatusText: {}", (int)status_code, lift::http::to_string(status_code));
 
-    CefRequest::HeaderMap requestHeader;
-    url_request->GetRequest()->GetHeaderMap(requestHeader);
-    for (auto itr = requestHeader.begin(); itr != requestHeader.end(); ++itr) {
-        TRACE("RequestHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
-    }
-
-    // find content-type
-    std::string contentType;
-
-    CefResponse::HeaderMap responseHeader;
-    url_request->GetResponse()->GetHeaderMap(responseHeader);
-    for (auto itr = responseHeader.begin(); itr != responseHeader.end(); ) {
-        TRACE("ResponseHeader: {} -> {}", itr->first.ToString(), itr->second.ToString());
-
-        auto pos = strcasestr(itr->first.ToString().c_str(), "content-type");
-        if(pos != nullptr) {
-            contentType = itr->second.ToString();
-            responseHeader.erase(itr);
-            TRACE("Received Content-Type: {} -> {}", contentType, contentType.empty());
-        } else {
-            itr++;
-        }
-    }
-
-    if (!contentType.empty()) {
-        if (contentType.find("text/html") != std::string::npos) {
-            response->SetMimeType("text/html");
-            responseHeader.insert(std::make_pair("Content-Type", "text/html"));
-        } else if (contentType.find("application/vnd.hbbtv.xhtml+xml") != std::string::npos) {
-            response->SetMimeType("application/xhtml+xml");
-            responseHeader.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
-        } else {
-            // default
-            response->SetMimeType("application/xhtml+xml");
-            responseHeader.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
-        }
-    } else {
-        // default
-        response->SetMimeType("application/xhtml+xml");
-        responseHeader.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
-    }
-
-    response->SetHeaderMap(responseHeader);
-
-    response_length = client->download_total;
-
-    TRACE("RequestHeader: response_length {}", response_length);
+    response->SetHeaderMap(responseHeaderMap);
+    response_length = download_total;
+    response->SetMimeType(mime_type);
 }
 
 void HttpInterception::Cancel() {
@@ -116,32 +90,69 @@ void HttpInterception::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, Cef
     CefResourceRequestHandler::OnResourceLoadComplete(browser, frame, request, response, status, received_content_length);
 }
 
-HttpRequestClient::HttpRequestClient(CefRefPtr<CefCallback>& resourceCallback) : download_total(0), offset(0), download_data(""), callback(resourceCallback) {
-}
+auto HttpInterception::on_lift_complete(lift::request_ptr request, lift::response response) -> void
+{
+    TRACE("[lift] on_lift_complete, status_code {}", (int)response.status_code());
 
-void HttpRequestClient::OnRequestComplete(CefRefPtr<CefURLRequest> request) {
-    TRACE("HttpRequestClient::OnRequestComplete:  {}, {}, {}", (int) request->GetRequestStatus(),
-          (int) request->GetRequestError(), request->GetResponse()->GetMimeType().ToString());
+    status_code = response.status_code();
 
-    // Seite ändern, falls erforderlich
-    download_data = HttpInterception::modifier.injectAll(download_data);
+    if (response.lift_status() == lift::lift_status::success) {
+        DEBUG("[lift] Request Completed {} in {} ms", request->url(), response.total_time().count());
+
+        // save downloaded data
+        download_data = HttpInterception::modifier.injectAll(response.data());
+        download_total = download_data.length();
+
+        TRACE("[lift] Injected data\n{}", download_data);
+        TRACE("[lift] Downloaded data, length {}", download_total);
+
+        TRACE("[lift] Response headers:");
+
+        // save response headers
+        bool foundContentType = false;
+        std::for_each(response.headers().begin(), response.headers().end(), [&](const lift::header &header) {
+            TRACE("   {}: {}", header.name(), header.value());
+
+            auto posct = strcasestr(header.name().data(), "content-type");
+            auto poscl = strcasestr(header.name().data(), "content-length");
+
+            if(posct != nullptr) {
+                if (header.value().find("text/html") != std::string::npos) {
+                    TRACE("Set Content-Type text/html");
+                    mime_type = "text/html";
+                    responseHeaderMap.insert(std::make_pair("Content-Type", "text/html"));
+                } else if (header.value().find("application/vnd.hbbtv.xhtml+xml") != std::string::npos) {
+                    TRACE("Set Content-Type application/xhtml+xml;charset=UTF-8");
+                    mime_type = "application/xhtml+xml";
+                    responseHeaderMap.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
+                } else {
+                    TRACE("Set Content-Type application/xhtml+xml;charset=UTF-8");
+                    // default
+                    mime_type = "application/xhtml+xml";
+                    responseHeaderMap.insert(std::make_pair("Content-Type", "application/xhtml+xml;charset=UTF-8"));
+                }
+
+                foundContentType = true;
+            } else if (poscl != nullptr) {
+                responseHeaderMap.insert(std::make_pair("Content-Length", std::to_string(download_total)));
+            } else {
+                responseHeaderMap.insert(std::make_pair(std::string{header.name()}, std::string{header.value()}));
+            }
+        });
+
+        if (!foundContentType) {
+            TRACE("Set default Content-Type text/html");
+
+            // default
+            mime_type = "text/html";
+            responseHeaderMap.insert(std::make_pair("Content-Type", "text/html"));
+        }
+    } else{
+        DEBUG("[lift] Error {} in {} ms", request->url(), response.total_time().count());
+    }
+
+    // add CORS header if needed
+    responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
+
     callback->Continue();
-}
-
-void HttpRequestClient::OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) {
-    TRACE("HttpRequestClient::OnDownloadProgress: current({}), total({})", current, total);
-    download_total = total;
-}
-
-void HttpRequestClient::OnDownloadData(CefRefPtr<CefURLRequest> request, const void *data, size_t data_length) {
-    TRACE("HttpRequestClient::OnDownloadData: {}: {} -> {}", request->GetRequest()->GetURL().ToString(), data_length, download_data.length());
-
-    std::string downloadChunk = std::string(static_cast<const char*>(data), data_length);
-    download_data += downloadChunk;
-}
-
-bool HttpRequestClient::GetAuthCredentials(bool isProxy, const CefString &host, int port, const CefString &realm,
-                                       const CefString &scheme, CefRefPtr<CefAuthCallback> callback) {
-    TRACE("HttpRequestClient::GetAuthCredentials: {}, {}", host.ToString(), port);
-    return false;
 }

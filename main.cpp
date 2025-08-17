@@ -202,7 +202,7 @@ bool readConfiguration(std::string configFile) {
     struct stat path_stat;
     stat(configFile.c_str(), &path_stat);
     if (!S_ISREG(path_stat.st_mode)) {
-        ERROR("[vdrweb] Unable to read config file: %s. Reason: %s", configFile, strerror(errno));
+        ERROR("[vdrweb] Unable to read config file: {}. Reason: {}", configFile, strerror(errno));
         return false;
     }
 

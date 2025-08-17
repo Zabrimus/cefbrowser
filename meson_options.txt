@@ -1,2 +1,4 @@
-option('arch', type : 'combo', choices : ['x86', 'arm', 'arm64'], value : 'x86')
+option('arch', type : 'combo', choices : ['x86_64', 'arm', 'arm64'], value : 'x86_64')
+option('subarch', type : 'string', value : 'armv8-a')
 option('debug_thrift', type: 'boolean', value: false, description: 'Enable more debug logging')
+option('vdrsternelec', type: 'boolean', value: false, description: 'Build for VDR*ELEC')

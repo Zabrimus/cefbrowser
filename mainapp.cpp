@@ -122,6 +122,55 @@ void BrowserApp::OnContextInitialized() {
         database->readUserAgents(bParameter.user_agent_path);
     }
 
+    if (logger->isTraceEnabled()) {
+        auto pref_manager = currentBrowser->GetHost()->GetRequestContext();
+        auto prefs = pref_manager->GetAllPreferences(true);
+
+        CefRefPtr<CefValue> prefValue = CefValue::Create();
+        prefValue->SetDictionary(prefs);
+        auto cc = CefWriteJSON(prefValue, JSON_WRITER_DEFAULT);
+        TRACE("Browser Preferences JSON:\n{}", cc.ToString());
+
+        // test set value
+
+        /*
+        CefString valueJson = "{ 'profile': { 'managed_insecure_content_allowed_for_urls': [ '[*]itv.ard.de', 'mein.test.de' ] } }";
+        CefRefPtr<CefValue> newValue = CefParseJSON(valueJson, JSON_PARSER_RFC);
+        CefString msg;
+         */
+
+        // profile.content_settings.mixed_script
+        //    [*.]ard.de,*
+        //       last_modified: <unix time stamp>
+        //       setting: 1
+        auto lastModified = CefValue::Create();
+        lastModified->SetInt(112233);
+
+        auto setting = CefValue::Create();
+        setting->SetInt(1);
+
+        auto subDictValue = CefDictionaryValue::Create();
+        subDictValue->SetValue("last_modified", lastModified);
+        subDictValue->SetValue("setting", setting);
+
+        auto dictValue = CefDictionaryValue::Create();
+        dictValue->SetDictionary("[*.]ard.de,*", subDictValue);
+
+        auto value = CefValue::Create();
+        value->SetDictionary(dictValue);
+
+        // profile.content_settings.exceptions.mixed_script
+        CefString msg;
+        bool success = pref_manager->SetPreference("profile.content_settings.exceptions.mixed_script", value, msg);
+        TRACE("Result setting value {} -> {}", success, msg.ToString());
+
+        CefRefPtr<CefValue> avalue = CefValue::Create();
+        auto aprefs = pref_manager->GetAllPreferences(false);
+        avalue->SetDictionary(aprefs);
+        auto acc = CefWriteJSON(avalue, JSON_WRITER_DEFAULT);
+        TRACE("Neu Browser Preferences JSON:\n{}", acc.ToString());
+    }
+
     INFO("Start Server on {}:{} with static path {}", bParameter.browserIp, bParameter.browserPort, bParameter.static_path);
 
     std::thread t1(startServer, bParameter);

@@ -5,12 +5,13 @@
 #include "cef_includes.h"
 #include "logger.h"
 #include "pagemodifier.h"
+#include "lift.h"
 
 class HttpRequestClient;
 
-
 class HttpInterception : public CefResourceRequestHandler,
-                       public CefResourceHandler {
+                         public CefResourceHandler,
+                         public LiftCallback {
 public:
     HttpInterception(std::string staticPath, bool blockThis);
 
@@ -37,43 +38,24 @@ public:
 
     void Cancel() override;
 
+    // LiftCallback
+    auto on_lift_complete(lift::request_ptr request_ptr, lift::response response) -> void override;
+
     static PageModifier modifier;
 
 private:
     bool blockThis;
 
-    CefRefPtr<HttpRequestClient> client;
-    CefRefPtr<CefURLRequest> url_request;
-
-private:
-    IMPLEMENT_REFCOUNTING(HttpInterception);
-};
-
-
-class HttpRequestClient : public CefURLRequestClient {
-    friend HttpInterception;
-
-public:
-    explicit HttpRequestClient(CefRefPtr<CefCallback>&);
-
-    void OnRequestComplete(CefRefPtr<CefURLRequest> request) override;
-
-    void OnUploadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override {};
-
-    void OnDownloadProgress(CefRefPtr<CefURLRequest> request, int64_t current, int64_t total) override;
-
-    void OnDownloadData(CefRefPtr<CefURLRequest> request, const void *data, size_t data_length) override;
-
-    bool GetAuthCredentials(bool isProxy, const CefString &host, int port, const CefString &realm,
-                            const CefString &scheme, CefRefPtr<CefAuthCallback> callback) override;
-
-private:
-    int64_t download_total;
-    size_t offset;
+    // will be filled in the lift callback (on_lift_complete)
+    CefResponse::HeaderMap responseHeaderMap;
+    int64_t download_total = 0;
+    size_t offset = 0;
     std::string download_data;
-    CefResponse::HeaderMap headerMap;
+    std::string mime_type;
+    lift::http::status_code status_code;
+
     CefRefPtr<CefCallback> callback;
 
 private:
-    IMPLEMENT_REFCOUNTING(HttpRequestClient);
+    IMPLEMENT_REFCOUNTING(HttpInterception);
 };

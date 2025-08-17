@@ -380,9 +380,9 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('error', function (e) {
         console.log("video tag error: video.PlayState=" + video.playState);
-        if (video.playState === PLAY_STATES.error) {
+        // if (video.playState === PLAY_STATES.error) {
             window.cefStopVideo();
-        }
+        // }
     }, false);
 
     video && video.addEventListener && video.addEventListener('durationchange', () => {
