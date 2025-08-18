@@ -340,7 +340,8 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
             ((url.find("-hbbtv.zdf.de/al/cms/content/") != std::string::npos) ||
              (url.find("hbbtv.zdf.de/zdfm3/dyn/get.php") != std::string::npos) ||
              (url.find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) ||
-             (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos)
+             (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) ||
+             (url.find("hbbtv.tagesschau.de/dyn") != std::string::npos)
              )) {
         return new XhrInterception();
     }

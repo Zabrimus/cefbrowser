@@ -14,6 +14,8 @@ std::unique_ptr<lift::request> LiftUtil::createRequest(CefRefPtr<CefRequest> req
     // copy request headers
     request_ptr->clear_headers();
 
+    request_ptr->follow_redirects(false);
+
     CefRequest::HeaderMap requestHeaderMap;
     request->GetHeaderMap(requestHeaderMap);
 

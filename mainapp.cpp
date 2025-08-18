@@ -160,6 +160,13 @@ void BrowserApp::OnContextInitialized() {
 
         dictValue->SetDictionary("[*.]arte.tv,*", subDictValue2);
 
+        // tagesschau.de
+        auto subDictValue3 = CefDictionaryValue::Create();
+        subDictValue3->SetValue("last_modified", lastModified);
+        subDictValue3->SetValue("setting", setting);
+
+        dictValue->SetDictionary("[*.]tagesschau.de,*", subDictValue3);
+
         // gesamt
         auto value = CefValue::Create();
         value->SetDictionary(dictValue);

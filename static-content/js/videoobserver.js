@@ -39,17 +39,37 @@ window.hideVideoOverlay = () => {
 }
 
 window.promoteVideoSize = (node) => {
+    // document.body.currentCSSZoom; => 1.5
+    // document.body.clientHeight; ==> 1080
+    // document.body.clientWidth;  => 1920
+    // document.getElementById('video').clientWidth; => 1280  (1280 * zoom = 1920)
+    // document.getElementById('video').clientHeight; => 720  (720 * zoom = 1080)
+
+    let currentZoom = document.body.currentCSSZoom;
+    let bodyWidth = document.body.clientWidth;
+    let bodyHeight = document.body.clientHeight;
+    let videoWidth = node.clientWidth;
+    let videoHeight = node.clientHeight;
+
+    console.log("currentZoom", currentZoom);
+    console.log("bodyWidth", bodyWidth);
+    console.log("bodyHeight", bodyHeight);
+    console.log("videoWidth", videoWidth);
+    console.log("videoHeight", videoHeight);
+
+    if (( (bodyWidth - videoWidth < 20 && bodyHeight - videoHeight < 20) ) ||
+          (bodyWidth - videoWidth * currentZoom < 20 && bodyHeight - videoHeight * currentZoom < 20)) {
+        console.log("Sieht nach Fullscreen aus");
+    } else {
+        console.log("Das schein kein Fullscreen zu sein");
+    }
+
     let position = node.getBoundingClientRect();
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
 
     if ( // video and body have nearly the same size
-        ((Math.abs(position.x - bodyPos.x) < 20) &&
-         (Math.abs(position.y - bodyPos.y) < 20) &&
-         (Math.abs(position.height - bodyPos.height) < 20) &&
-         (Math.abs(position.width - bodyPos.width) < 20)) ||
-
-        // special case: if video width = 1280 and heigth = 720 is also fullscreen
-        ( position.width === 1280 && position.height === 720)
+        ((bodyWidth - videoWidth < 20 && bodyHeight - videoHeight < 20) ) ||
+        (bodyWidth - videoWidth * currentZoom < 20 && bodyHeight - videoHeight * currentZoom < 20)
     ) {
         window.cefVideoFullscreen();
         window.hideVideoOverlay();

@@ -3,6 +3,14 @@
 #include "xhrinterception.h"
 #include "json.hpp"
 
+void logLiftResponseHeader(std::string prefix, lift::response& response) {
+    if (logger->isTraceEnabled()) {
+        std::for_each(response.headers().begin(), response.headers().end(), [&](const lift::header &item) {
+            TRACE("{}{}:{}", prefix, item.name(), item.value());
+        });
+    }
+}
+
 // CefResourceRequestHandler
 CefResourceRequestHandler::ReturnValue XhrInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
     TRACE("XhrInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
@@ -65,6 +73,7 @@ void XhrInterception::OnResourceLoadComplete(CefRefPtr<CefBrowser> browser, CefR
 auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response response) -> void
 {
     TRACE("[lift] on_lift_complete, status_code {}", (int)response.status_code());
+    logLiftResponseHeader("  ", response);
 
     status_code = response.status_code();
 
@@ -149,8 +158,12 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             download_data = dataJson.dump();
             download_total = download_data.length();
         } else {
-            DEBUG("[lift] Error {} in {} ms", request->url(), response.total_time().count());
+            // copy only
+            download_data = response.data();
+            download_total = download_data.length();
         }
+    } else {
+        DEBUG("[lift] Error {}, Code {}, Text {} (Curl {}) in {} ms", request->url(), (int)status_code, lift::http::to_string(status_code), response.network_error_message(), response.total_time().count());
     }
 
     // add CORS header if needed
