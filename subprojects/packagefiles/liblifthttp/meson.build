@@ -7,10 +7,11 @@ project(
    meson_version: '>=0.63.0',
 )
 
-#dep_curl = dependency('libcurl_dep')
+dep_curl = dependency('curl')
+dep_uv = dependency('libuv')
 dep_z = dependency('zlib')
 
-liblifthttp_dependencies = [dep_z]
+liblifthttp_dependencies = [dep_z, dep_curl, dep_uv]
 liblifthttp_compile_args = ['-O3']
 
 inc = include_directories('inc')
