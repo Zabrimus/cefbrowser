@@ -76,119 +76,46 @@ Log entries will be written to stdout/stderr.
 - Das Erste
 - ZDF
 
-## Releases
-The binary releases can be used in VDR*ELEC.
+#### Tested installation of cefbrowser in VDR*ELEC/CE-20/21
+Install at first the precompiled cef binaries:
+```install.sh -c <URL>```
+Where correct <URL> can be found at https://github.com/Zabrimus/VDRSternELEC/releases. 
+Choose one of:
+```
+cef-126.2.7-aarch64.zip  
+cef-126.2.7-arm.zip      
+cef-126.2.7-x86_64.zip
+```   
+The choice depends on your system.
+Copy the zip to ```/storage/.update``` and call ```/usr/local/bin/install.sh -c``` 
 
-| Distro     | Version | Release                             |
-|------------|---------|-------------------------------------|
-| CoreELEC   | 19      | cefbrowser-armhf-openssl-3.tar.gz   |
-| CoreELEC   | 20      | cefbrowser-armhf-openssl-3.tar.gz   |
-| CoreELEC   | 21-ng   | cefbrowser-armhf-openssl-3.tar.gz   |
-| CoreELEC   | 21-ne   | cefbrowser-arm64-openssl-3.tar.gz   |
-| LibreELEC  | all     | cefbrowser-arm64-openssl-3.tar.gz   |
+Start the script ```/usr/local/bin/install.sh -w```
+This script installs all necessary files.
 
-## VDR*ELEC, CoreELEC-19 (sample installation/configuration) 
-- Install Kodi docker addon
-    - System 
-    - Addons 
-    - Aus Repository installieren
-    - CoreELEC Add-ons
-    - Dienste
-    - Docker
-  
-- Add docker bin to PATH
-    ```
-    nano /storage/.profile 
-    ```
-    add 
-    ```
-    export PATH=/storage/.kodi/addons/service.system.docker/bin/:$PATH
-    ```
-  reboot
-
-#### Tested installation of cefbrowser in VDR*ELEC/CE-19
-- Pull latest docker base runtime image of the cefbrowser
-  ```
-  /storage/.kodi/addons/service.system.docker/bin/docker pull ghcr.io/zabrimus/cefbrowser-base:latest
-  ```
-- Get and install cefbrowser binary (adapt version if desired)
-    ```
-    mkdir -p /storage/browser
-    cd /storage/browser
-    wget https://github.com/Zabrimus/cefbrowser/releases/download/2023-07-01/cefbrowser-armhf-openssl-3-5ab33f2.tar.gz
-    tar -xf cefbrowser-armhf-openssl-3-5ab33f2.tar.gz
-    ln -s cefbrowser-armhf-openssl-3-5ab33f2 cefbrowser
-    ```
-
-- Adapt sockets.ini accordingly and copy sockets.ini to ```/storage/browser/cefbrowser```
-  sample sockets.ini can be found in the repository ```/config/sockets.ini```
+Adapt the configuration file ```/storage/.config/vdropt/sockets.ini``` accordingly. The default configuration uses in all cases localhost.
   ```
   [vdr]
-  http_ip = 192.168.178.12
+  http_ip = 127.0.0.1
   http_port = 50000
 
   [browser]
-  http_ip = 192.168.178.12
+  http_ip = 127.0.0.1
   http_port = 50001
 
   [transcoder]
-  http_ip = 192.168.178.20
+  http_ip = 127.0.0.1
   http_port = 50002
   ```
+ 
 - Optional: hbbtv sqllite3 database
 
-   For Vodafone West user a prefilled database exists in /storage/browser/cefbrowser/database/.
+   For Vodafone West users a prefilled database exists in ```/storage/cefbrowser/data/database```.
    ```
    cp /storage/browser/cefbrowser/database/Vodafone_West_hbbtv_urls.db /storage/browser/cefbrowser/database/hbbtv_urls.db
    ```
-   All others needs to copy an already existing database or have to prefill the database. 
+   Everony else needs to copy an already existing database or have to prefill the database. 
    A channel switch to the desired channel and wait some minutes is sufficient.
-- start the browser via docker (first test, manual start)
-  ```
-    cd /storage/browser/cefbrowser
-    /storage/.kodi/addons/service.system.docker/bin/docker run -d  --rm -v /storage/browser/cefbrowser:/app -v /dev/shm:/dev/shm --ipc="host" --net=host ghcr.io/zabrimus/cefbrowser-base:latest -ini sockets.ini &> /storage/browser/browser.log
-  ```
-- start the browser automatically via systemd
-The systemd service ```start-scripte/cefbrowser.service``` contains a sample service configuration which i use on my system.
-  ```
-  [Unit]
-  Description=cefbrowser
-  Requires=network-online.target graphical.target docker.service
-  StartLimitIntervalSec=400
-  StartLimitBurst=5
-  
-  [Service]
-  RestartSec=30
-  Restart=always
-  StandardOutput=file:/storage/browser/cefbrowser/browser.log
-  StandardError=file:/storage/browser/cefbrowser/browser-error.log
-  TimeoutStartSec=0
-  ExecStop=/storage/.kodi/addons/service.system.docker/bin/docker container stop --time=2 cefbrowser
-  ExecStartPre=-/storage/.kodi/addons/service.system.docker/bin/docker exec cefbrowser stop
-  ExecStartPre=-/storage/.kodi/addons/service.system.docker/bin/docker rm cefbrowser
-  ExecStartPre=/storage/.kodi/addons/service.system.docker/bin/docker pull ghcr.io/zabrimus/cefbrowser-base:latest
-  ExecStart=/storage/.kodi/addons/service.system.docker/bin/docker run --rm --name cefbrowser \
-  -v /storage/browser/cefbrowser:/app \
-  -v /dev/shm:/dev/shm \
-  --ipc="host" \
-  --net=host \
-  ghcr.io/zabrimus/cefbrowser-base:latest \
-  -ini sockets.ini
-  
-  [Install]
-  WantedBy=multi-user.target
-  ```
-  which can be copied to ```/storage/.config/system.d/cefbrowser.service```
-  An important configuration is ```RestartSec=30```, otherwise the browser will be started, before docker is up and running.
-- In VDR*ELEC i've added a configuration in ```/storage/.profile``` 
-  ```
-  START_CEFBROWSER=yes
-  ```
-  and in ```/storage/.config/autostart.sh``` i've added the following entries
-  ```
-  . /storage/.profile
-  if [ "${START_CEFBROWSER}" = "yes" ]; then
-      systemctl start cefbrowser
-  fi
-  ```
+
+reboot
+
 - Choose a channel in VDR and goto Menu/Web. Wait or press directly the red button.
