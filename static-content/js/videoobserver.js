@@ -493,6 +493,12 @@ function checkSingleObjectNode(node) {
         console.log("Video URL: " + node.getAttribute('data'));
         console.log("Node HTML: " + node.outerHTML);
 
+        // check at first, if this a fake video (ZDF)
+        if (node.parentElement.classList.contains('fake-video')) {
+            // it's a fake video. ignore this
+            return;
+        }
+
         let location = document.location.toString();
         let checkVideoTag = location.includes("hbbtv.zdf.de");
 
