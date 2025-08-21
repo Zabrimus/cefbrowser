@@ -41,6 +41,8 @@ function _quirk_unhide_element(id, clazz, tagName) {
 }
 
 function activate_quirks(isStart) {
+    console.log("document.location.href = " + document.location.href);
+
     // Arte.tv
     if (document.location.href.search("www.arte.tv") > 0) {
         if (isStart) {

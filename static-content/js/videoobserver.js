@@ -25,7 +25,7 @@ window.displayVideoOverlay = (x,y,w,h) => {
         h = h - 8;
     }
 
-   let el = document.getElementById("_video_color_overlay_");
+    let el = document.getElementById("_video_color_overlay_");
     if (el) {
         el.style.visibility = "visible";
     }
@@ -44,14 +44,16 @@ window.promoteVideoSize = (node) => {
 
     if ( // video and body have nearly the same size
         ((Math.abs(position.x - bodyPos.x) < 20) &&
-         (Math.abs(position.y - bodyPos.y) < 20) &&
-         (Math.abs(position.height - bodyPos.height) < 20) &&
-         (Math.abs(position.width - bodyPos.width) < 20)) ||
+            (Math.abs(position.y - bodyPos.y) < 20) &&
+            (Math.abs(position.height - bodyPos.height) < 20) &&
+            (Math.abs(position.width - bodyPos.width) < 20)) ||
 
         // special case: if video width = 1280 and heigth = 720 is also fullscreen
         ( position.width === 1280 && position.height === 720)
     ) {
+        console.log("window.cefVideoFullscreen()");
         window.cefVideoFullscreen();
+
         window.hideVideoOverlay();
         window.start_video_quirk_Fullscreen();
     } else {
@@ -65,6 +67,8 @@ window.promoteVideoSize = (node) => {
 
         window.displayVideoOverlay(posx, posy, posw, posh);
         window.stop_video_quirk_Fullscreen();
+
+        console.log("window.cefVideoSize()");
         window.cefVideoSize(posx, posy, posw, posh);
     }
 }
@@ -134,6 +138,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         console.log("Node Play Speed " + speed);
         if (speed === 0) {
             setTimeout(() => {
+                console.log("window.cefPauseVideo()");
                 window.cefPauseVideo();
 
                 video.pause();
@@ -143,6 +148,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         } else if (speed > 0) {
             setTimeout(() => {
                 if (node.playState === PLAY_STATES.paused) {
+                    console.log("window.cefResumeVideo()");
                     window.cefResumeVideo(String(video.currentTime));
                 }
 
@@ -182,6 +188,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
 
     node.stop = node.stop || function () {
         console.log("Node Stop ");
+        console.log("window.cefStopVideo()");
         window.cefStopVideo();
 
         video.pause();
@@ -204,6 +211,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     node.seek = node.seek || function (posInMs) {
         console.log("Node seek video " + video.currentTime + ", node " + node.playPosition + " --> " + posInMs + " ==> " + (posInMs / 1000));
 
+        console.log("window.cefSeekVideo()");
         window.cefSeekVideo(String(posInMs / 1000));
 
         video.currentTime = posInMs / 1000;
@@ -354,14 +362,133 @@ function addVideoNodeTypeVideo(node, url) {
         videoSrc = videoSrcElementArr[0];
     }
 
-    videoSrc.src = url;
-    video.type = "video/webm";
+    // videoSrc.src = url;
+    // video.type = "video/webm";
+
+    /*
+    abort 	        Fires when the loading of an audio/video is aborted
+    canplay 	    Fires when the browser can start playing the audio/video
+    canplaythrough 	Fires when the browser can play through the audio/video without stopping for buffering
+    durationchange(*)	Fires when the duration of the audio/video is changed
+    emptied 	    Fires when the current playlist is empty
+    ended(*)        Fires when the current playlist is ended
+    error(*)        Fires when an error occurred during the loading of an audio/video
+    loadeddata 	    Fires when the browser has loaded the current frame of the audio/video
+    loadedmetadata(*)	Fires when the browser has loaded meta data for the audio/video
+    loadstart 	    Fires when the browser starts looking for the audio/video
+    pause(*)        Fires when the audio/video has been paused
+    play 	        Fires when the audio/video has been started or is no longer paused
+    playing(*) 	    Fires when the audio/video is playing after having been paused or stopped for buffering
+    progress 	    Fires when the browser is downloading the audio/video
+    ratechange(*)   Fires when the playing speed of the audio/video is changed
+    seeked(*)        Fires when the user is finished moving/skipping to a new position in the audio/video
+    seeking 	    Fires when the user starts moving/skipping to a new position in the audio/video
+    stalled 	    Fires when the browser is trying to get media data, but data is not available
+    suspend 	    Fires when the browser is intentionally not getting media data
+    timeupdate(*)   Fires when the current playback position has changed
+    volumechange 	Fires when the volume has been changed
+    waiting         Fires when the video stops because it needs to buffer the next frame
+    */
+
+    video && video.addEventListener && video.addEventListener('abort', function (e) {
+        console.log("video tag abort: " + video.playState + ", src = " + video.src);
+        if (video.src.includes("_muted_onl")) {
+            console.log("Abort fake video -> cefStopVideo");
+            window.cefStopVideo();
+        } else if (video.src === "") {
+            window.stop_video_quirk();
+            window.cefStopVideo();
+        } else if (video.src.includes("http://localhost")) {
+            e.stopPropagation();
+        }
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('canplay', function () {
+        console.log("video tag canplay: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('canplaythrough', function () {
+        console.log("video tag canplaythrough: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('emptied', function () {
+        console.log("video tag emptied: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('loadeddata', function () {
+        console.log("video tag loadeddata: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('loadstart', function () {
+        console.log("video tag loadstart: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('play', function () {
+        console.log("video tag play: " + video.playState);
+        if (url !== videoSrc.src) {
+            if (videoSrc.src.includes("_muted_onl")) {
+                videoSrc.src = "";
+            } else {
+                videoSrc.src = url;
+                video.type = "video/webm";
+                window.start_video_quirk();
+            }
+        }
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('progress', function () {
+        console.log("video tag progress: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('seeking', function () {
+        console.log("video tag seeking: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('stalled', function () {
+        console.log("video tag stalled: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('suspend', function () {
+        console.log("video tag suspend: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('volumechange', function () {
+        console.log("video tag volumechange: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('waiting', function () {
+        console.log("video tag waiting: " + video.playState);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('durationchange', () => {
+        console.log("video tag durationchange");
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('timeupdate', function () {
+        // console.log("video tag timeupdate");
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('ratechange', function () {
+        console.log("video tag ratechange");
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('loadedmetadata', function () {
+        console.log("video tag loadedmetadata, duration " + video.duration);
+    }, false);
+
+    video && video.addEventListener && video.addEventListener('ended', function () {
+        console.log("video tag ended: " + video.playState);
+        window.stop_video_quirk();
+    }, false);
+
 
     video && video.addEventListener && video.addEventListener('playing', function () {
         console.log("video tag playing: " + video.playState);
         if (video.playState === PLAY_STATES.paused) {
+            console.log("window.cefResumeVideo()");
             window.cefResumeVideo(String(video.currentTime));
         } else {
+            console.log("window.cefUnfreezeVideo()");
             window.cefUnfreezeDevice();
         }
 
@@ -371,46 +498,38 @@ function addVideoNodeTypeVideo(node, url) {
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("video tag pause");
         video.playState = PLAY_STATES.paused;
+        console.log("window.cefPauseVideo()");
         window.cefPauseVideo();
     }, false);
 
-    video && video.addEventListener && video.addEventListener('ended', function () {
-        console.log("video tag ended: " + video.playState);
-    }, false);
-
     video && video.addEventListener && video.addEventListener('error', function (e) {
+        console.log("error, URL: " + video.src);
+        console.log("error, NEW: " + url);
+        console.log("Identisch: " + video.src === url);
+
+        if (video.src !== url) {
+            e.stopPropagation();
+        }
+
         console.log("video tag error: video.PlayState=" + video.playState);
         // if (video.playState === PLAY_STATES.error) {
-            window.cefStopVideo();
+        console.log("window.cefStopVideo()");
+        window.cefStopVideo();
         // }
-    }, false);
+    }, true);
 
-    video && video.addEventListener && video.addEventListener('durationchange', () => {
-        console.log("video tag durationchange");
-    }, false);
-
-    video && video.addEventListener && video.addEventListener('timeupdate', function () {
-
-    }, false);
-
-    video && video.addEventListener && video.addEventListener('ratechange', function () {
-        console.log("video tag ratechange");
-    }, false);
 
     video && video.addEventListener && video.addEventListener('seeked', function () {
         console.log("video tag seeked" + video.currentTime);
+        console.log("window.cefSeekVideo()");
         window.cefSeekVideo(String(video.currentTime));
-    }, false);
-
-    video && video.addEventListener && video.addEventListener('loadedmetadata', function () {
-        console.log("video tag loadedmetadata, duration " + video.duration);
     }, false);
 
     console.log("video.duration: " + video.duration);
 
     setTimeout(() => {
-        video.load();
-        video.play();
+        // video.load();
+        // video.play();
     }, 0);
 }
 
@@ -493,12 +612,6 @@ function checkSingleObjectNode(node) {
         console.log("Video URL: " + node.getAttribute('data'));
         console.log("Node HTML: " + node.outerHTML);
 
-        // check at first, if this a fake video (ZDF)
-        if (node.parentElement.classList.contains('fake-video')) {
-            // it's a fake video. ignore this
-            return;
-        }
-
         let location = document.location.toString();
         let checkVideoTag = location.includes("hbbtv.zdf.de");
 
@@ -506,6 +619,7 @@ function checkSingleObjectNode(node) {
             (async() => {
                 console.log("node.data = " + node.data);
                 if (node.data !== undefined) {
+                    console.log("window.cefStreamVideo()");
                     let mpdStart = await checkMpd(node.data);
                     let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
                     addVideoNodeTypeObject(node, newUrl, node.data);
@@ -520,13 +634,23 @@ function checkSingleObjectNode(node) {
                 console.log("node.type = " + node.type);
                 console.log("node.src = " + node.src);
 
+                if (node.src.includes("_muted_onl")) {
+                    // it's a fake video
+                    // console.log("Ignore fake video");
+                    // return;
+                }
+
                 // Node HTML: <video xmlns="http://www.w3.org/1999/xhtml" autoplay="true" type="application/dash+xml" width="1280" height="720" src="https://zdf-dash-15.akamaized.net/dash/live/2016508/de/manifest.mpd" style="position: absolute; left: 0px; top: 0px; width: 1280px; height: 720px; outline: transparent;"></video>
-                if (node.data !== undefined) {
+                if (node.src.includes("_muted_onl")) {
+                    // addVideoNodeTypeVideo(node, node.src, node.src);
+                } else if (node.data !== undefined) {
+                    console.log("window.cefStreamVideo()");
                     let mpdStart = await checkMpd(node.data);
                     let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
                     addVideoNodeTypeVideo(node, newUrl, node.src);
                     promoteVideoSize(node);
                 } else if (node.src !== undefined) {
+                    console.log("window.cefStreamVideo()");
                     let mpdStart = await checkMpd(node.src);
                     let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
                     addVideoNodeTypeVideo(node, newUrl, node.src);
@@ -540,6 +664,7 @@ function checkSingleObjectNode(node) {
             console.log("node.data = " + node.data);
             if (node.data !== undefined) {
                 let mpdStart = await checkMpd(node.data);
+                console.log("window.cefStreamVideo()");
                 let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
                 addVideoNodeTypeObject(node, newUrl, node.data);
                 addNodeFunctions(node);

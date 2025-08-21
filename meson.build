@@ -161,7 +161,7 @@ endif
 
 sources = ['cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
            'browserclient.cpp', 'browserserver.cpp', 'moviestream.cpp',
-           'httpinterception.cpp', 'keycodes.cpp', 'trackinginterception.cpp', 'statichandler.cpp',
+           'httpinterception.cpp', 'keycodes.cpp', 'trackinginterception.cpp', 'statichandler.cpp', 'jsinterception.cpp',
            'v8handler.cpp', 'tools.cpp', 'database.cpp', 'xhrinterception.cpp', 'pagemodifier.cpp',
            'lift.cpp',
            'thrift-services/src-client/VdrClient.cpp', 'thrift-services/src-client/TranscoderClient.cpp',

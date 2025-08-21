@@ -18,7 +18,14 @@ bool MovieStream::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefR
     TRACE("MovieStream::Open: {}", request->GetURL().ToString());
 
     VideoType input;
-    input.filename = request->GetURL().ToString().c_str() + strlen("http://localhost/movie/");
+
+    // special case: overwrite the video url and get a fake movie
+    if (request->GetURL().ToString().find("_muted_onl") != std::string::npos) {
+        input.filename = "fake-video.webm";
+    } else {
+        input.filename = request->GetURL().ToString().c_str() + strlen("http://localhost/movie/");
+    }
+
     transcoderClient->GetVideo(download_data, input);
     download_total = download_data.length();
 
@@ -45,7 +52,7 @@ bool MovieStream::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRe
 }
 
 void MovieStream::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
-    // TRACE("MovieStream::GetResponseHeaders");
+    TRACE("MovieStream::GetResponseHeaders");
 
     CefResponse::HeaderMap responseHeader;
 
@@ -56,6 +63,7 @@ void MovieStream::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &r
     responseHeader.insert(std::make_pair("Content-Type", "video/webm"));
     responseHeader.insert(std::make_pair("Content-Range", "bytes 0-" + std::to_string(download_total-1) + "/" + std::to_string(download_total)));
     responseHeader.insert(std::make_pair("Content-Length", std::to_string(download_total)));
+    responseHeader.insert(std::make_pair("Vary", "Origin, Access-Control-Request-Headers"));
 
     response->SetHeaderMap(responseHeader);
 

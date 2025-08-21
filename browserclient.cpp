@@ -6,6 +6,7 @@
 #include "moviestream.h"
 #include "httpinterception.h"
 #include "xhrinterception.h"
+#include "jsinterception.h"
 #include "trackinginterception.h"
 #include "statichandler.h"
 
@@ -320,6 +321,13 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return new TrackingInterception(request->GetResourceType());
     }
 
+    // fake movie
+    /*
+    if (url.find("_muted_onl") != std::string::npos) {
+        return new MovieStream(transcoderClient);
+    }
+    */
+
     /* internal video loading */
     if (url.find("http://localhost/movie/") != std::string::npos) {
         return new MovieStream(transcoderClient);
@@ -343,6 +351,12 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
              (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos)
              )) {
         return new XhrInterception();
+    }
+
+    // Javascript interception
+    if ((request->GetResourceType()) == RT_SCRIPT &&
+        (url.find("new-hbbtv.zdf.de/static/js/main.") != std::string::npos)) {
+        return new JSInterception();
     }
 
     /* Main Frame */
