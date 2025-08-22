@@ -507,8 +507,12 @@ function addVideoNodeTypeVideo(node, url) {
         console.log("error, NEW: " + url);
         console.log("Identisch: " + video.src === url);
 
-        if (video.src !== url) {
+        if (video.src !== url || video.src.endsWith(".mpd")) {
             e.stopPropagation();
+        }
+
+        if (video.src.endsWith(".mpd")) {
+            return;
         }
 
         console.log("video tag error: video.PlayState=" + video.playState);
@@ -527,10 +531,12 @@ function addVideoNodeTypeVideo(node, url) {
 
     console.log("video.duration: " + video.duration);
 
+    /*
     setTimeout(() => {
-        // video.load();
-        // video.play();
+        video.load();
+        video.play();
     }, 0);
+    */
 }
 
 

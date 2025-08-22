@@ -117,7 +117,7 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             }
 
             // Version 1
-            if (dataJson.find("data") != dataJson.end()) {
+            if (dataJson["data"] != nullptr) {
                 dataJson["data"].erase("ageControl");
             }
 
@@ -130,7 +130,7 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             }
 
             // Version 3
-            if (dataJson.find("videoMetaData") != dataJson.end()) {
+            if (dataJson.find("videoMetaData") != dataJson.end() && dataJson["videoMetaData"] != nullptr) {
                 dataJson["videoMetaData"].erase("fsk");
             }
 
