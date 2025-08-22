@@ -15,6 +15,7 @@ const char kZygoteProcess[] = "zygote";
 std::string configFilename;
 std::string profilePath;
 std::string staticPath;
+std::string cachePath;
 
 // log level
 int loglevel;
@@ -98,6 +99,7 @@ void parseCommandLine(int argc, char *argv[]) {
             { "zoom",        optional_argument, nullptr, 'z' },
             { "fullosd",     optional_argument, nullptr, 'f' },
             { "profilePath", optional_argument, nullptr, 'p' },
+            { "cachePath",   optional_argument, nullptr, 'a' },
             { "staticPath",  optional_argument, nullptr, 's' },
             { "bindall",     optional_argument, nullptr, 'b' },
             { "uagent",      optional_argument, nullptr, 'u' },
@@ -118,7 +120,7 @@ void parseCommandLine(int argc, char *argv[]) {
     staticPath = getexepath();
     staticPath = staticPath.substr(0, staticPath.find_last_of('/'));
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:a:", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -188,6 +190,10 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 'd':
                 browserDbPath = optarg;
+                break;
+
+            case 'a':
+                cachePath = optarg;
                 break;
 
             default:
@@ -335,6 +341,80 @@ int main(int argc, char *argv[]) {
     } else {
         CefString(&settings.root_cache_path).FromASCII(profilePath.c_str());
     }
+
+    if (cachePath.empty()) {
+        std::string cache_path = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
+        CefString(&settings.cache_path).FromASCII(cache_path.c_str());
+    } else {
+        CefString(&settings.cache_path).FromASCII(cachePath.c_str());
+    }
+
+    INFO("The following CEFSettings will be used:");
+    INFO("    no_sandbox: {}", settings.no_sandbox);
+
+    CefString bsp(&settings.browser_subprocess_path);
+    INFO("    browser_subprocess_path: {}", bsp.ToString());
+
+    CefString fdp(&settings.framework_dir_path);
+    INFO("    framework_dir_path: {}", fdp.ToString());
+
+    CefString mbp(&settings.main_bundle_path);
+    INFO("    main_bundle_path: {}", mbp.ToString());
+
+    INFO("    chrome_runtime: {}", settings.chrome_runtime);
+    INFO("    multi_threaded_message_loop: {}", settings.multi_threaded_message_loop);
+    INFO("    external_message_pump: {}", settings.external_message_pump);
+    INFO("    windowless_rendering_enabled: {}", settings.windowless_rendering_enabled);
+    INFO("    command_line_args_disabled: {}", settings.command_line_args_disabled);
+
+    CefString cp(&settings.cache_path);
+    INFO("    cache_path: {}", cp.ToString());
+
+    CefString rcp(&settings.root_cache_path);
+    INFO("    root_cache_path: {}", rcp.ToString());
+
+    INFO("    persist_session_cookies: {}", settings.persist_session_cookies);
+    INFO("    persist_user_preferences: {}", settings.persist_user_preferences);
+
+    CefString ua(&settings.user_agent);
+    INFO("    user_agent: {}", ua.ToString());
+
+    CefString uap(&settings.user_agent_product);
+    INFO("    user_agent_product: {}", uap.ToString());
+
+    CefString loc(&settings.locale);
+    INFO("    locale: {}", loc.ToString());
+
+    CefString lf(&settings.log_file);
+    INFO("    log_file: {}", lf.ToString());
+
+    INFO("    log_severity: {}", (int)settings.log_severity);
+    // INFO("    log_items: {}", settings.log_items);
+    // INFO("    javascript_flags: {}", settings.javascript_flags);
+
+    CefString rdp(&settings.resources_dir_path);
+    INFO("    resources_dir_path: {}", rdp.ToString());
+
+    CefString ldp(&settings.locales_dir_path);
+    INFO("    locales_dir_path: {}", ldp.ToString());
+
+    INFO("    pack_loading_disabled: {}", settings.pack_loading_disabled);
+    INFO("    remote_debugging_port: {}", settings.remote_debugging_port);
+    INFO("    uncaught_exception_stack_size: {}", settings.uncaught_exception_stack_size);
+    INFO("    background_color: {}", settings.background_color);
+
+    CefString all(&settings.accept_language_list);
+    INFO("    accept_language_list: {}", all.ToString());
+
+    CefString csl(&settings.cookieable_schemes_list);
+    INFO("    cookieable_schemes_list: {}", csl.ToString());
+
+    INFO("    cookieable_schemes_exclude_defaults: {}", settings.cookieable_schemes_exclude_defaults);
+
+    CefString cpi(&settings.chrome_policy_id);
+    INFO("    chrome_policy_id: {}", cpi.ToString());
+
+    INFO("    chrome_app_icon_id: {}", settings.chrome_app_icon_id);
 
     // Initialize CEF for the browser process. The first browser instance will be created in CefBrowserProcessHandler::OnContextInitialized() after CEF has been initialized.
     CefInitialize(main_args, settings, app, nullptr);
