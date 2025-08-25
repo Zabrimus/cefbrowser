@@ -85,7 +85,31 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             TRACE("Downloaded data:\n{}\n", response.data());
         }
 
-        if (request->url().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
+        if ((request->url().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (request->url().find("livestreams=true") != std::string::npos)) {
+            nlohmann::json dataJson;
+
+            try {
+                dataJson = nlohmann::ordered_json::parse(response.data());
+            } catch (nlohmann::json::parse_error &e) {
+                ERROR("Json Parse error: {}", e.what());
+                return;
+            }
+
+            auto j_flat = dataJson.flatten();
+            for (auto& el : j_flat.items()) {
+                // std::cout << "key: " << el.key() << ", value:" << el.value() << '\n';
+                if (el.key().find("h264_aac_mp4_http_mpd_http") != std::string::npos && el.key().find("url") != std::string::npos) {
+                    TRACE("Found live URL: {}", el.value().get<std::string>());
+                    auto url = el.value().get<std::string>();
+                    auto urlEncoded = CefBase64Encode(url.c_str(), url.length());
+
+                    j_flat[el.key()] = std::string("//localhost/encoded/") + urlEncoded.ToString() + ".mp4";
+                }
+            }
+
+            download_data = j_flat.unflatten().dump();
+            download_total = download_data.length();
+        } else if (request->url().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
             nlohmann::json dataJson;
 
             try {
@@ -125,6 +149,7 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             if (dataJson["fsk"]["age"] != nullptr) {
                 dataJson["fsk"].erase("age");
             }
+
             if (dataJson["fsk"] != nullptr) {
                 dataJson.erase("fsk");
             }

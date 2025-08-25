@@ -512,6 +512,10 @@ function addVideoNodeTypeVideo(node, url) {
         }
 
         if (video.src.endsWith(".mpd")) {
+            videoSrc.src = url;
+            video.type = "video/webm";
+            window.start_video_quirk();
+
             return;
         }
 
@@ -640,13 +644,20 @@ function checkSingleObjectNode(node) {
                 console.log("node.type = " + node.type);
                 console.log("node.src = " + node.src);
 
+                // the final url is base64 encoded, to prevent starting a dash player
+                if (node.src.includes("http://localhost/encoded/")) {
+                    let url = node.src.substring(node.src.indexOf("http://localhost/encoded/") + "http://localhost/encoded/".length);
+                    url = "http:" + atob(url.substring(0, url.length - 4));
+                    node.data = node.src;
+                    node.src = url;
+                }
+
                 if (node.src.includes("_muted_onl")) {
                     // it's a fake video
                     // console.log("Ignore fake video");
                     // return;
                 }
 
-                // Node HTML: <video xmlns="http://www.w3.org/1999/xhtml" autoplay="true" type="application/dash+xml" width="1280" height="720" src="https://zdf-dash-15.akamaized.net/dash/live/2016508/de/manifest.mpd" style="position: absolute; left: 0px; top: 0px; width: 1280px; height: 720px; outline: transparent;"></video>
                 if (node.src.includes("_muted_onl")) {
                     // addVideoNodeTypeVideo(node, node.src, node.src);
                 } else if (node.data !== undefined) {

@@ -321,13 +321,6 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return new TrackingInterception(request->GetResourceType());
     }
 
-    // fake movie
-    /*
-    if (url.find("_muted_onl") != std::string::npos) {
-        return new MovieStream(transcoderClient);
-    }
-    */
-
     /* internal video loading */
     if (url.find("http://localhost/movie/") != std::string::npos) {
         return new MovieStream(transcoderClient);
@@ -338,20 +331,21 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
         return new StaticHandler(bParam.static_path, url.substr(browserUrl.length(), url.length()-browserUrl.length()));
     }
 
+    /* Special handling for some requests. xhook replacement */
+    if ((request->GetResourceType()) == RT_XHR &&
+        ((url.find("-hbbtv.zdf.de/al/cms/content/") != std::string::npos) ||
+         (url.find("hbbtv.zdf.de/zdfm3/dyn/get.php") != std::string::npos) ||
+         (url.find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) ||
+         (url.find("hbbtv.zdf.de/al/video-pages") != std::string::npos) ||
+         (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) ||
+         ((url.find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (url.find("livestreams=true") != std::string::npos))
+        )) {
+        return new XhrInterception();
+    }
+
     if (url.find("http://localhost/") != std::string::npos) {
         int length = strlen("http://localhost");
         return new StaticHandler(bParam.static_path, url.substr(length, url.length()-length));
-    }
-
-    /* Special handling for some requests. xhook replacement */
-    if ((request->GetResourceType()) == RT_XHR &&
-            ((url.find("-hbbtv.zdf.de/al/cms/content/") != std::string::npos) ||
-             (url.find("hbbtv.zdf.de/zdfm3/dyn/get.php") != std::string::npos) ||
-             (url.find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) ||
-             (url.find("hbbtv.zdf.de/al/video-pages") != std::string::npos) ||
-             (url.find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos)
-             )) {
-        return new XhrInterception();
     }
 
     // Javascript interception

@@ -5,6 +5,7 @@ source_filename = 05a1d42727d066bdf9880faafa61470276712b0b.zip
 source_hash = c547cc6ac17c43b29522d101ac2a17d50fa0b58c87e237517e81bf4f032a2c78
 wrapdb_version = 3.49.1-1
 patch_directory = liblifthttp
+diff_files = liblifthttp/6908bacfe90c59aae51293ace77838a796ebb079.patch
 
 [provide]
 lifthttp = lifthttp_dep

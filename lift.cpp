@@ -38,8 +38,10 @@ std::unique_ptr<lift::request> LiftUtil::createRequest(CefRefPtr<CefRequest> req
                 TRACE("   Bytes: {}", item->GetBytesCount());
 
                 char bytes[10000];
+                memset(bytes, 0, 10000);
+
                 item->GetBytes(item->GetBytesCount(), &bytes);
-                TRACE("   Bytes: {}", std::string(bytes));
+                TRACE("   Bytes: {}", std::string(bytes, item->GetBytesCount()));
 
                 request_ptr->data(std::string(bytes));
             }
