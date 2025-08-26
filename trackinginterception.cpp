@@ -10,7 +10,6 @@ std::string trackingUrlBlockList[] {
         "tracking.redbutton.de",
         "px.moatads.com",
         "2mdn.net",
-        "tracksrv.zdf.de",
         "mefo1.zdf.de",
         ".gvt1.com", // testwise
         ".gvt2.com"  // testwise

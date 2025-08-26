@@ -77,6 +77,8 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
 
     status_code = response.status_code();
 
+    nlohmann::json dataJson;
+
     if (response.lift_status() == lift::lift_status::success) {
         DEBUG("[lift] Request Completed {} in {} ms", request->url(), response.total_time().count());
 
@@ -85,16 +87,20 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             TRACE("Downloaded data:\n{}\n", response.data());
         }
 
+        download_data = response.data();
+        download_total = download_data.length();
+
+        try {
+            dataJson = nlohmann::ordered_json::parse(download_data);
+        } catch (nlohmann::json::parse_error &e) {
+            responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
+
+            // Json error -> continue
+            callback->Continue();
+            return;
+        }
+
         if ((request->url().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (request->url().find("livestreams=true") != std::string::npos)) {
-            nlohmann::json dataJson;
-
-            try {
-                dataJson = nlohmann::ordered_json::parse(response.data());
-            } catch (nlohmann::json::parse_error &e) {
-                ERROR("Json Parse error: {}", e.what());
-                return;
-            }
-
             auto j_flat = dataJson.flatten();
             for (auto& el : j_flat.items()) {
                 // std::cout << "key: " << el.key() << ", value:" << el.value() << '\n';
@@ -107,39 +113,14 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
                 }
             }
 
-            download_data = j_flat.unflatten().dump();
-            download_total = download_data.length();
-        } else if (request->url().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
-            nlohmann::json dataJson;
+            dataJson = j_flat.unflatten();
+        }
 
-            try {
-                dataJson = nlohmann::ordered_json::parse(response.data());
-            } catch (nlohmann::json::parse_error &e) {
-                ERROR("Json Parse error: {}", e.what());
-                return;
-            }
-
+        if (request->url().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
             if (dataJson.find("dash") != dataJson.end()) {
                 dataJson["dash"] = false;
             }
-
-            if (dataJson.find("dashJsInHbbtv") != dataJson.end()) {
-                // dataJson["dashJsInHbbtv"] = true;
-            }
-
-            // save downloaded data
-            download_data = dataJson.dump();
-            download_total = download_data.length();
         } else if (request->url().find("hbbtv.zdf.de") != std::string::npos) {
-            nlohmann::json dataJson;
-
-            try {
-                dataJson = nlohmann::ordered_json::parse(response.data());
-            } catch (nlohmann::json::parse_error &e) {
-                ERROR("Json Parse error: {}", e.what());
-                return;
-            }
-
             // Version 1
             if (dataJson["data"] != nullptr) {
                 dataJson["data"].erase("ageControl");
@@ -158,38 +139,27 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             if (dataJson.find("videoMetaData") != dataJson.end() && dataJson["videoMetaData"] != nullptr) {
                 dataJson["videoMetaData"].erase("fsk");
             }
-
-            // save downloaded data
-            download_data = dataJson.dump();
-            download_total = download_data.length();
         } else if (request->url().find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) {
-            nlohmann::json dataJson;
-
-            try {
-                dataJson = nlohmann::ordered_json::parse(response.data());
-            } catch (nlohmann::json::parse_error &e) {
-                ERROR("Json Parse error: {}", e.what());
-                return;
-            }
-
             // Version 1
             if (dataJson["video"]["meta"]["maturityContentRating"] != nullptr) {
                 // dataJson["video"]["meta"].erase("maturityContentRating");
                 // dataJson["video"]["meta"]["maturityContentRating"]["age"] = "6";
                 // dataJson["video"]["meta"]["maturityContentRating"]["isBlocked"] = false;
             }
-
-            // save downloaded data
-            download_data = dataJson.dump();
-            download_total = download_data.length();
-        } else {
-            // copy only
-            download_data = response.data();
-            download_total = download_data.length();
         }
     } else {
         DEBUG("[lift] Error {}, Code {}, Text {} (Curl {}) in {} ms", request->url(), (int)status_code, lift::http::to_string(status_code), response.network_error_message(), response.total_time().count());
+        // add CORS header if needed
+        responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
+
+        callback->Continue();
+
+        return;
     }
+
+    // save downloaded data
+    download_data = dataJson.dump();
+    download_total = download_data.length();
 
     // add CORS header if needed
     responseHeaderMap.insert(std::make_pair("Access-Control-Allow-Origin", "*"));
