@@ -100,8 +100,12 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
             return;
         }
 
+        auto j_flat = dataJson.flatten();
+        if (logger->isTraceEnabled()) {
+            TRACE("Json (flatten):\n{}", to_string(j_flat));
+        }
+
         if ((request->url().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (request->url().find("livestreams=true") != std::string::npos)) {
-            auto j_flat = dataJson.flatten();
             for (auto& el : j_flat.items()) {
                 // std::cout << "key: " << el.key() << ", value:" << el.value() << '\n';
                 if (el.key().find("h264_aac_mp4_http_mpd_http") != std::string::npos && el.key().find("url") != std::string::npos) {
@@ -112,6 +116,8 @@ auto XhrInterception::on_lift_complete(lift::request_ptr request, lift::response
                     j_flat[el.key()] = std::string("//localhost/encoded/") + urlEncoded.ToString() + ".mp4";
                 }
             }
+
+            j_flat.erase("/data/videoCluster/teaser/nodes");
 
             dataJson = j_flat.unflatten();
         }
