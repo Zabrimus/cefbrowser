@@ -361,7 +361,7 @@ int main(int argc, char *argv[]) {
     CefString mbp(&settings.main_bundle_path);
     INFO("    main_bundle_path: {}", mbp.ToString());
 
-    INFO("    chrome_runtime: {}", settings.chrome_runtime);
+    // INFO("    chrome_runtime: {}", settings.chrome_runtime);
     INFO("    multi_threaded_message_loop: {}", settings.multi_threaded_message_loop);
     INFO("    external_message_pump: {}", settings.external_message_pump);
     INFO("    windowless_rendering_enabled: {}", settings.windowless_rendering_enabled);
@@ -374,7 +374,7 @@ int main(int argc, char *argv[]) {
     INFO("    root_cache_path: {}", rcp.ToString());
 
     INFO("    persist_session_cookies: {}", settings.persist_session_cookies);
-    INFO("    persist_user_preferences: {}", settings.persist_user_preferences);
+    // INFO("    persist_user_preferences: {}", settings.persist_user_preferences);
 
     CefString ua(&settings.user_agent);
     INFO("    user_agent: {}", ua.ToString());
@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) {
     CefString ldp(&settings.locales_dir_path);
     INFO("    locales_dir_path: {}", ldp.ToString());
 
-    INFO("    pack_loading_disabled: {}", settings.pack_loading_disabled);
+    // INFO("    pack_loading_disabled: {}", settings.pack_loading_disabled);
     INFO("    remote_debugging_port: {}", settings.remote_debugging_port);
     INFO("    uncaught_exception_stack_size: {}", settings.uncaught_exception_stack_size);
     INFO("    background_color: {}", settings.background_color);
