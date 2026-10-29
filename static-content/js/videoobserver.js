@@ -160,7 +160,32 @@ function addNodeFunctions(node) {
     };
 }
 
+// data of an object which is not set by this script
+function isNewObjectData(node) {
+    let data = node.data;
+    // node.data is the resolved URL: the placeholder is read back as "http://gibbet.nix/"
+    return !!data && !/^https?:\/\/gibbet\.nix\/?$/.test(data) && !data.startsWith("http://localhost/movie/");
+}
+
 function addVideoNodeTypeObject(node, url, originalUrl) {
+    // The application may set a new data at the same object for the next video.
+    // Replace the functions and ignore the events of the previous internal video.
+    if (node._vdrManaged) {
+        let old = node.querySelector('video');
+        if (old) {
+            old._vdrDead = true;
+            old.pause();
+            old.removeAttribute('src');
+            old.load();
+        }
+
+        delete node.play;
+        delete node.stop;
+        delete node.seek;
+        node._vdrStopped = false;
+    }
+    node._vdrManaged = true;
+
     let video = document.createElement('video');
     video.type = "video/webm";
     video.src = url;
@@ -291,7 +316,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('playing', function () {
         console.log("Video event playing");
 
-        if (node._vdrStopped) {
+        if (node._vdrStopped || video._vdrDead) {
             return;
         }
 
@@ -311,7 +336,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("Video event pause");
 
-        if (node._vdrStopped) {
+        if (node._vdrStopped || video._vdrDead) {
             return;
         }
 
@@ -328,7 +353,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('ended', function () {
         console.log("Video event ended");
 
-        if (node._vdrStopped) {
+        if (node._vdrStopped || video._vdrDead) {
             return;
         }
 
@@ -348,7 +373,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('error', function (e) {
         console.log("Video event error");
 
-        if (node._vdrStopped) {
+        if (node._vdrStopped || video._vdrDead) {
             return;
         }
 
@@ -422,7 +447,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     node.error = -1;
     node.type = "video/webm";
     node.data = "http://gibbet.nix"; // url;
-    if (originalUrl != "http://gibbet.nix") {
+    if (!/^https?:\/\/gibbet\.nix\/?$/.test(originalUrl)) {
         node.setAttribute("olddata", originalUrl);
     }
     node.style.visibility = 'hidden';
@@ -638,6 +663,20 @@ function addVideoNodeTypeVideo(node, url) {
 }
 
 
+// Applications set a new data at an existing object for the next video
+function checkChangedObjectData(summary) {
+    if (summary.attributeChanged === undefined || summary.attributeChanged.data === undefined) {
+        return;
+    }
+
+    summary.attributeChanged.data.forEach((node) => {
+        if (node.nodeName.toUpperCase() === 'OBJECT' && isNewObjectData(node)) {
+            console.log("checkChangedObjectData: new data " + node.data);
+            checkSingleObjectNode(node);
+        }
+    });
+}
+
 // ZDF sets a new src at the existing video element for the next video
 function checkChangedVideoSrc(summary) {
     if (summary.attributeChanged === undefined || summary.attributeChanged.src === undefined) {
@@ -727,7 +766,8 @@ function checkSingleObjectNode(node) {
         if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
             (async() => {
                 console.log("node.data = " + node.data);
-                if (node.data !== undefined) {
+                // an object without data gets it later (attribute change)
+                if (isNewObjectData(node)) {
                     console.log("window.cefStreamVideo()");
                     let mpdStart = await checkMpd(node.data);
                     let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
@@ -784,7 +824,7 @@ function checkSingleObjectNode(node) {
         // RTL changes only data attribute, but not the type
         (async() => {
             console.log("node.data = " + node.data);
-            if (node.data !== undefined) {
+            if (isNewObjectData(node)) {
                 let mpdStart = await checkMpd(node.data);
                 console.log("window.cefStreamVideo()");
                 let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
@@ -806,6 +846,7 @@ const ms = new MutationSummary({
 
             checkAddedObjectNode(summary);
             checkChangedVideoSrc(summary);
+            checkChangedObjectData(summary);
             checkPositionObjectNode(summary);
         });
     },
