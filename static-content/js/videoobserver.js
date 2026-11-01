@@ -413,6 +413,11 @@ function addNodeFunctions(node) {
 }
 
 // data of an object which is not set by this script
+// special handling of the ZDF applications (VDR setup)
+function _vdrZdfQuirks() {
+    return !window._vdrOptions || window._vdrOptions.zdfQuirks !== false;
+}
+
 function isNewObjectData(node) {
     let data = node.data;
     // node.data is the resolved URL: the placeholder is read back as "http://gibbet.nix/"
@@ -1116,7 +1121,7 @@ function checkChangedVideoSrc(summary) {
         return;
     }
 
-    if (!document.location.toString().includes("hbbtv.zdf.de")) {
+    if (!document.location.toString().includes("hbbtv.zdf.de") || !_vdrZdfQuirks()) {
         return;
     }
 
@@ -1195,7 +1200,7 @@ function checkSingleObjectNode(node) {
         console.log("Node HTML: " + node.outerHTML);
 
         let location = document.location.toString();
-        let checkVideoTag = location.includes("hbbtv.zdf.de");
+        let checkVideoTag = location.includes("hbbtv.zdf.de") && _vdrZdfQuirks();
 
         if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
             (async() => {
