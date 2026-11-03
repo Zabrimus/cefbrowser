@@ -825,6 +825,11 @@
         }
         video._vdrMseInstalled = true;
 
+        // VDR plays in real time, only the rate 1 is possible
+        if (window._vdrLimitPlaybackRate) {
+            window._vdrLimitPlaybackRate(video);
+        }
+
         Object.defineProperty(video, 'currentTime', {
             configurable: true,
             get() {

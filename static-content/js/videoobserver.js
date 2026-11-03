@@ -413,6 +413,35 @@ function addNodeFunctions(node) {
 }
 
 // data of an object which is not set by this script
+// VDR plays the stream in real time: a HTML5 video managed by VDR keeps the rate 1.
+// Another rate is not taken, the application gets a ratechange and reads 1 again.
+window._vdrLimitPlaybackRate = function (video) {
+    if (video._vdrRateLimited) {
+        return;
+    }
+    video._vdrRateLimited = true;
+
+    const rate = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate');
+    Object.defineProperty(video, 'playbackRate', {
+        configurable: true,
+        get: function () {
+            return rate.get.call(video);
+        },
+        set: function (value) {
+            if (Number(value) === 1) {
+                rate.set.call(video, 1);
+                return;
+            }
+            console.log("Playback rate " + value + " is not supported");
+            setTimeout(() => {
+                let event = new Event('ratechange');
+                event._vdrSynthetic = true;
+                video.dispatchEvent(event);
+            }, 0);
+        }
+    });
+};
+
 // special handling of the ZDF applications (VDR setup)
 function _vdrZdfQuirks() {
     return !window._vdrOptions || window._vdrOptions.zdfQuirks !== false;
@@ -575,11 +604,42 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         })();
     }
 
+    // HbbTV: speed and onPlaySpeedChanged tell the speed which is really used
+    function changeSpeed(speed) {
+        if (node.speed === speed) {
+            return;
+        }
+        node.speed = speed;
+
+        if (typeof node.onPlaySpeedChanged === 'function') {
+            try {
+                node.onPlaySpeedChanged(speed);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        let event = new Event('PlaySpeedChanged');
+        event.speed = speed;
+        node.dispatchEvent(event);
+    }
+
+    // Only pause and normal speed are supported: VDR gets the stream in real time.
+    // The applications use seek() for other speeds.
+    Object.defineProperty(node, 'playSpeeds', { configurable: true, get: () => [0, 1] });
+
     node.play = node.play || function (speed) {
         console.log("Node Play Speed " + speed);
-        if (speed > 0 && node._vdrStopped) {
-            node.speed = speed;
+        speed = (speed === undefined) ? 1 : Number(speed);
+
+        if (speed !== 0 && speed !== 1) {
+            console.log("Play speed " + speed + " is not supported");
+            return false;
+        }
+
+        if (speed === 1 && node._vdrStopped) {
             restartAfterStop();
+            changeSpeed(1);
             return true;
         }
 
@@ -589,10 +649,10 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
                 window.cefPauseVideo();
 
                 video.pause();
-                node.speed = 0;
                 node.playState = PLAY_STATES.paused;
+                changeSpeed(0);
             }, 0);
-        } else if (speed > 0) {
+        } else {
             setTimeout(() => {
                 if (node.playState === PLAY_STATES.paused) {
                     console.log("window.cefResumeVideo()");
@@ -600,9 +660,8 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
                     vdr.restart(Math.floor(video.currentTime * 1000));
                 }
 
-                node.speed = speed;
                 node.playState = PLAY_STATES.playing;
-                video.playbackRate = speed;
+                changeSpeed(1);
                 video.play()
                     .then((v) => {
                         window.start_video_quirk();
@@ -612,24 +671,6 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
                         node.error = 5;
                     });
             }, 0);
-        } else if (speed < 0) {
-            node.speed = speed;
-            node.playState = PLAY_STATES.playing;
-            video.playbackRate = 1.0;
-            video.play().catch((e) => {
-                console.error(e.message);
-                node.error = 5;
-            });
-            this.rewindInterval = setInterval(() => {
-                if (video.currentTime < 0.1) {
-                    video.currentTime = 0;
-                    video.pause();
-                    node.speed = 0;
-                    clearInterval(this.rewindInterval);
-                } else {
-                    video.currentTime = video.currentTime -= 0.1;
-                }
-            }, 100);
         }
         return true;
     };
@@ -764,15 +805,6 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         node.dispatchEvent(playerEvent);
     }, false);
 
-    video && video.addEventListener && video.addEventListener('ratechange', function () {
-        var playSpeed = video.playbackRate;
-
-        var playerEvent = new Event('PlaySpeedChanged');
-        playerEvent.speed = playSpeed;
-        node.dispatchEvent(playerEvent);
-
-    }, false);
-
     video && video.addEventListener && video.addEventListener('seeked', function () {
         console.log("Event seek video " + video.currentTime + ", node " + node.playPosition);
 
@@ -885,6 +917,7 @@ function addVideoNodeTypeVideo(node, url) {
     }
     node._vdrListeners = true;
     window.addHtml5TrackFunctions(node);
+    window._vdrLimitPlaybackRate(node);
 
     // currentTime is the position of the picture displayed by VDR, if known
     const currentTime = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
