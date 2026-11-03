@@ -24,6 +24,10 @@
     window.KeyEvent.VK_REWIND = (typeof window.KeyEvent.VK_REWIND !== 'undefined' ? window.KeyEvent.VK_REWIND : 412);
     window.KeyEvent.VK_PLAY_PAUSE = (typeof window.KeyEvent.VK_PLAY_PAUSE !== 'undefined' ? window.KeyEvent.VK_PLAY_PAUSE : 402);
     window.KeyEvent.VK_INFO = (typeof window.KeyEvent.VK_INFO !== 'undefined' ? window.KeyEvent.VK_INFO : 457);
+    window.KeyEvent.VK_TRACK_PREV = (typeof window.KeyEvent.VK_TRACK_PREV !== 'undefined' ? window.KeyEvent.VK_TRACK_PREV : 424);
+    window.KeyEvent.VK_TRACK_NEXT = (typeof window.KeyEvent.VK_TRACK_NEXT !== 'undefined' ? window.KeyEvent.VK_TRACK_NEXT : 425);
+    window.KeyEvent.VK_RECORD = (typeof window.KeyEvent.VK_RECORD !== 'undefined' ? window.KeyEvent.VK_RECORD : 416);
+    window.KeyEvent.VK_SUBTITLE = (typeof window.KeyEvent.VK_SUBTITLE !== 'undefined' ? window.KeyEvent.VK_SUBTITLE : 460);
 
     window.KeyEvent.VK_PAGE_UP = (typeof window.KeyEvent.VK_PAGE_UP !== 'undefined' ? window.KeyEvent.VK_PAGE_UP : 0x21);
     window.KeyEvent.VK_PAGE_DOWN = (typeof window.KeyEvent.VK_PAGE_DOWN !== 'undefined' ? window.KeyEvent.VK_PAGE_DOWN : 0x22);
@@ -61,6 +65,10 @@
     window.VK_REWIND = (typeof window.VK_REWIND !== 'undefined' ? window.VK_REWIND : 412);
     window.VK_PLAY_PAUSE = (typeof window.VK_PLAY_PAUSE !== 'undefined' ? window.VK_PLAY_PAUSE : 402);
     window.VK_INFO = (typeof window.VK_INFO !== 'undefined' ? window.VK_INFO : 457);
+    window.VK_TRACK_PREV = (typeof window.VK_TRACK_PREV !== 'undefined' ? window.VK_TRACK_PREV : 424);
+    window.VK_TRACK_NEXT = (typeof window.VK_TRACK_NEXT !== 'undefined' ? window.VK_TRACK_NEXT : 425);
+    window.VK_RECORD = (typeof window.VK_RECORD !== 'undefined' ? window.VK_RECORD : 416);
+    window.VK_SUBTITLE = (typeof window.VK_SUBTITLE !== 'undefined' ? window.VK_SUBTITLE : 460);
 
     window.VK_PAGE_UP = (typeof window.VK_PAGE_UP !== 'undefined' ? window.VK_PAGE_UP : 0x21);
     window.VK_PAGE_DOWN = (typeof window.VK_PAGE_DOWN !== 'undefined' ? window.VK_PAGE_DOWN : 0x22);

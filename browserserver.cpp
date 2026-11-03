@@ -232,7 +232,12 @@ bool BrowserServer::ProcessKey(const ProcessKeyType &input) {
         (input.key.find("VK_PAUSE") != std::string::npos) ||
         (input.key.find("VK_STOP") != std::string::npos) ||
         (input.key.find("VK_FAST_FWD") != std::string::npos) ||
-        (input.key.find("VK_REWIND") != std::string::npos)) {
+        (input.key.find("VK_REWIND") != std::string::npos) ||
+        (input.key.find("VK_TRACK_") != std::string::npos) ||
+        (input.key.find("VK_RECORD") != std::string::npos) ||
+        (input.key.find("VK_INFO") != std::string::npos) ||
+        (input.key.find("VK_SUBTITLE") != std::string::npos)) {
+        // HbbTV key codes above 255 can't be sent as key events of the browser
         // send key event via Javascript
         std::ostringstream stringStream;
         stringStream << "window.cefKeyPress('" << input.key << "');";

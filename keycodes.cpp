@@ -17,6 +17,12 @@ std::unordered_map<std::string, int> keyCodes = {
         {"VK_STOP",      0x019D},    // stop
         {"VK_FAST_FWD",  0x01A1},    // fast forward
         {"VK_REWIND",    0x019C},    // rewind
+        {"VK_PLAY_PAUSE", 0x0192},   // play/pause
+        {"VK_TRACK_PREV", 0x01A8},   // previous (skip back)
+        {"VK_TRACK_NEXT", 0x01A9},   // next (skip forward)
+        {"VK_RECORD",    0x01A0},    // record
+        {"VK_INFO",      0x01C9},    // info
+        {"VK_SUBTITLE",  0x01CC},    // subtitle
         {"VK_PAGE_UP",   0x0021},    // page up, vk_Prior
         {"VK_PAGE_DOWN", 0x0022},    // page down, vk_Next
         {"VK_0",         0x0030},    // 0
@@ -137,6 +143,8 @@ int keySetGroup(const std::string& key) {
         {"VK_STOP",       KEYSET_VCR},
         {"VK_FAST_FWD",   KEYSET_VCR},
         {"VK_REWIND",     KEYSET_VCR},
+        {"VK_TRACK_PREV", KEYSET_VCR},
+        {"VK_TRACK_NEXT", KEYSET_VCR},
         {"VK_PAGE_UP",    KEYSET_SCROLL},
         {"VK_PAGE_DOWN",  KEYSET_SCROLL},
         {"VK_INFO",       KEYSET_INFO},
