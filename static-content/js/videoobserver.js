@@ -1267,6 +1267,20 @@ function checkAddedObjectNode(summaries) {
     summaries.added.forEach((node) => checkSingleObjectNode(node));
 }
 
+// A removed A/V object ends its video, like on a TV. A moved object (reparented) keeps it.
+function checkRemovedObjectNode(summary) {
+    if (!summary.removed) {
+        return;
+    }
+
+    summary.removed.forEach((node) => {
+        if (node._vdrManaged && !node._vdrStopped && typeof node.stop === 'function') {
+            console.log("checkRemovedObjectNode: stop the video of the removed object");
+            node.stop();
+        }
+    });
+}
+
 function checkSingleObjectNode(node) {
     if (node.type === 'video/broadcast') {
         console.log("Found TV on node: " + node);
@@ -1370,6 +1384,7 @@ const ms = new MutationSummary({
             console.log(summary);
 
             checkAddedObjectNode(summary);
+            checkRemovedObjectNode(summary);
             checkChangedVideoSrc(summary);
             checkChangedObjectData(summary);
             checkPositionObjectNode(summary);
