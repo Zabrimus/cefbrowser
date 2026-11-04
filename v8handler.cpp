@@ -310,8 +310,10 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
             DEBUG("V8Handler::Execute SeekVideo Argument Pos {}", position);
 
+            // The transcoder stops the old stream, resets the device in VDR (Seeked)
+            // and starts the new one. A ResetVideo here came too early and, with a
+            // changed video info, created a new player in VDR.
             transcoderClient->SeekTo(streamId, position);
-            vdrClient->ResetVideo(videoInfo, videoMse);
         }
 
         retval = CefV8Value::CreateBool(true);
