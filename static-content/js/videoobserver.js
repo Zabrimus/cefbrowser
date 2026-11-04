@@ -673,9 +673,11 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         } else {
             setTimeout(() => {
                 if (node.playState === PLAY_STATES.paused) {
+                    // the position shown by VDR (or of the last seek), not of the transparent video
+                    let position = node.playPosition || 0;
                     console.log("window.cefResumeVideo()");
-                    window.cefResumeVideo(String(video.currentTime));
-                    vdr.restart(Math.floor(video.currentTime * 1000));
+                    window.cefResumeVideo(String(position / 1000));
+                    vdr.restart(position);
                 }
 
                 node.playState = PLAY_STATES.playing;
@@ -807,8 +809,9 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         // console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
         // console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
 
-        // the position reported by VDR is used, if available
-        if (vdr.position() >= 0) {
+        // the position reported by VDR is used, if available. After a seek or a
+        // resume VDR reports no position for a moment, the last one stays valid.
+        if (vdr.position() >= 0 || vdr.active) {
             return;
         }
 
@@ -826,8 +829,9 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('seeked', function () {
         console.log("Event seek video " + video.currentTime + ", node " + node.playPosition);
 
-        var pos = Math.floor(video.currentTime * 1000);
-        node.playPosition = pos;
+        // seek() has set the position, the transparent video may not have reached it
+        // (e.g. while it is loading)
+        var pos = node.playPosition;
         if (node.onPlayPositionChanged) {
             node.onPlayPositionChanged(pos);
         } else {
