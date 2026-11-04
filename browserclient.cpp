@@ -1,6 +1,8 @@
 #include <chrono>
 #include <algorithm>
 #include "browserclient.h"
+#include "mainapp.h"
+#include "keycodes.h"
 #include "database.h"
 #include "tools.h"
 #include "moviestream.h"
@@ -9,13 +11,13 @@
 #include "jsinterception.h"
 #include "trackinginterception.h"
 #include "statichandler.h"
+#include "mserequest.h"
 
 #define QOI_IMPLEMENTATION
 #include "qoi.h"
 
 #define ONPAINT_MEASURE_TIME 0
 
-extern scoped_refptr<CefBrowser> currentBrowser;
 
 BrowserClient::BrowserClient(bool fullscreen, BrowserParameter bp) : bParam(bp) {
     LOG_CURRENT_THREAD();
@@ -27,6 +29,7 @@ BrowserClient::BrowserClient(bool fullscreen, BrowserParameter bp) : bParam(bp) 
     // create clients
     transcoderClient = new TranscoderClient(bParam.transcoderIp, bParam.transcoderPort);
     vdrClient = new VdrClient(bParam.vdrIp, bParam.vdrPort);
+    osdSender = new OsdSender(vdrClient, bParam.osdqoi == QOI, bParam.measure);
 
     streamId = bParam.browserIp + "_" + std::to_string(bParam.browserPort);
 }
@@ -36,6 +39,10 @@ BrowserClient::~BrowserClient() {
 
     delete transcoderClient;
     transcoderClient = nullptr;
+
+    // the sender uses the vdr client
+    delete osdSender;
+    osdSender = nullptr;
 
     delete vdrClient;
     vdrClient = nullptr;
@@ -63,60 +70,19 @@ void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type
         return;
     }
 
-    RectList recList;
+    std::vector<CefRect> rects;
     if (bParam.use_dirty_recs) {
-        recList = dirtyRects;
+        rects.assign(dirtyRects.begin(), dirtyRects.end());
     } else {
-        CefRect rect(0, 0, width, height);
-        recList.emplace_back(rect);
+        rects.emplace_back(0, 0, width, height);
     }
 
 #if ONPAINT_MEASURE_TIME == 1
     auto begin = std::chrono::high_resolution_clock::now();
 #endif
 
-    // iterate overall dirty recs
-    for (auto r : recList) {
-        uint32_t* outbuffer = new uint32_t[r.width * r.height];
-        memset(outbuffer, 0, r.width * r.height);
-
-        // copy the region
-        uint32_t* ci = (uint32_t *) buffer + (r.y * width + r.x);
-        uint32_t* co = (uint32_t *) outbuffer;
-
-        for (int dry = 0; dry < r.height; ++dry) {
-            memcpy(co, ci, r.width * 4);
-            ci += width;
-            co += r.width;
-        }
-
-        // delete parts of the OSD where a video shall be visible
-        for (uint32_t i = 0; i < (uint32_t) (r.width * r.height); ++i) {
-            if (outbuffer[i] == 0xfffe2e9a) {
-                outbuffer[i] = 0x00fe2e9a;
-            }
-        }
-
-        if (bParam.osdqoi == QOI) {
-            qoi_desc desc{
-                    .width = static_cast<unsigned int>(r.width),
-                    .height = static_cast<unsigned int>(r.height),
-                    .channels = 4,
-                    .colorspace = QOI_LINEAR
-            };
-
-            int out_len = 0;
-            char *encoded_image = static_cast<char *>(qoi_encode(outbuffer, &desc, &out_len));
-
-            vdrClient->ProcessOsdUpdateQoi(renderWidth, renderHeight, r.x, r.y, std::string(encoded_image, out_len));
-            free(encoded_image);
-        } else {
-            std::string data = std::string((char *)outbuffer, r.width * r.height * 4);
-            vdrClient->ProcessOsdUpdate(renderWidth, renderHeight, r.x, r.y, r.width, r.height, data);
-        }
-
-        delete[] outbuffer;
-    }
+    // only copy the changed regions, the OSD is sent in its own thread
+    osdSender->Paint(buffer, width, height, rects);
 
 #if ONPAINT_MEASURE_TIME == 1
     auto end = std::chrono::high_resolution_clock::now();
@@ -138,8 +104,9 @@ void BrowserClient::OnBeforeClose(CefRefPtr<CefBrowser> browser) {
     LOG_CURRENT_THREAD();
     TRACE("BrowserClient::OnBeforeClose");
 
-    if (browser->IsSame(currentBrowser)) {
-        currentBrowser = nullptr;
+    CefRefPtr<CefBrowser> current = getCurrentBrowser();
+    if (current && browser->IsSame(current)) {
+        setCurrentBrowser(nullptr);
     }
 }
 
@@ -165,6 +132,38 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
         } else {
             ERROR("BrowserClient::OnProcessMessageReceived: RedButton without channelId");
         }
+    } else if (message->GetName().ToString() == "KeySet") {
+        if (message->GetArgumentList()->GetSize() == 1) {
+            currentKeySet = std::atoi(message->GetArgumentList()->GetString(0).ToString().c_str());
+            DEBUG("BrowserClient::OnProcessMessageReceived: KeySet 0x{:x}", currentKeySet.load());
+        }
+        return true;
+    } else if (message->GetName().ToString() == "DestroyApp") {
+        // A TV starts the autostart application of the channel again, unless
+        // the autostart application destroys itself.
+        std::string channelId;
+        if (message->GetArgumentList()->GetSize() == 1) {
+            channelId = message->GetArgumentList()->GetString(0).ToString();
+        }
+
+        std::string url = channelId.empty() ? "" : database->getRedButtonUrl(channelId);
+        std::string current = browser->GetMainFrame() ? browser->GetMainFrame()->GetURL().ToString() : "";
+
+        if (url.empty() || current.rfind(url, 0) == 0) {
+            DEBUG("BrowserClient::OnProcessMessageReceived: DestroyApp -> blank page");
+            loadUrl(browser, BLANK_PAGE);
+        } else {
+            DEBUG("BrowserClient::OnProcessMessageReceived: DestroyApp -> autostart application {}", url);
+
+            std::string channel = database->getChannel(channelId);
+            std::ofstream _dynamic;
+            _dynamic.open (bParam.static_path + "/js/_dynamic.js", std::ios_base::trunc);
+            _dynamic << "window.HBBTV_POLYFILL_NS = window.HBBTV_POLYFILL_NS || {}; window.HBBTV_POLYFILL_NS.currentChannel = " << channel << std::endl;
+            _dynamic.close();
+
+            loadUrl(browser, url);
+        }
+        return true;
     } else if (message->GetName().ToString() == "LoadUrl") {
         if (message->GetArgumentList()->GetSize() == 1) {
             std::string url = message->GetArgumentList()->GetString(0).ToString();
@@ -218,6 +217,9 @@ void BrowserClient::loadUrl(CefRefPtr<CefBrowser> browser, const std::string& ur
     std::string reason = "BrowserClient::loadUrl";
     transcoderClient->Stop(streamId, reason);
 
+    // the new page starts with the default keyset
+    currentKeySet = KEYSET_DEFAULT;
+
     // load url
     browser->GetMainFrame()->LoadURL(url);
 }
@@ -234,6 +236,11 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     static std::string browserUrl = std::string("http://") + bParam.browserIp + std::string(":") + std::to_string(bParam.browserPort);
 
     std::string url = request->GetURL().ToString();
+
+    /* MSE segments of the page, never sent to the server */
+    if (MseRequest::IsMseRequest(url)) {
+        return new MseRequest(bParam);
+    }
 
     bool blockThis = TrackingInterception::IsTracker(url);
 
@@ -349,7 +356,7 @@ CefRefPtr<CefResourceRequestHandler> BrowserClient::GetResourceRequestHandler(Ce
     }
 
     // Javascript interception
-    if ((request->GetResourceType()) == RT_SCRIPT &&
+    if ((request->GetResourceType()) == RT_SCRIPT && browserOptions.zdfQuirks &&
         (url.find("new-hbbtv.zdf.de/static/js/main.") != std::string::npos)) {
         return new JSInterception(pool);
     }

@@ -1,11 +1,15 @@
+#include <mutex>
 #include "mainapp.h"
+#include <thread>
+#include <algorithm>
 
 #include "browserserver.h"
 #include "CefBrowser.h"
+#include "TransportBuffer.h"
 #include <thrift/transport/TSocket.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TBufferTransports.h>
-#include <thrift/server/TThreadPoolServer.h>
+#include <thrift/server/TThreadedServer.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 
@@ -31,25 +35,32 @@ using namespace ::apache::thrift::server;
 using namespace ::apache::thrift::concurrency;
 using namespace ::common;
 
-scoped_refptr<CefBrowser> currentBrowser;
-TThreadPoolServer *thriftServer;
+static std::mutex currentBrowserMutex;
+static CefRefPtr<CefBrowser> currentBrowser;
+
+CefRefPtr<CefBrowser> getCurrentBrowser() {
+    std::lock_guard<std::mutex> lock(currentBrowserMutex);
+    return currentBrowser;
+}
+
+void setCurrentBrowser(CefRefPtr<CefBrowser> browser) {
+    std::lock_guard<std::mutex> lock(currentBrowserMutex);
+    currentBrowser = browser;
+}
+TThreadedServer *thriftServer;
 
 void startServer(BrowserParameter bParam) {
     BrowserServer::setBrowserParameter(bParam);
 
-    const int workerCount = 4;
-    std::shared_ptr<ThreadManager> threadManager = ThreadManager::newSimpleThreadManager(workerCount);
-    threadManager->threadFactory(std::make_shared<ThreadFactory>());
-    threadManager->start();
-
     std::string listenIp = bParam.bindAll ? "0.0.0.0" : bParam.browserIp;
 
-    thriftServer = new TThreadPoolServer(
+    // one thread per connection: the clients keep their connections open,
+    // a fixed pool of 4 workers blocks any further client
+    thriftServer = new TThreadedServer(
             std::make_shared<CefBrowserProcessorFactory>(std::make_shared<BrowserCloneFactory>()),
             std::make_shared<TServerSocket>(listenIp, bParam.browserPort),
-            std::make_shared<TBufferedTransportFactory>(),
-            std::make_shared<TBinaryProtocolFactory>(),
-            threadManager);
+            std::make_shared<TLargeBufferedTransportFactory>(),
+            std::make_shared<TBinaryProtocolFactory>());
 
     thriftServer->serve();
 }
@@ -58,12 +69,15 @@ bool stopCheckVdrRegular = false;
 
 void checkVdrRegular() {
     while (!stopCheckVdrRegular) {
-        if (currentBrowser != nullptr) {
-            std::string url = currentBrowser->GetMainFrame()->GetURL().ToString();
+        CefRefPtr<CefBrowser> browser = getCurrentBrowser();
+        CefRefPtr<CefFrame> frame = browser ? browser->GetMainFrame() : nullptr;
+
+        if (frame != nullptr) {
+            std::string url = frame->GetURL().ToString();
             if (!url.empty() && url != BLANK_PAGE) {
-                auto c = dynamic_cast<BrowserClient *>(currentBrowser->GetHost()->GetClient().get());
-                if (!c->IsVdrWebActive()) {
-                    currentBrowser->GetMainFrame()->LoadURL(BLANK_PAGE);
+                auto c = dynamic_cast<BrowserClient *>(browser->GetHost()->GetClient().get());
+                if (c != nullptr && !c->IsVdrWebActive()) {
+                    frame->LoadURL(BLANK_PAGE);
                 }
             }
         }
@@ -89,6 +103,23 @@ CefRefPtr<CefRenderProcessHandler> BrowserApp::GetRenderProcessHandler() {
 
 void BrowserApp::OnBeforeCommandLineProcessing(const CefString& process_type, CefRefPtr<CefCommandLine> command_line) {
     command_line->AppendSwitchWithValue("autoplay-policy", "no-user-gesture-required");
+
+    // Offscreen rendering only needs software compositing, the OSD is drawn by VDR.
+    // Without these switches Chromium tries GLES 3.0 (the RPi4 offers 2.0), the GPU
+    // process fails and is restarted in software mode. Run the remaining GPU thread
+    // inside the browser process, this saves a process and its memory.
+    if (process_type.empty()) {
+        command_line->AppendSwitch("disable-gpu");
+        command_line->AppendSwitch("disable-gpu-compositing");
+        command_line->AppendSwitch("in-process-gpu");
+
+        // software raster: use all cores (Chromium uses at most 4), unless set on the command line
+        if (!command_line->HasSwitch("num-raster-threads")) {
+            unsigned int cores = std::thread::hardware_concurrency();
+            int threads = (int) std::min(4u, std::max(1u, cores));
+            command_line->AppendSwitchWithValue("num-raster-threads", std::to_string(threads));
+        }
+    }
 }
 
 void BrowserApp::OnContextInitialized() {
@@ -115,7 +146,8 @@ void BrowserApp::OnContextInitialized() {
     extra_info->SetBool("dirtyRecs", bParameter.use_dirty_recs);
 
     CefRefPtr<BrowserClient> client = new BrowserClient(false, bParameter);
-    currentBrowser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
+    CefRefPtr<CefBrowser> browser = CefBrowserHost::CreateBrowserSync(window_info, client, "", browserSettings, extra_info, nullptr);
+    setCurrentBrowser(browser);
 
     // read user agents if configured
     if (!bParameter.user_agent_path.empty()) {
@@ -123,7 +155,7 @@ void BrowserApp::OnContextInitialized() {
     }
 
     if (logger->isTraceEnabled()) {
-        auto pref_manager = currentBrowser->GetHost()->GetRequestContext();
+        auto pref_manager = browser->GetHost()->GetRequestContext();
 
         // print original values
         if (logger->isTraceEnabled()) {
@@ -229,6 +261,12 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
     CefRefPtr<CefV8Value> redButton = CefV8Value::CreateFunction("RedButton", handler);
     object->SetValue("cefRedButton", redButton, V8_PROPERTY_ATTRIBUTE_NONE);
 
+    CefRefPtr<CefV8Value> setKeySet = CefV8Value::CreateFunction("SetKeySet", handler);
+    object->SetValue("cefSetKeySet", setKeySet, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> destroyApp = CefV8Value::CreateFunction("DestroyApp", handler);
+    object->SetValue("cefDestroyApp", destroyApp, V8_PROPERTY_ATTRIBUTE_NONE);
+
     CefRefPtr<CefV8Value> loadUrl = CefV8Value::CreateFunction("LoadUrl", handler);
     object->SetValue("cefLoadUrl", loadUrl, V8_PROPERTY_ATTRIBUTE_NONE);
 
@@ -246,6 +284,15 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
 
     CefRefPtr<CefV8Value> audioTrack = CefV8Value::CreateFunction("SelectAudioTrack", handler);
     object->SetValue("cefSelectAudioTrack", audioTrack, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> subtitleTrack = CefV8Value::CreateFunction("SelectSubtitleTrack", handler);
+    object->SetValue("cefSelectSubtitleTrack", subtitleTrack, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> streamEventFilter = CefV8Value::CreateFunction("StreamEventFilter", handler);
+    object->SetValue("cefStreamEventFilter", streamEventFilter, V8_PROPERTY_ATTRIBUTE_NONE);
+
+    CefRefPtr<CefV8Value> mseStart = CefV8Value::CreateFunction("MseStart", handler);
+    object->SetValue("cefMseStart", mseStart, V8_PROPERTY_ATTRIBUTE_NONE);
 }
 
 void BrowserApp::OnContextReleased(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefV8Context> context) {
@@ -266,7 +313,7 @@ void BrowserApp::shutdown() {
 
     stopCheckVdrRegular = true;
 
-    currentBrowser->Release();
-    currentBrowser = nullptr;
+    // releases the reference, an additional Release() destroyed the browser too early
+    setCurrentBrowser(nullptr);
 }
 

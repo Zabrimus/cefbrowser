@@ -7,7 +7,7 @@
 #include <thrift/transport/TSocket.h>
 #include <thrift/protocol/TBinaryProtocol.h>
 #include <thrift/transport/TBufferTransports.h>
-#include <thrift/server/TThreadPoolServer.h>
+#include <thrift/server/TThreadedServer.h>
 #include <thrift/transport/TServerSocket.h>
 #include <thrift/transport/TBufferTransports.h>
 
@@ -39,6 +39,10 @@ public:
     bool InsertHbbtv(const InsertHbbtvType& input) override;
     bool InsertChannel(const InsertChannelType& input) override;
     bool StopVideo(const StopVideoType& input) override;
+    bool PlayerStatus(const PlayerStatusType& input) override;
+    bool StreamEvent(const StreamEventType& input) override;
+    bool SetRenderParameters(const RenderParametersType& input) override;
+    bool SetBrowserOptions(const BrowserOptionsType& input) override;
 };
 
 class BrowserCloneFactory : virtual public CefBrowserIfFactory {

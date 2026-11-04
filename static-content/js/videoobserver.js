@@ -73,6 +73,290 @@ window.promoteVideoSize = (node) => {
     }
 }
 
+async function checkMpd(nodedata) {
+    let mpdStart = 0;
+
+    if (nodedata.endsWith(".mpd") || nodedata.indexOf("hbbtv.zdf.de/zdfm3/dyn/mpd.php") !== -1) {
+        // A VOD manifest has no timeShiftBufferDepth and often no Period@start.
+        // Any problem here must not prevent the start of the video.
+        try {
+            const mpd = await fetch(nodedata);
+            const data = await mpd.text();
+
+            let parser = new DOMParser();
+            let xmlDoc = parser.parseFromString(data, "text/xml");
+
+            let timeShiftBufferDepth = xmlDoc.documentElement.getAttribute("timeShiftBufferDepth");
+            let period = xmlDoc.getElementsByTagName("Period")[0];
+            let periodStart = period ? period.getAttribute("start") : null;
+
+            if (timeShiftBufferDepth) {
+                let startTime = periodStart ? durationToSeconds(parseWithTinyDuration(periodStart)) : 0;
+                mpdStart = durationToSeconds(parseWithTinyDuration(timeShiftBufferDepth)) - startTime;
+            }
+
+            console.log("timeShiftBufferDepth: " + timeShiftBufferDepth + ", periodStart: " + periodStart + ", mpdStart: " + mpdStart);
+        } catch (e) {
+            console.log("checkMpd: unable to evaluate " + nodedata + ": " + e);
+            mpdStart = 0;
+        }
+    }
+
+    return Math.max(0, Math.floor(mpdStart));
+}
+
+// --- programmes and parental rating of the current channel (from VDR's EPG) ---
+
+function _vdrRatings(list) {
+    let ratings = (list || []).map((r) => ({
+        name: r.name,
+        scheme: r.scheme,
+        value: r.value,
+        labels: 0,
+        region: r.region
+    }));
+    ratings.item = (i) => ratings[i] || null;
+    return ratings;
+}
+
+// OIPF Programme objects of the present and following event
+function _vdrProgrammes() {
+    let channel = window.HBBTV_POLYFILL_NS.currentChannel;
+    let list = ((channel && channel.programmes) || []).map((p) => ({
+        programmeID: p.programmeID,
+        programmeIDType: 2,          // ID_DVB_EVENT
+        name: p.name,
+        description: p.description,
+        longDescription: p.longDescription,
+        startTime: p.startTime,
+        duration: p.duration,
+        channelID: channel.channelId,
+        parentalRatings: _vdrRatings(p.parentalRatings),
+        getField: () => undefined
+    }));
+    list.item = (i) => list[i] || null;
+    return list;
+}
+
+window._vdrBroadcastNodes = new Set();
+
+// VDR sends new data of the current channel, e.g. a new present programme
+window._vdrChannelUpdate = function (channel) {
+    let current = window.HBBTV_POLYFILL_NS.currentChannel;
+    if (!channel || !current || channel.channelId !== current.channelId) {
+        return;
+    }
+
+    let oldPresent = (current.programmes || [])[0];
+    let newPresent = (channel.programmes || [])[0];
+
+    // keep the object, the application may hold a reference
+    Object.assign(current, channel);
+
+    window._vdrBroadcastNodes.forEach((node) => {
+        if (!node.isConnected) {
+            window._vdrBroadcastNodes.delete(node);
+            return;
+        }
+
+        if (typeof node.onProgrammesChanged === 'function') {
+            node.onProgrammesChanged();
+        }
+        node.dispatchEvent(new Event('ProgrammesChanged'));
+
+        let oldRating = oldPresent && oldPresent.parentalRatings && oldPresent.parentalRatings[0] ? oldPresent.parentalRatings[0].value : -1;
+        let newRating = newPresent && newPresent.parentalRatings && newPresent.parentalRatings[0] ? newPresent.parentalRatings[0].value : -1;
+
+        if (newPresent && oldRating !== newRating) {
+            let rating = newRating >= 0 ? _vdrRatings(newPresent.parentalRatings)[0] : null;
+            let contentID = newPresent.programmeID;
+
+            // VDR doesn't block content, blocked is always false
+            if (typeof node.onParentalRatingChange === 'function') {
+                node.onParentalRatingChange(contentID, rating, null, false);
+            }
+            let event = new Event('ParentalRatingChange');
+            event.contentID = contentID;
+            event.ratings = rating ? _vdrRatings(newPresent.parentalRatings) : _vdrRatings([]);
+            event.DRMSystemID = null;
+            event.blocked = false;
+            node.dispatchEvent(event);
+        }
+    });
+};
+
+// --- stream events (DSM-CC do-it-now events, filtered by VDR) ---
+
+// registered listeners: { node, componentTag, eventId, name, listener }
+window._vdrStreamEventListeners = [];
+
+function _vdrHexToText(hex) {
+    let bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < bytes.length; ++i) {
+        bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    }
+    try {
+        return new TextDecoder("utf-8").decode(bytes);
+    } catch (e) {
+        return String.fromCharCode.apply(null, bytes);
+    }
+}
+
+function _vdrCallStreamEventListener(listener, event) {
+    try {
+        if (typeof listener === 'function') {
+            listener(event);
+        } else if (listener && typeof listener.handleEvent === 'function') {
+            listener.handleEvent(event);
+        }
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+window._vdrStreamEvent = function (componentTag, eventId, data, status) {
+    window._vdrStreamEventListeners.forEach((l) => {
+        if (l.componentTag === componentTag && l.eventId === eventId) {
+            _vdrCallStreamEventListener(l.listener, {
+                type: 'StreamEvent',
+                name: l.name,
+                data: data,
+                text: _vdrHexToText(data),
+                status: status
+            });
+        }
+    });
+};
+
+// resolve the event name with the stream event description file (TS 102 809)
+async function _vdrResolveStreamEvent(targetURL, eventName) {
+    const response = await fetch(new URL(targetURL, document.baseURI).href);
+    const xml = new DOMParser().parseFromString(await response.text(), "text/xml");
+
+    for (const object of xml.getElementsByTagName("dsmcc_object")) {
+        for (const event of object.getElementsByTagName("stream_event")) {
+            if (event.getAttribute("stream_event_name") === eventName) {
+                return {
+                    componentTag: Number(object.getAttribute("component_tag")),
+                    eventId: Number(event.getAttribute("stream_event_id"))
+                };
+            }
+        }
+    }
+
+    return null;
+}
+
+function _vdrStreamEventError(name, listener) {
+    _vdrCallStreamEventListener(listener, { type: 'StreamEvent', name: name, data: "", text: "", status: "error" });
+}
+
+function addStreamEventFunctions(node) {
+    node.addStreamEventListener = function (targetURL, eventName, listener) {
+        console.log('addStreamEventListener ' + targetURL + ', ' + eventName);
+
+        // events of the object carousel are not supported
+        if (String(targetURL).startsWith("dvb:")) {
+            setTimeout(() => _vdrStreamEventError(eventName, listener), 0);
+            return;
+        }
+
+        (async () => {
+            let event = null;
+            try {
+                event = await _vdrResolveStreamEvent(targetURL, eventName);
+            } catch (e) {
+                console.log("stream event description " + targetURL + ": " + e);
+            }
+
+            if (!event || isNaN(event.componentTag) || isNaN(event.eventId)) {
+                _vdrStreamEventError(eventName, listener);
+                return;
+            }
+
+            window._vdrStreamEventListeners.push({ node, targetURL, name: eventName, listener,
+                                                    componentTag: event.componentTag, eventId: event.eventId });
+
+            if (!window.cefStreamEventFilter || !window.cefStreamEventFilter(event.componentTag, true)) {
+                _vdrStreamEventError(eventName, listener);
+            }
+        })();
+    };
+
+    node.removeStreamEventListener = function (targetURL, eventName, listener) {
+        let removed = window._vdrStreamEventListeners.filter((l) =>
+            l.node === node && l.targetURL === targetURL && l.name === eventName && l.listener === listener);
+
+        window._vdrStreamEventListeners = window._vdrStreamEventListeners.filter((l) => !removed.includes(l));
+
+        // stop the filter if nobody needs the component anymore
+        removed.forEach((r) => {
+            if (!window._vdrStreamEventListeners.some((l) => l.componentTag === r.componentTag) && window.cefStreamEventFilter) {
+                window.cefStreamEventFilter(r.componentTag, false);
+            }
+        });
+    };
+}
+
+// video/broadcast: channel information and play state
+function addBroadcastFunctions(node) {
+    if (node._vdrBroadcast) {
+        return;
+    }
+    node._vdrBroadcast = true;
+    window.addComponentFunctions(node, true);
+
+    try {
+        Object.defineProperty(node, 'currentChannel', {
+            configurable: true,
+            get: () => window.HBBTV_POLYFILL_NS.currentChannel || null
+        });
+
+        // present and following programme (META_EIT)
+        Object.defineProperty(node, 'programmes', {
+            configurable: true,
+            get: () => _vdrProgrammes()
+        });
+    } catch (e) {
+        console.log("currentChannel: " + e);
+    }
+
+    window._vdrBroadcastNodes.add(node);
+    addStreamEventFunctions(node);
+
+    // 0 = unrealized, 2 = presenting
+    node.playState = 0;
+
+    const bind = node.bindToCurrentChannel;
+    node.bindToCurrentChannel = function () {
+        node.playState = 2;
+        if (typeof node.onPlayStateChange === 'function') {
+            node.onPlayStateChange(node.playState, 0);
+        }
+        let event = new Event('PlayStateChange');
+        event.state = node.playState;
+        event.error = 0;
+        node.dispatchEvent(event);
+
+        return bind ? bind.call(node) : window.HBBTV_POLYFILL_NS.currentChannel;
+    };
+
+    node.getChannelConfig = node.getChannelConfig || function () {
+        let channel = window.HBBTV_POLYFILL_NS.currentChannel;
+        let list = channel ? [channel] : [];
+
+        list.item = (i) => list[i] || null;
+        list.getChannel = (id) => list.find((c) => c.channelId === id) || null;
+        list.getChannelByTriplet = (onid, tsid, sid) => list.find((c) => c.onid === onid && c.tsid === tsid && c.sid === sid) || null;
+
+        return {
+            channelList: list,
+            favouriteLists: [],
+            currentFavouriteList: null
+        };
+    };
+}
+
 function addNodeFunctions(node) {
     node.bindToCurrentChannel = node.bindToCurrentChannel || function() {
         console.log('Node bindToCurrentChannel');
@@ -122,39 +406,329 @@ function addNodeFunctions(node) {
             return e.listener === listener && e.eventName === eventName && e.url === url;
         });
 
-        window.HBBTV_POLYFILL_NS.streamEventListeners.splice(idx, 1);
+        if (idx >= 0) {
+            window.HBBTV_POLYFILL_NS.streamEventListeners.splice(idx, 1);
+        }
     };
 }
 
-function addVideoNodeTypeObject(node, url, originalUrl) {
+// data of an object which is not set by this script
+// VDR plays the stream in real time: a HTML5 video managed by VDR keeps the rate 1.
+// Another rate is not taken, the application gets a ratechange and reads 1 again.
+window._vdrLimitPlaybackRate = function (video) {
+    if (video._vdrRateLimited) {
+        return;
+    }
+    video._vdrRateLimited = true;
+
+    const rate = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'playbackRate');
+    Object.defineProperty(video, 'playbackRate', {
+        configurable: true,
+        get: function () {
+            return rate.get.call(video);
+        },
+        set: function (value) {
+            if (Number(value) === 1) {
+                rate.set.call(video, 1);
+                return;
+            }
+            console.log("Playback rate " + value + " is not supported");
+            setTimeout(() => {
+                let event = new Event('ratechange');
+                event._vdrSynthetic = true;
+                video.dispatchEvent(event);
+            }, 0);
+        }
+    });
+};
+
+// special handling of the ZDF applications (VDR setup)
+function _vdrZdfQuirks() {
+    return !window._vdrOptions || window._vdrOptions.zdfQuirks !== false;
+}
+
+function isNewObjectData(node) {
+    let data = node.data;
+    // node.data is the resolved URL: the placeholder is read back as "http://gibbet.nix/"
+    return !!data && !/^https?:\/\/gibbet\.nix\/?$/.test(data) && !data.startsWith("http://localhost/movie/");
+}
+
+const AV_OBJECT_TYPES = ['video/mpeg4', 'video/mp4', 'audio/mp4', 'audio/mpeg', 'application/dash+xml', 'video/mpeg'];
+
+// HbbTV: an A/V object plays after play(). The application may call play() before
+// the MutationSummary has found the object, the call is remembered until then.
+(function () {
+    const early = {
+        play: function (speed) {
+            speed = (speed === undefined) ? 1 : Number(speed);
+            if (speed !== 0 && speed !== 1) {
+                return false;
+            }
+            this._vdrPendingSpeed = speed;
+            return true;
+        },
+        stop: function () {
+            this._vdrPendingSpeed = undefined;
+            return true;
+        },
+        seek: function () {
+            return false;
+        },
+    };
+
+    Object.keys(early).forEach((name) => {
+        if (name in HTMLObjectElement.prototype) {
+            return;
+        }
+        Object.defineProperty(HTMLObjectElement.prototype, name, {
+            configurable: true,
+            get: function () {
+                return (this._vdrManaged || AV_OBJECT_TYPES.includes(this.type)) ? early[name] : undefined;
+            },
+            set: function (value) {
+                Object.defineProperty(this, name, { value: value, writable: true, configurable: true, enumerable: true });
+            },
+        });
+    });
+})();
+
+// Playback status reported by VDR: the position of the displayed picture, buffering
+// and the end of the video. The transparent video in the browser runs independently.
+function VdrStatus() {
+    this.base = 0;            // position of the (re)start in ms
+    this.elapsed = -1;        // ms since the (re)start, reported by VDR, -1 = unknown
+    this.waitReset = false;   // after a seek/resume, ignore the status of the old stream
+    this.state = -1;
+    this.active = false;
+}
+
+VdrStatus.prototype.restart = function (positionMs) {
+    this.base = positionMs;
+    this.waitReset = this.elapsed >= 0;
+};
+
+// returns false if the status belongs to the previous stream
+VdrStatus.prototype.update = function (position, state) {
+    if (this.waitReset) {
+        if (position >= 0 && position >= this.elapsed) {
+            this.elapsed = position;
+            return false;
+        }
+        this.waitReset = false;
+    }
+
+    this.elapsed = position;
+    this.active = true;
+    return true;
+};
+
+VdrStatus.prototype.position = function () {
+    return (this.active && this.elapsed >= 0 && !this.waitReset) ? this.base + this.elapsed : -1;
+};
+
+// the media element which gets the status of VDR
+window._vdrActiveMedia = null;
+window._vdrPlayerStatus = function (position, state) {
+    if (window._vdrActiveMedia) {
+        window._vdrActiveMedia(position, state);
+    }
+};
+
+const VDR_STATE_PLAYING = 0;
+const VDR_STATE_BUFFERING = 2;
+const VDR_STATE_ENDED = 3;
+
+function addVideoNodeTypeObject(node, originalUrl) {
+    // The application may set a new data at the same object for the next video.
+    // Replace the functions and ignore the events of the previous internal video.
+    // HbbTV: the running video stops, the next one starts with play().
+    if (node._vdrManaged) {
+        if (!node._vdrStopped) {
+            console.log("window.cefStopVideo()");
+            window.cefStopVideo();
+        }
+
+        let old = node.querySelector('video');
+        if (old) {
+            old._vdrDead = true;
+            old.pause();
+            old.removeAttribute('src');
+            old.load();
+        }
+
+        delete node.play;
+        delete node.stop;
+        delete node.seek;
+    }
+    node._vdrManaged = true;
+    window.addComponentFunctions(node, false);
+
+    // HbbTV/CEA-2014: call the intrinsic handler and dispatch the DOM event
+    function notifyPlayState() {
+        if (typeof node.onPlayStateChange === 'function') {
+            try {
+                node.onPlayStateChange(node.playState);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        let playerEvent = new Event('PlayStateChange');
+        playerEvent.state = node.playState;
+        node.dispatchEvent(playerEvent);
+    }
+
     let video = document.createElement('video');
+    let vdr = new VdrStatus();
+    node._vdrEnded = false;
+
+    function onVdrStatus(position, state) {
+        if (node._vdrStopped || video._vdrDead || !vdr.update(position, state)) {
+            return;
+        }
+
+        let pos = vdr.position();
+        if (pos >= 0) {
+            node.playPosition = pos;
+            if (typeof node.onPlayPositionChanged === 'function') {
+                node.onPlayPositionChanged(pos);
+            }
+            let event = new Event('PlayPositionChanged');
+            event.position = pos;
+            node.dispatchEvent(event);
+        }
+
+        if (state === vdr.state) {
+            return;
+        }
+        vdr.state = state;
+
+        if (state === VDR_STATE_ENDED && !node._vdrEnded) {
+            node._vdrEnded = true;
+            if (!video.paused) {
+                video.pause();
+            }
+            node.playState = PLAY_STATES.finished;
+            notifyPlayState();
+            window.stop_video_quirk();
+        } else if (state === VDR_STATE_BUFFERING && node.playState === PLAY_STATES.playing) {
+            node.playState = PLAY_STATES.buffering;
+            notifyPlayState();
+        } else if (state === VDR_STATE_PLAYING && node.playState === PLAY_STATES.buffering) {
+            node.playState = PLAY_STATES.playing;
+            notifyPlayState();
+        }
+    }
+
     video.type = "video/webm";
-    video.src = url;
     // video.autoplay = false;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
     video.preload = "auto";
 
-    node.play = node.play || function (speed) {
+    // start the stream with play(), also again after stop() or an error
+    function startStream() {
+        node._vdrStopped = false;
+        node._vdrEnded = false;
+        vdr = new VdrStatus();
+        window._vdrActiveMedia = onVdrStatus;
+        node.playState = PLAY_STATES.connecting;
+        notifyPlayState();
+
+        (async () => {
+            let mpdStart = await checkMpd(originalUrl);
+            let newUrl = window.cefStreamVideo(originalUrl, document.cookie, document.referrer, navigator.userAgent, mpdStart);
+            if (!newUrl) {
+                startFailed();
+                return;
+            }
+            video.src = newUrl;
+            video.load();
+            video.play().catch((e) => {
+                console.log(e.message);
+            });
+        })();
+    }
+
+    // the transcoder can't play the url: the error state, play() tries again
+    function startFailed() {
+        console.log("Unable to start the video " + originalUrl);
+        node._vdrStopped = true;
+        if (window._vdrActiveMedia === onVdrStatus) {
+            window._vdrActiveMedia = null;
+        }
+        node.error = 5;     // content not available
+        node.playState = PLAY_STATES.error;
+        notifyPlayState();
+    }
+
+    // HbbTV: speed and onPlaySpeedChanged tell the speed which is really used
+    function changeSpeed(speed) {
+        if (node.speed === speed) {
+            return;
+        }
+        node.speed = speed;
+
+        if (typeof node.onPlaySpeedChanged === 'function') {
+            try {
+                node.onPlaySpeedChanged(speed);
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        let event = new Event('PlaySpeedChanged');
+        event.speed = speed;
+        node.dispatchEvent(event);
+    }
+
+    // Only pause and normal speed are supported: VDR gets the stream in real time.
+    // The applications use seek() for other speeds.
+    Object.defineProperty(node, 'playSpeeds', { configurable: true, get: () => [0, 1] });
+
+    node.play = function (speed) {
         console.log("Node Play Speed " + speed);
+        speed = (speed === undefined) ? 1 : Number(speed);
+
+        if (speed !== 0 && speed !== 1) {
+            console.log("Play speed " + speed + " is not supported");
+            return false;
+        }
+
+        // the application has set a new data, the object isn't set up for it yet
+        if (isNewObjectData(node) && node.data !== originalUrl) {
+            node._vdrPendingSpeed = speed;
+            return true;
+        }
+
+        if (node._vdrStopped) {
+            if (speed === 1) {
+                startStream();
+                changeSpeed(1);
+            }
+            return true;
+        }
+
         if (speed === 0) {
             setTimeout(() => {
                 console.log("window.cefPauseVideo()");
                 window.cefPauseVideo();
 
                 video.pause();
-                node.speed = 0;
                 node.playState = PLAY_STATES.paused;
+                changeSpeed(0);
             }, 0);
-        } else if (speed > 0) {
+        } else {
             setTimeout(() => {
                 if (node.playState === PLAY_STATES.paused) {
+                    // the position shown by VDR (or of the last seek), not of the transparent video
+                    let position = node.playPosition || 0;
                     console.log("window.cefResumeVideo()");
-                    window.cefResumeVideo(String(video.currentTime));
+                    window.cefResumeVideo(String(position / 1000));
+                    vdr.restart(position);
                 }
 
-                node.speed = speed;
                 node.playState = PLAY_STATES.playing;
-                video.playbackRate = speed;
+                changeSpeed(1);
                 video.play()
                     .then((v) => {
                         window.start_video_quirk();
@@ -164,55 +738,60 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
                         node.error = 5;
                     });
             }, 0);
-        } else if (speed < 0) {
-            node.speed = speed;
-            node.playState = PLAY_STATES.playing;
-            video.playbackRate = 1.0;
-            video.play().catch((e) => {
-                console.error(e.message);
-                node.error = 5;
-            });
-            this.rewindInterval = setInterval(() => {
-                if (video.currentTime < 0.1) {
-                    video.currentTime = 0;
-                    video.pause();
-                    node.speed = 0;
-                    clearInterval(this.rewindInterval);
-                } else {
-                    video.currentTime = video.currentTime -= 0.1;
-                }
-            }, 100);
         }
         return true;
     };
 
-    node.stop = node.stop || function () {
+    node.stop = function () {
         console.log("Node Stop ");
+        node._vdrPendingSpeed = undefined;
+
+        if (node._vdrStopped) {
+            // nothing runs (stopped, error): don't stop the video of another object
+            if (node.playState !== PLAY_STATES.stopped) {
+                node.playState = PLAY_STATES.stopped;
+                notifyPlayState();
+            }
+            return true;
+        }
+
         console.log("window.cefStopVideo()");
         window.cefStopVideo();
+
+        // The events of the internal video (pause, emptied, ...) must not change
+        // the state anymore. Don't replace any element: the application keeps its
+        // reference to this object, and a replaced object would be detected as new
+        // video by the MutationSummary.
+        node._vdrStopped = true;
+        if (window._vdrActiveMedia === onVdrStatus) {
+            window._vdrActiveMedia = null;
+        }
 
         video.pause();
         video.removeAttribute('src'); // empty source
         video.load();
 
-        video.currentTime = 0;
         node.playState = PLAY_STATES.stopped;
         node.playPosition = 0;
         node.speed = 0;
 
-        // remove all event listeners
-        document.getElementsByTagName('video')[0].outerHTML = document.getElementsByTagName('video')[0].outerHTML;
-        node.outerHTML = node.outerHTML;
+        notifyPlayState();
 
         window.stop_video_quirk();
         return true;
     }
 
-    node.seek = node.seek || function (posInMs) {
+    node.seek = function (posInMs) {
+        if (node._vdrStopped) {
+            return false;
+        }
+
         console.log("Node seek video " + video.currentTime + ", node " + node.playPosition + " --> " + posInMs + " ==> " + (posInMs / 1000));
 
         console.log("window.cefSeekVideo()");
         window.cefSeekVideo(String(posInMs / 1000));
+        vdr.restart(posInMs);
+        node._vdrEnded = false;
 
         video.currentTime = posInMs / 1000;
         node.playPosition = posInMs;
@@ -223,14 +802,12 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('playing', function () {
         console.log("Video event playing");
 
-        node.playState = PLAY_STATES.playing;
-        if (node.onPlayStateChange) {
-            node.onPlayStateChange(node.playState);
-        } else {
-            var playerEvent = new Event('PlayStateChange');
-            playerEvent.state = node.playState;
-            node.dispatchEvent(playerEvent);
+        if (node._vdrStopped || video._vdrDead) {
+            return;
         }
+
+        node.playState = PLAY_STATES.playing;
+        notifyPlayState();
 
         window.start_video_quirk();
 
@@ -239,27 +816,33 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("Video event pause");
 
-        node.playState = PLAY_STATES.paused;
-        if (node.onPlayStateChange) {
-            node.onPlayStateChange(node.playState);
-        } else {
-            let playerEvent = new Event('PlayStateChange');
-            playerEvent.state = node.playState;
-            node.dispatchEvent(playerEvent);
+        if (node._vdrStopped || video._vdrDead || node._vdrEnded || node.playState === PLAY_STATES.error) {
+            return;
         }
+
+        // the transparent video ended before VDR has shown the end
+        if (vdr.active && video.ended) {
+            return;
+        }
+
+        node.playState = PLAY_STATES.paused;
+        notifyPlayState();
     }, false);
 
     video && video.addEventListener && video.addEventListener('ended', function () {
         console.log("Video event ended");
 
-        node.playState = PLAY_STATES.finished;
-        if (node.onPlayStateChange) {
-            node.onPlayStateChange(node.playState);
-        } else {
-            var playerEvent = new Event('PlayStateChange');
-            playerEvent.state = node.playState;
-            node.dispatchEvent(playerEvent);
+        if (node._vdrStopped || video._vdrDead || node._vdrEnded) {
+            return;
         }
+
+        // VDR reports the real end of the video
+        if (vdr.active) {
+            return;
+        }
+
+        node.playState = PLAY_STATES.finished;
+        notifyPlayState();
 
         window.stop_video_quirk();
 
@@ -268,54 +851,51 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('error', function (e) {
         console.log("Video event error");
 
-        node.playState = PLAY_STATES.error;
-        if (node.onPlayStateChange) {
-            node.onPlayStateChange(node.playState);
-        } else {
-            var playerEvent = new Event('PlayStateChange');
-            playerEvent.state = node.playState;
-            node.error = 0; // 0 - A/V format not supported
-            node.dispatchEvent(playerEvent);
+        if (node._vdrStopped || video._vdrDead) {
+            return;
         }
+
+        node.playState = PLAY_STATES.error;
+        node.error = 0; // 0 - A/V format not supported
+        notifyPlayState();
     }, false);
 
     video && video.addEventListener && video.addEventListener('durationchange', () => {
         console.log("Video event durationchange to " + video.duration);
         node.duration = video.duration * 1000;
+        // playTime is the duration of the A/V object in ms
+        node.playTime = isFinite(video.duration) ? Math.floor(video.duration * 1000) : 0;
     }, false);
 
     video && video.addEventListener && video.addEventListener('timeupdate', function () {
         // console.log("Event timeupdate video " + video.currentTime + ", node " + node.playPosition);
         // console.log("Duration: " + node.duration + ", time: " + video.currentTime + ", left " + (node.duration - video.currentTime));
 
-        var pos = Math.floor(video.currentTime * 1000);
-        node.playPostion = pos;
-        if (node.PlayPositionChanged) {
-            node.PlayPositionChanged(pos);
+        // the position reported by VDR is used, if available. After a seek or a
+        // resume VDR reports no position for a moment, the last one stays valid.
+        if (vdr.position() >= 0 || vdr.active) {
+            return;
         }
+
+        var pos = Math.floor(video.currentTime * 1000);
         node.playPosition = pos;
+        if (typeof node.onPlayPositionChanged === 'function') {
+            node.onPlayPositionChanged(pos);
+        }
 
         var playerEvent = new Event('PlayPositionChanged');
         playerEvent.position = pos;
         node.dispatchEvent(playerEvent);
     }, false);
 
-    video && video.addEventListener && video.addEventListener('ratechange', function () {
-        var playSpeed = video.playbackRate;
-
-        var playerEvent = new Event('PlaySpeedChanged');
-        playerEvent.speed = playSpeed;
-        node.dispatchEvent(playerEvent);
-
-    }, false);
-
     video && video.addEventListener && video.addEventListener('seeked', function () {
         console.log("Event seek video " + video.currentTime + ", node " + node.playPosition);
 
-        var pos = Math.floor(video.currentTime * 1000);
+        // seek() has set the position, the transparent video may not have reached it
+        // (e.g. while it is loading)
+        var pos = node.playPosition;
         if (node.onPlayPositionChanged) {
-            node.playPosition = pos;
-            node.PlayPositionChanged(pos);
+            node.onPlayPositionChanged(pos);
         } else {
             var playerEvent = new Event('PlayPositionChanged');
             playerEvent.position = pos;
@@ -334,25 +914,139 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
 
     window.addVideoOverlay(node);
 
-    node.playTime = video.duration * 1000;
+    node.playTime = 0;
     node.error = -1;
     node.type = "video/webm";
     node.data = "http://gibbet.nix"; // url;
-    if (originalUrl != "http://gibbet.nix") {
+    if (!/^https?:\/\/gibbet\.nix\/?$/.test(originalUrl)) {
         node.setAttribute("olddata", originalUrl);
     }
     node.style.visibility = 'hidden';
 
     node.append(video);
 
-    setTimeout(() => {
-        video.load();
-        video.play();
-    }, 0);
+    // HbbTV: the object is stopped until play()
+    let previousState = node.playState;
+    node._vdrStopped = true;
+    node.playState = PLAY_STATES.stopped;
+    node.playPosition = 0;
+    node.speed = 0;
+    if (previousState !== undefined && previousState !== PLAY_STATES.stopped) {
+        notifyPlayState();
+    }
+
+    let pendingSpeed = node._vdrPendingSpeed;
+    delete node._vdrPendingSpeed;
+    if (pendingSpeed === 1) {
+        node.play(1);
+    }
 }
+
+function _vdrDispatch(video, type) {
+    let event = new Event(type);
+    event._vdrSynthetic = true;
+    video.dispatchEvent(event);
+}
+
+// status of VDR for a HTML5 video element
+function html5VdrStatus(video, position, state) {
+    let vdr = video._vdrStatus;
+    if (!vdr || !vdr.update(position, state)) {
+        return;
+    }
+
+    // the transparent video may end before the real video, keep the time running
+    if (video.ended && state === VDR_STATE_PLAYING) {
+        _vdrDispatch(video, 'timeupdate');
+    }
+
+    if (state === vdr.state) {
+        return;
+    }
+    let previous = vdr.state;
+    vdr.state = state;
+
+    if (state === VDR_STATE_ENDED && !video._vdrEnded) {
+        video._vdrEnded = true;
+        if (!video.paused) {
+            video.pause();
+        }
+        _vdrDispatch(video, 'ended');
+        window.stop_video_quirk();
+    } else if (state === VDR_STATE_BUFFERING) {
+        _vdrDispatch(video, 'waiting');
+    } else if (state === VDR_STATE_PLAYING && previous === VDR_STATE_BUFFERING) {
+        _vdrDispatch(video, 'playing');
+    }
+}
+
+// The transparent video ends after its own duration, maybe before VDR has shown the
+// end of the real video. Hide its 'pause' and 'ended' events from the application
+// (capture phase at window runs before all listeners at the element).
+['pause', 'ended'].forEach((type) => {
+    window.addEventListener(type, (e) => {
+        let t = e.target;
+        if (e._vdrSynthetic || !t || !t._vdrStatus || t._vdrEnded) {
+            return;
+        }
+
+        if (t._vdrStatus.active && t.ended) {
+            e.stopImmediatePropagation();
+        }
+    }, true);
+});
 
 function addVideoNodeTypeVideo(node, url) {
     let video = node;
+
+    // a new video, a new status
+    node._vdrStatus = new VdrStatus();
+    node._vdrEnded = false;
+    window._vdrActiveMedia = (position, state) => html5VdrStatus(node, position, state);
+
+    // ZDF reuses the video element for the next video. Register the listeners
+    // only once, they use the current url.
+    node._vdrUrl = url;
+    if (node._vdrListeners) {
+        return;
+    }
+    node._vdrListeners = true;
+    window.addHtml5TrackFunctions(node);
+    window._vdrLimitPlaybackRate(node);
+
+    // currentTime is the position of the picture displayed by VDR, if known
+    const currentTime = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'currentTime');
+    Object.defineProperty(node, 'currentTime', {
+        configurable: true,
+        get: function () {
+            let pos = node._vdrStatus ? node._vdrStatus.position() : -1;
+            if (pos >= 0) {
+                node._vdrTime = pos / 1000;
+                return node._vdrTime;
+            }
+            // after a seek VDR reports no position for a moment: the target, not the
+            // time of the transparent video (it may not be seekable)
+            if (node._vdrStatus && node._vdrStatus.active && node._vdrTime !== undefined) {
+                return node._vdrTime;
+            }
+            return currentTime.get.call(node);
+        },
+        set: function (value) {
+            if (node._vdrStatus) {
+                node._vdrStatus.restart(value * 1000);
+                node._vdrEnded = false;
+            }
+            node._vdrTime = Number(value);
+
+            // the seek with the requested position, the 'seeked' event of the
+            // transparent video may report another one
+            node._vdrSeekSent = true;
+            console.log("window.cefSeekVideo()");
+            window.cefSeekVideo(String(value));
+
+            currentTime.set.call(node, value);
+        }
+    });
 
     // check if source element exists
     let videoSrc = video;
@@ -425,12 +1119,12 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('play', function () {
         console.log("video tag play: " + video.playState);
-        if (url !== videoSrc.src) {
+        if (node._vdrUrl !== videoSrc.src) {
             if (videoSrc.src.includes("_muted_onl")) {
                 videoSrc.src = "";
             } else {
-                videoSrc.src = url;
-                video.type = "video/webm";
+                node._vdrOwnSrc = node._vdrUrl;
+                videoSrc.src = node._vdrUrl;
                 window.start_video_quirk();
             }
         }
@@ -482,11 +1176,17 @@ function addVideoNodeTypeVideo(node, url) {
     }, false);
 
 
-    video && video.addEventListener && video.addEventListener('playing', function () {
+    video && video.addEventListener && video.addEventListener('playing', function (e) {
         console.log("video tag playing: " + video.playState);
+        if (e._vdrSynthetic) {
+            return;
+        }
+
         if (video.playState === PLAY_STATES.paused) {
+            let position = video.currentTime;
             console.log("window.cefResumeVideo()");
-            window.cefResumeVideo(String(video.currentTime));
+            window.cefResumeVideo(String(position));
+            video._vdrStatus.restart(position * 1000);
         } else {
             console.log("window.cefUnfreezeVideo()");
             window.cefUnfreezeDevice();
@@ -504,16 +1204,18 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('error', function (e) {
         console.log("error, URL: " + video.src);
-        console.log("error, NEW: " + url);
-        console.log("Identisch: " + video.src === url);
+        console.log("error, NEW: " + node._vdrUrl);
+        console.log("Identisch: " + (video.src === node._vdrUrl));
 
-        if (video.src !== url || video.src.endsWith(".mpd")) {
+        if (video.src !== node._vdrUrl || video.src.endsWith(".mpd")) {
             e.stopPropagation();
         }
 
-        if (video.src.endsWith(".mpd")) {
-            videoSrc.src = url;
-            video.type = "video/webm";
+        // The browser can't play the original url (e.g. H.264 or a manifest), VDR plays
+        // it already. Only an error of the transparent video ends the video.
+        if (node._vdrUrl && video.src !== node._vdrUrl && !video.src.includes("_muted_onl")) {
+            node._vdrOwnSrc = node._vdrUrl;
+            videoSrc.src = node._vdrUrl;
             window.start_video_quirk();
 
             return;
@@ -529,6 +1231,13 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('seeked', function () {
         console.log("video tag seeked" + video.currentTime);
+
+        // currentTime has sent the seek already
+        if (node._vdrSeekSent) {
+            node._vdrSeekSent = false;
+            return;
+        }
+
         console.log("window.cefSeekVideo()");
         window.cefSeekVideo(String(video.currentTime));
     }, false);
@@ -543,6 +1252,46 @@ function addVideoNodeTypeVideo(node, url) {
     */
 }
 
+
+// Applications set a new data at an existing object for the next video
+function checkChangedObjectData(summary) {
+    if (summary.attributeChanged === undefined || summary.attributeChanged.data === undefined) {
+        return;
+    }
+
+    summary.attributeChanged.data.forEach((node) => {
+        if (node.nodeName.toUpperCase() === 'OBJECT' && isNewObjectData(node)) {
+            console.log("checkChangedObjectData: new data " + node.data);
+            checkSingleObjectNode(node);
+        }
+    });
+}
+
+// ZDF sets a new src at the existing video element for the next video
+function checkChangedVideoSrc(summary) {
+    if (summary.attributeChanged === undefined || summary.attributeChanged.src === undefined) {
+        return;
+    }
+
+    if (!document.location.toString().includes("hbbtv.zdf.de") || !_vdrZdfQuirks()) {
+        return;
+    }
+
+    summary.attributeChanged.src.forEach((node) => {
+        if (node.nodeName.toUpperCase() !== 'VIDEO' || !node.src) {
+            return;
+        }
+
+        // ignore the changes done by this script
+        if (node.src === node._vdrOwnSrc || node.src.startsWith("http://localhost/movie/")) {
+            return;
+        }
+
+        console.log("checkChangedVideoSrc: new src " + node.src);
+        node.data = undefined;
+        checkSingleObjectNode(node);
+    });
+}
 
 function checkPositionObjectNode(summary) {
     // collect all nodes
@@ -580,37 +1329,31 @@ function checkAddedObjectNode(summaries) {
         return;
     }
 
-    let node = summaries.added[0];
-    checkSingleObjectNode(node);
+    // several objects may be added at once
+    summaries.added.forEach((node) => checkSingleObjectNode(node));
+}
+
+// A removed A/V object ends its video, like on a TV. A moved object (reparented) keeps it.
+function checkRemovedObjectNode(summary) {
+    if (!summary.removed) {
+        return;
+    }
+
+    summary.removed.forEach((node) => {
+        if (node._vdrManaged && !node._vdrStopped && typeof node.stop === 'function') {
+            console.log("checkRemovedObjectNode: stop the video of the removed object");
+            node.stop();
+        }
+    });
 }
 
 function checkSingleObjectNode(node) {
-    async function checkMpd(nodedata) {
-        let mpdStart = 0;
-
-        if (nodedata.endsWith(".mpd") || nodedata.indexOf("hbbtv.zdf.de/zdfm3/dyn/mpd.php") !== -1) {
-            const mpd = await fetch(nodedata);
-            const data = await mpd.text();
-
-            let parser = new DOMParser();
-            let xmlDoc = parser.parseFromString(data, "text/xml");
-
-            let timeShiftBufferDepth = xmlDoc.documentElement.getAttribute("timeShiftBufferDepth");
-            let periodStart = xmlDoc.getElementsByTagName("Period")[0].getAttribute("start");
-
-            let startTime = durationToSeconds(parseWithTinyDuration(periodStart));
-            mpdStart = durationToSeconds(parseWithTinyDuration(timeShiftBufferDepth)) - startTime;
-            console.log("timeShiftBufferDepth: " + timeShiftBufferDepth + ", periodStart: " + periodStart + ", mpdStart: " + mpdStart);
-        }
-
-        return mpdStart;
-    }
-
     if (node.type === 'video/broadcast') {
         console.log("Found TV on node: " + node);
         window.addVideoOverlay(node);
 
         addNodeFunctions(node);
+        addBroadcastFunctions(node);
         promoteVideoSize(node);
     } else if ((node.type === 'video/mpeg4') ||             // mpeg4 video
         (node.type === 'video/mp4') ||               // h.264 video
@@ -623,20 +1366,16 @@ function checkSingleObjectNode(node) {
         console.log("Node HTML: " + node.outerHTML);
 
         let location = document.location.toString();
-        let checkVideoTag = location.includes("hbbtv.zdf.de");
+        let checkVideoTag = location.includes("hbbtv.zdf.de") && _vdrZdfQuirks();
 
         if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
-            (async() => {
-                console.log("node.data = " + node.data);
-                if (node.data !== undefined) {
-                    console.log("window.cefStreamVideo()");
-                    let mpdStart = await checkMpd(node.data);
-                    let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
-                    addVideoNodeTypeObject(node, newUrl, node.data);
-                    addNodeFunctions(node);
-                    promoteVideoSize(node);
-                }
-            })();
+            console.log("node.data = " + node.data);
+            // an object without data gets it later (attribute change)
+            if (isNewObjectData(node)) {
+                addVideoNodeTypeObject(node, node.data);
+                addNodeFunctions(node);
+                promoteVideoSize(node);
+            }
         } else if (node.nodeName.toUpperCase() === 'video'.toUpperCase() && checkVideoTag) {
             (async() => {
                 // ZDF inserts a video node itself
@@ -647,8 +1386,13 @@ function checkSingleObjectNode(node) {
                 // the final url is base64 encoded, to prevent starting a dash player
                 if (node.src.includes("http://localhost/encoded/")) {
                     let url = node.src.substring(node.src.indexOf("http://localhost/encoded/") + "http://localhost/encoded/".length);
-                    url = "http:" + atob(url.substring(0, url.length - 4));
+                    url = atob(url.substring(0, url.length - 4));
+                    if (url.startsWith("//")) {
+                        // scheme relative url
+                        url = document.location.protocol + url;
+                    }
                     node.data = node.src;
+                    node._vdrOwnSrc = url;
                     node.src = url;
                 }
 
@@ -662,7 +1406,8 @@ function checkSingleObjectNode(node) {
                     // addVideoNodeTypeVideo(node, node.src, node.src);
                 } else if (node.data !== undefined) {
                     console.log("window.cefStreamVideo()");
-                    let mpdStart = await checkMpd(node.data);
+                    // node.data is the encoded localhost url, the manifest is node.src
+                    let mpdStart = await checkMpd(node.src);
                     let newUrl = window.cefStreamVideo(node.src, document.cookie, document.referrer, navigator.userAgent, mpdStart);
                     addVideoNodeTypeVideo(node, newUrl, node.src);
                     promoteVideoSize(node);
@@ -677,17 +1422,12 @@ function checkSingleObjectNode(node) {
         }
     } else if (node.type === 'video/webm') { // webm video
         // RTL changes only data attribute, but not the type
-        (async() => {
-            console.log("node.data = " + node.data);
-            if (node.data !== undefined) {
-                let mpdStart = await checkMpd(node.data);
-                console.log("window.cefStreamVideo()");
-                let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
-                addVideoNodeTypeObject(node, newUrl, node.data);
-                addNodeFunctions(node);
-                promoteVideoSize(node);
-            }
-        })();
+        console.log("node.data = " + node.data);
+        if (isNewObjectData(node)) {
+            addVideoNodeTypeObject(node, node.data);
+            addNodeFunctions(node);
+            promoteVideoSize(node);
+        }
     } else {
         // ignore all others
         console.log("Ignore type " + node.type);
@@ -700,6 +1440,9 @@ const ms = new MutationSummary({
             console.log(summary);
 
             checkAddedObjectNode(summary);
+            checkRemovedObjectNode(summary);
+            checkChangedVideoSrc(summary);
+            checkChangedObjectData(summary);
             checkPositionObjectNode(summary);
         });
     },
@@ -710,6 +1453,7 @@ const ms = new MutationSummary({
         },
         {
             element: 'video',
+            elementAttributes: 'src',
         },
     ]
 });

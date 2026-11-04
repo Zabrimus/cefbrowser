@@ -1,4 +1,5 @@
 #include "xhrinterception.h"
+#include "tools.h"
 #include "json.hpp"
 #include "logger.h"
 
@@ -25,7 +26,8 @@ void XhrInterception::modifyResponse() {
             TRACE("[XhrInterception] Json (flatten):\n{}", to_string(j_flat));
         }
 
-        if ((cprResponse.url.str().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (cprResponse.url.str().find("livestreams=true") != std::string::npos)) {
+        // ZDF special handling: the video URLs are hidden from the dash player
+        if (browserOptions.zdfQuirks && (cprResponse.url.str().find("new-hbbtv.zdf.de/al/video-pages/by-canonical") != std::string::npos) && (cprResponse.url.str().find("livestreams=true") != std::string::npos)) {
             for (auto& el : j_flat.items()) {
                 // std::cout << "key: " << el.key() << ", value:" << el.value() << '\n';
                 if (el.key().find("h264_aac_mp4_http_mpd_http") != std::string::npos && el.key().find("url") != std::string::npos) {
@@ -42,35 +44,30 @@ void XhrInterception::modifyResponse() {
             dataJson = j_flat.unflatten();
         }
 
+        // Only look at existing keys: operator[] inserts missing keys as null (the
+        // application then gets e.g. "data": null) and throws if the json is no object.
+        auto isObject = [](const nlohmann::ordered_json& j, const char* key) {
+            return j.is_object() && j.contains(key) && j[key].is_object();
+        };
+
         if (cprResponse.url.str().find("-hbbtv.zdf.de/ds/configuration") != std::string::npos) {
-            if (dataJson.find("dash") != dataJson.end()) {
+            if (browserOptions.zdfQuirks && dataJson.is_object() && dataJson.contains("dash")) {
                 dataJson["dash"] = false;
             }
         } else if (cprResponse.url.str().find("hbbtv.zdf.de") != std::string::npos) {
             // Version 1
-            if (dataJson["data"] != nullptr) {
+            if (isObject(dataJson, "data")) {
                 dataJson["data"].erase("ageControl");
             }
 
             // Version 2
-            if (dataJson["fsk"]["age"] != nullptr) {
-                dataJson["fsk"].erase("age");
-            }
-
-            if (dataJson["fsk"] != nullptr) {
+            if (dataJson.is_object() && dataJson.contains("fsk")) {
                 dataJson.erase("fsk");
             }
 
             // Version 3
-            if (dataJson.find("videoMetaData") != dataJson.end() && dataJson["videoMetaData"] != nullptr) {
+            if (isObject(dataJson, "videoMetaData")) {
                 dataJson["videoMetaData"].erase("fsk");
-            }
-        } else if (cprResponse.url.str().find("tv.ardmediathek.de/dyn/get?id=video") != std::string::npos) {
-            // Version 1
-            if (dataJson["video"]["meta"]["maturityContentRating"] != nullptr) {
-                // dataJson["video"]["meta"].erase("maturityContentRating");
-                // dataJson["video"]["meta"]["maturityContentRating"]["age"] = "6";
-                // dataJson["video"]["meta"]["maturityContentRating"]["isBlocked"] = false;
             }
         }
     } else {

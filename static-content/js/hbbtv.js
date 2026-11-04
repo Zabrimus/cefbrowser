@@ -41,47 +41,50 @@
     window.oipfObjectFactory.isObjectSupported = function (mimeType) {
         return mimeType === 'video/broadcast' ||
             mimeType === 'video/mpeg' ||
+            mimeType === 'video/mp4' ||
+            mimeType === 'video/mpeg4' ||
+            mimeType === 'audio/mp4' ||
+            mimeType === 'audio/mpeg' ||
+            mimeType === 'application/dash+xml' ||
             mimeType === 'application/oipfApplicationManager' ||
             mimeType === 'application/oipfCapabilities' ||
             mimeType === 'application/oipfConfiguration' ||
-            mimeType === 'application/oipfDrmAgent' ||
-            mimeType === 'application/oipfParentalControlManager' ||
-            mimeType === 'application/oipfSearchManager';
+            mimeType === 'application/oipfParentalControlManager';
     };
+
+    // The factory methods return embedded objects, which the application adds to
+    // the DOM. The video objects are detected and handled by videoobserver.js.
+    function createObject(mimeType) {
+        let obj = document.createElement('object');
+        obj.type = mimeType;
+        return obj;
+    }
+
     window.oipfObjectFactory.createVideoBroadcastObject = function () {
-        return class VideoBroadcastObject {
-            bindToCurrentChannel() { }
-            setChannel() { }
-            onblur(evt) { }
-            onfocus(evt) { }
-            addEventListener(eventName, callback, useCapture) {  }
-            removeEventListener(eventName, callback, useCapture) { }
-            onPlayStateChange(evt) { }
-            onPlaySpeedChanged(evt) { }
-            onPlaySpeedsArrayChanged(evt) { }
-            onPlayPositionChanged(evt) { }
-            onFullScreenChange(evt) { }
-            onParentalRatingChange(evt) { }
-            onParentalRatingError(evt) { }
-            onDRMRightsError(evt) { }
-        };
+        return createObject('video/broadcast');
     };
     window.oipfObjectFactory.createVideoMpegObject = function () {
-        return class VideoMpegObject {
-            onblur(evt) { }
-            onfocus(evt) { }
-            addEventListener(eventName, callback, useCapture) { }
-            removeEventListener(eventName, callback, useCapture) { }
-            onPlayStateChange(evt) { }
-            onPlaySpeedChanged(evt) { }
-            onPlaySpeedsArrayChanged(evt) { }
-            onPlayPositionChanged(evt) { }
-            onFullScreenChange(evt) { }
-            onParentalRatingChange(evt) { }
-            onParentalRatingError(evt) { }
-            onDRMRightsError(evt) { }
-        };
-        //return new VideoMpegObject();
+        return createObject('video/mp4');
+    };
+    window.oipfObjectFactory.createApplicationManagerObject = function () {
+        let obj = createObject('application/oipfApplicationManager');
+        mixin(window.oipfApplicationManager, obj);
+        return obj;
+    };
+    window.oipfObjectFactory.createConfigurationObject = function () {
+        let obj = createObject('application/oipfConfiguration');
+        mixin(window.oipfConfiguration, obj);
+        return obj;
+    };
+    window.oipfObjectFactory.createParentalControlManagerObject = function () {
+        let obj = createObject('application/oipfParentalControlManager');
+        mixin(window.oipfParentalControlManager, obj);
+        return obj;
+    };
+    window.oipfObjectFactory.createCapabilitiesObject = function () {
+        let obj = createObject('application/oipfCapabilities');
+        mixin(window.oipfCapabilities, obj);
+        return obj;
     };
     window.oipfObjectFactory.onLowMemory = function () {
         // FIXME: see when we can generate this event (maybe inside the Web Inspector panel)
@@ -130,11 +133,26 @@
     keyset.NUMERIC = 0x100;
     keyset.ALPHA = 0x200;
     keyset.OTHER = 0x400;
-    keyset.value = 0x1f;
-    keyset.setValue = function (value) {
-        keyset.value = value;
+    keyset.maximumValue = 0x1ff;
+    keyset.otherKeys = [];
+    keyset.supportsPointer = false;
+
+    // Keys not in the keyset are handled by VDR (e.g. numeric keys switch the channel).
+    // Without setValue() an application gets all keys except the numeric keys.
+    keyset.value = 0xff;
+    keyset.setValue = function (value, otherKeys) {
+        keyset.value = value & keyset.maximumValue;
         window.HBBTV_POLYFILL_NS.keysetSetValueCount++;
+        if (window.cefSetKeySet) {
+            window.cefSetKeySet(keyset.value);
+        }
+        return keyset.value;
     };
+
+    // a new page starts with the default keyset
+    if (window.cefSetKeySet) {
+        window.cefSetKeySet(keyset.value);
+    }
     Object.defineProperties(Application.prototype.privateData, {
         '_document': {
             value: null,
@@ -194,18 +212,30 @@
                 let args = (app[3] ? app[3] : "");
 
                 window.cefStartApp(channelId, appid, args);
+                return new Application(document);
             }
+        } else if (/^https?:\/\//i.test(uri)) {
+            // broadcast independent application
+            window.cefLoadUrl(uri);
+            return new Application(document);
         }
+
+        return null;
     };
 
     Application.prototype.destroyApplication = function () {
         delete this._applicationUrl;
 
-        // destroy the whole page and set a flag
-        document.body.innerText = "";
-        document.head.innerText = "";
-
-        // signalCef("DESTROY_APP");
+        // Like a TV: the application ends and the autostart application of the
+        // current channel is started again (it shows usually only the red button hint).
+        let channel = window.HBBTV_POLYFILL_NS.currentChannel;
+        if (window.cefDestroyApp) {
+            window.cefDestroyApp(channel && channel.channelId ? channel.channelId : "");
+        } else {
+            // destroy the whole page
+            document.body.innerText = "";
+            document.head.innerText = "";
+        }
     };
 
     window.Application = Application;
@@ -238,31 +268,27 @@
     // we don't have a local storage
     // var storedCapabilities = window.localStorage.getItem('tvViewer_capabilities'); // FIXME: use tvViewer_caps object
     var storedCapabilities = null;
+    // Only claim what really works: no DRM (CI+, Marlin, ...), no PVR, no UHD decoding.
+    // Applications choose their streams by these capabilities.
     var currentCapabilities = storedCapabilities ||
         '<profilelist>' +
-        '<ui_profile name="OITF_HD_UIPROF+META_SI+META_EIT+TRICKMODE+RTSP+AVCAD+DRM+DVB_T">' +
+        '<ui_profile name="OITF_HD_UIPROF+META_SI+META_EIT+TRICKMODE">' +
         '<ext>' +
         '<colorkeys>true</colorkeys>' +
+        '<video_broadcast type="ID_DVB_S" scaling="arbitrary" minSize="0">true</video_broadcast>' +
+        '<video_broadcast type="ID_DVB_C" scaling="arbitrary" minSize="0">true</video_broadcast>' +
         '<video_broadcast type="ID_DVB_T" scaling="arbitrary" minSize="0">true</video_broadcast>' +
         '<parentalcontrol schemes="dvb-si">true</parentalcontrol>' +
         '</ext>' +
-        '<drm DRMSystemID="urn:dvb:casystemid:19219">TS MP4</drm>' +
-        '<drm DRMSystemID="urn:dvb:casystemid:1664" protectionGateways="ci+">TS</drm>' +
         '</ui_profile>' +
         '<audio_profile name=\"MPEG1_L3\" type=\"audio/mpeg\"/>' +
         '<audio_profile name=\"HEAAC\" type=\"audio/mp4\"/>' +
         '<video_profile name=\"TS_AVC_SD_25_HEAAC\" type=\"video/mpeg\"/>' +
         '<video_profile name=\"TS_AVC_HD_25_HEAAC\" type=\"video/mpeg\"/>' +
-        '<video_profile name=\"TS_AVC_UHD_25_HEAAC\" type=\"video/mpeg\"/>' +
         '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\"/>' +
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\"/>' +
-        '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\"/>' +
         '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
         '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
-        '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\"/>' +
-        '<video_profile name=\"MP4_AVC_SD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
-        '<video_profile name=\"MP4_AVC_HD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
-        '<video_profile name=\"MP4_AVC_UHD_25_HEAAC\" type=\"video/mp4\" transport=\"dash\" DRMSystemID=\"urn:dvb:casystemid:19219\"/>' +
         '</profilelist>';
     //'html5_media>true</html5_media>' +
 
@@ -285,6 +311,36 @@
 
 
     // 7.9.1 The application/oipfParentalControlManager embedded object ------------
+    // VDR has no parental control: nothing is blocked, the threshold allows everything.
+    window.oipfParentalControlManager = window.oipfParentalControlManager || {};
+
+    (function (pcm) {
+        let threshold = { name: "18", scheme: "dvb-si", value: 15, labels: 0, region: "de" };
+        let dvbSi = {
+            name: "dvb-si",
+            threshold: threshold,
+            length: 15,
+            iconUri: () => null,
+            indexOf: (name) => { let age = parseInt(name, 10); return (age >= 4 && age <= 18) ? age - 4 : -1; },
+            item: (i) => (i >= 0 && i < 15) ? String(i + 4) : null
+        };
+
+        let schemes = [dvbSi];
+        schemes.item = (i) => schemes[i] || null;
+        schemes.getParentalRatingScheme = (name) => schemes.find((x) => x.name === name) || null;
+        schemes.addParentalRatingScheme = () => null;
+
+        pcm.parentalRatingSchemes = schemes;
+        pcm.isPINEntryLocked = false;
+        pcm.getParentalControlStatus = () => false;
+        pcm.getBlockUnrated = () => false;
+        // 0 = correct (there is no PIN), 1 = incorrect, 2 = locked
+        pcm.verifyParentalControlPIN = () => 0;
+        pcm.setParentalControlStatus = () => 0;
+        pcm.setParentalControlPIN = () => 0;
+        pcm.unlockWithParentalControlPIN = () => 0;
+        pcm.setBlockUnrated = () => 0;
+    })(window.oipfParentalControlManager);
 
 
     // 7.10.1 The application/oipfRecordingScheduler embedded object (+PVR) --------
@@ -330,6 +386,9 @@
 
         if (sType === "application/oipfApplicationManager") {
             mixin(window.oipfApplicationManager, oipfPluginObject);
+            oipfPluginObject.style.visibility = "hidden";
+        } else if (sType === "application/oipfParentalControlManager") {
+            mixin(window.oipfParentalControlManager, oipfPluginObject);
             oipfPluginObject.style.visibility = "hidden";
         } else if (sType === "application/oipfConfiguration") {
             mixin(window.oipfConfiguration, oipfPluginObject);
