@@ -954,13 +954,30 @@ function addVideoNodeTypeVideo(node, url) {
         configurable: true,
         get: function () {
             let pos = node._vdrStatus ? node._vdrStatus.position() : -1;
-            return pos >= 0 ? pos / 1000 : currentTime.get.call(node);
+            if (pos >= 0) {
+                node._vdrTime = pos / 1000;
+                return node._vdrTime;
+            }
+            // after a seek VDR reports no position for a moment: the target, not the
+            // time of the transparent video (it may not be seekable)
+            if (node._vdrStatus && node._vdrStatus.active && node._vdrTime !== undefined) {
+                return node._vdrTime;
+            }
+            return currentTime.get.call(node);
         },
         set: function (value) {
             if (node._vdrStatus) {
                 node._vdrStatus.restart(value * 1000);
                 node._vdrEnded = false;
             }
+            node._vdrTime = Number(value);
+
+            // the seek with the requested position, the 'seeked' event of the
+            // transparent video may report another one
+            node._vdrSeekSent = true;
+            console.log("window.cefSeekVideo()");
+            window.cefSeekVideo(String(value));
+
             currentTime.set.call(node, value);
         }
     });
@@ -1148,6 +1165,13 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('seeked', function () {
         console.log("video tag seeked" + video.currentTime);
+
+        // currentTime has sent the seek already
+        if (node._vdrSeekSent) {
+            node._vdrSeekSent = false;
+            return;
+        }
+
         console.log("window.cefSeekVideo()");
         window.cefSeekVideo(String(video.currentTime));
     }, false);
