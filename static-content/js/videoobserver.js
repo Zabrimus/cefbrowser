@@ -579,7 +579,9 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     window._vdrActiveMedia = onVdrStatus;
 
     video.type = "video/webm";
-    video.src = url;
+    if (url) {
+        video.src = url;
+    }
     // video.autoplay = false;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
     video.preload = "auto";
@@ -596,12 +598,28 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         (async () => {
             let mpdStart = await checkMpd(originalUrl);
             let newUrl = window.cefStreamVideo(originalUrl, document.cookie, document.referrer, navigator.userAgent, mpdStart);
+            if (!newUrl) {
+                startFailed();
+                return;
+            }
             video.src = newUrl;
             video.load();
             video.play().catch((e) => {
-                console.error(e.message);
+                console.log(e.message);
             });
         })();
+    }
+
+    // the transcoder can't play the url: the error state, play() tries again
+    function startFailed() {
+        console.log("Unable to start the video " + originalUrl);
+        node._vdrStopped = true;
+        if (window._vdrActiveMedia === onVdrStatus) {
+            window._vdrActiveMedia = null;
+        }
+        node.error = 5;     // content not available
+        node.playState = PLAY_STATES.error;
+        notifyPlayState();
     }
 
     // HbbTV: speed and onPlaySpeedChanged tell the speed which is really used
@@ -734,7 +752,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("Video event pause");
 
-        if (node._vdrStopped || video._vdrDead || node._vdrEnded) {
+        if (node._vdrStopped || video._vdrDead || node._vdrEnded || node.playState === PLAY_STATES.error) {
             return;
         }
 
@@ -841,9 +859,16 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
 
     node.append(video);
 
+    if (!url) {
+        startFailed();
+        return;
+    }
+
     setTimeout(() => {
         video.load();
-        video.play();
+        video.play().catch((e) => {
+            console.log(e.message);
+        });
     }, 0);
 }
 
