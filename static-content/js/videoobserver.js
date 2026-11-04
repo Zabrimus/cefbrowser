@@ -1129,10 +1129,11 @@ function addVideoNodeTypeVideo(node, url) {
             e.stopPropagation();
         }
 
-        if (video.src.endsWith(".mpd")) {
+        // The browser can't play the original url (e.g. H.264 or a manifest), VDR plays
+        // it already. Only an error of the transparent video ends the video.
+        if (node._vdrUrl && video.src !== node._vdrUrl && !video.src.includes("_muted_onl")) {
             node._vdrOwnSrc = node._vdrUrl;
             videoSrc.src = node._vdrUrl;
-            video.type = "video/webm";
             window.start_video_quirk();
 
             return;
