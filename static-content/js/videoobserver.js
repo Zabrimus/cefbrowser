@@ -1042,7 +1042,6 @@ function addVideoNodeTypeVideo(node, url) {
             } else {
                 node._vdrOwnSrc = node._vdrUrl;
                 videoSrc.src = node._vdrUrl;
-                video.type = "video/webm";
                 window.start_video_quirk();
             }
         }
