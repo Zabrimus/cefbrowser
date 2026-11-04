@@ -453,6 +453,45 @@ function isNewObjectData(node) {
     return !!data && !/^https?:\/\/gibbet\.nix\/?$/.test(data) && !data.startsWith("http://localhost/movie/");
 }
 
+const AV_OBJECT_TYPES = ['video/mpeg4', 'video/mp4', 'audio/mp4', 'audio/mpeg', 'application/dash+xml', 'video/mpeg'];
+
+// HbbTV: an A/V object plays after play(). The application may call play() before
+// the MutationSummary has found the object, the call is remembered until then.
+(function () {
+    const early = {
+        play: function (speed) {
+            speed = (speed === undefined) ? 1 : Number(speed);
+            if (speed !== 0 && speed !== 1) {
+                return false;
+            }
+            this._vdrPendingSpeed = speed;
+            return true;
+        },
+        stop: function () {
+            this._vdrPendingSpeed = undefined;
+            return true;
+        },
+        seek: function () {
+            return false;
+        },
+    };
+
+    Object.keys(early).forEach((name) => {
+        if (name in HTMLObjectElement.prototype) {
+            return;
+        }
+        Object.defineProperty(HTMLObjectElement.prototype, name, {
+            configurable: true,
+            get: function () {
+                return (this._vdrManaged || AV_OBJECT_TYPES.includes(this.type)) ? early[name] : undefined;
+            },
+            set: function (value) {
+                Object.defineProperty(this, name, { value: value, writable: true, configurable: true, enumerable: true });
+            },
+        });
+    });
+})();
+
 // Playback status reported by VDR: the position of the displayed picture, buffering
 // and the end of the video. The transparent video in the browser runs independently.
 function VdrStatus() {
@@ -499,10 +538,16 @@ const VDR_STATE_PLAYING = 0;
 const VDR_STATE_BUFFERING = 2;
 const VDR_STATE_ENDED = 3;
 
-function addVideoNodeTypeObject(node, url, originalUrl) {
+function addVideoNodeTypeObject(node, originalUrl) {
     // The application may set a new data at the same object for the next video.
     // Replace the functions and ignore the events of the previous internal video.
+    // HbbTV: the running video stops, the next one starts with play().
     if (node._vdrManaged) {
+        if (!node._vdrStopped) {
+            console.log("window.cefStopVideo()");
+            window.cefStopVideo();
+        }
+
         let old = node.querySelector('video');
         if (old) {
             old._vdrDead = true;
@@ -514,7 +559,6 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         delete node.play;
         delete node.stop;
         delete node.seek;
-        node._vdrStopped = false;
     }
     node._vdrManaged = true;
     window.addComponentFunctions(node, false);
@@ -576,18 +620,13 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         }
     }
 
-    window._vdrActiveMedia = onVdrStatus;
-
     video.type = "video/webm";
-    if (url) {
-        video.src = url;
-    }
     // video.autoplay = false;
     video.style = 'top:0px; left:0px; width:100%; height:100%;';
     video.preload = "auto";
 
-    // restart the stream after stop(), like a TV restarts the current data
-    function restartAfterStop() {
+    // start the stream with play(), also again after stop() or an error
+    function startStream() {
         node._vdrStopped = false;
         node._vdrEnded = false;
         vdr = new VdrStatus();
@@ -646,7 +685,7 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
     // The applications use seek() for other speeds.
     Object.defineProperty(node, 'playSpeeds', { configurable: true, get: () => [0, 1] });
 
-    node.play = node.play || function (speed) {
+    node.play = function (speed) {
         console.log("Node Play Speed " + speed);
         speed = (speed === undefined) ? 1 : Number(speed);
 
@@ -655,9 +694,17 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
             return false;
         }
 
-        if (speed === 1 && node._vdrStopped) {
-            restartAfterStop();
-            changeSpeed(1);
+        // the application has set a new data, the object isn't set up for it yet
+        if (isNewObjectData(node) && node.data !== originalUrl) {
+            node._vdrPendingSpeed = speed;
+            return true;
+        }
+
+        if (node._vdrStopped) {
+            if (speed === 1) {
+                startStream();
+                changeSpeed(1);
+            }
             return true;
         }
 
@@ -695,8 +742,19 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         return true;
     };
 
-    node.stop = node.stop || function () {
+    node.stop = function () {
         console.log("Node Stop ");
+        node._vdrPendingSpeed = undefined;
+
+        if (node._vdrStopped) {
+            // nothing runs (stopped, error): don't stop the video of another object
+            if (node.playState !== PLAY_STATES.stopped) {
+                node.playState = PLAY_STATES.stopped;
+                notifyPlayState();
+            }
+            return true;
+        }
+
         console.log("window.cefStopVideo()");
         window.cefStopVideo();
 
@@ -723,7 +781,11 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
         return true;
     }
 
-    node.seek = node.seek || function (posInMs) {
+    node.seek = function (posInMs) {
+        if (node._vdrStopped) {
+            return false;
+        }
+
         console.log("Node seek video " + video.currentTime + ", node " + node.playPosition + " --> " + posInMs + " ==> " + (posInMs / 1000));
 
         console.log("window.cefSeekVideo()");
@@ -863,17 +925,21 @@ function addVideoNodeTypeObject(node, url, originalUrl) {
 
     node.append(video);
 
-    if (!url) {
-        startFailed();
-        return;
+    // HbbTV: the object is stopped until play()
+    let previousState = node.playState;
+    node._vdrStopped = true;
+    node.playState = PLAY_STATES.stopped;
+    node.playPosition = 0;
+    node.speed = 0;
+    if (previousState !== undefined && previousState !== PLAY_STATES.stopped) {
+        notifyPlayState();
     }
 
-    setTimeout(() => {
-        video.load();
-        video.play().catch((e) => {
-            console.log(e.message);
-        });
-    }, 0);
+    let pendingSpeed = node._vdrPendingSpeed;
+    delete node._vdrPendingSpeed;
+    if (pendingSpeed === 1) {
+        node.play(1);
+    }
 }
 
 function _vdrDispatch(video, type) {
@@ -1303,18 +1369,13 @@ function checkSingleObjectNode(node) {
         let checkVideoTag = location.includes("hbbtv.zdf.de") && _vdrZdfQuirks();
 
         if (node.nodeName.toUpperCase() === 'object'.toUpperCase()) {
-            (async() => {
-                console.log("node.data = " + node.data);
-                // an object without data gets it later (attribute change)
-                if (isNewObjectData(node)) {
-                    console.log("window.cefStreamVideo()");
-                    let mpdStart = await checkMpd(node.data);
-                    let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
-                    addVideoNodeTypeObject(node, newUrl, node.data);
-                    addNodeFunctions(node);
-                    promoteVideoSize(node);
-                }
-            })();
+            console.log("node.data = " + node.data);
+            // an object without data gets it later (attribute change)
+            if (isNewObjectData(node)) {
+                addVideoNodeTypeObject(node, node.data);
+                addNodeFunctions(node);
+                promoteVideoSize(node);
+            }
         } else if (node.nodeName.toUpperCase() === 'video'.toUpperCase() && checkVideoTag) {
             (async() => {
                 // ZDF inserts a video node itself
@@ -1361,17 +1422,12 @@ function checkSingleObjectNode(node) {
         }
     } else if (node.type === 'video/webm') { // webm video
         // RTL changes only data attribute, but not the type
-        (async() => {
-            console.log("node.data = " + node.data);
-            if (isNewObjectData(node)) {
-                let mpdStart = await checkMpd(node.data);
-                console.log("window.cefStreamVideo()");
-                let newUrl = window.cefStreamVideo(node.data, document.cookie, document.referrer, navigator.userAgent, mpdStart);
-                addVideoNodeTypeObject(node, newUrl, node.data);
-                addNodeFunctions(node);
-                promoteVideoSize(node);
-            }
-        })();
+        console.log("node.data = " + node.data);
+        if (isNewObjectData(node)) {
+            addVideoNodeTypeObject(node, node.data);
+            addNodeFunctions(node);
+            promoteVideoSize(node);
+        }
     } else {
         // ignore all others
         console.log("Ignore type " + node.type);
