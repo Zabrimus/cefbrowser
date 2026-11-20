@@ -376,6 +376,32 @@
             }
         }
     }
+    // The OIPF objects get their functions by their type, also an object which the
+    // application inserts later (e.g. by innerHTML) or uses before this script runs.
+    const oipfObjects = {
+        'application/oipfApplicationManager': window.oipfApplicationManager,
+        'application/oipfConfiguration': window.oipfConfiguration,
+        'application/oipfCapabilities': window.oipfCapabilities,
+        'application/oipfParentalControlManager': window.oipfParentalControlManager
+    };
+    const oipfNames = new Set();
+    Object.keys(oipfObjects).forEach((type) => Object.keys(oipfObjects[type]).forEach((name) => oipfNames.add(name)));
+    oipfNames.forEach((name) => {
+        if (name in HTMLObjectElement.prototype) {
+            return;
+        }
+        Object.defineProperty(HTMLObjectElement.prototype, name, {
+            configurable: true,
+            get: function () {
+                const source = oipfObjects[this.type];
+                return source && Object.prototype.hasOwnProperty.call(source, name) ? source[name] : undefined;
+            },
+            set: function (value) {
+                Object.defineProperty(this, name, { value: value, writable: true, configurable: true, enumerable: true });
+            }
+        });
+    });
+
     // Introspection: looking for existing objects ...
     var objects = document.getElementsByTagName("object");
     for (var i = 0; i < objects.length; i++) {
@@ -393,10 +419,9 @@
         } else if (sType === "application/oipfConfiguration") {
             mixin(window.oipfConfiguration, oipfPluginObject);
             oipfPluginObject.style.visibility = "hidden";
-        } else if (sType === "oipfCapabilities") {
+        } else if (sType === "application/oipfCapabilities") {
             mixin(window.oipfCapabilities, oipfPluginObject);
             oipfPluginObject.style.visibility = "hidden";
-            break;
         }
     }
 })();
