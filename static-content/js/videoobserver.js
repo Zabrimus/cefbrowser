@@ -324,12 +324,11 @@ function addBroadcastFunctions(node) {
     window._vdrBroadcastNodes.add(node);
     addStreamEventFunctions(node);
 
-    // 0 = unrealized, 2 = presenting
+    // 0 = unrealized, 2 = presenting, 3 = stopped
     node.playState = 0;
 
-    const bind = node.bindToCurrentChannel;
-    node.bindToCurrentChannel = function () {
-        node.playState = 2;
+    const setState = function (state) {
+        node.playState = state;
         if (typeof node.onPlayStateChange === 'function') {
             node.onPlayStateChange(node.playState, 0);
         }
@@ -337,8 +336,39 @@ function addBroadcastFunctions(node) {
         event.state = node.playState;
         event.error = 0;
         node.dispatchEvent(event);
+    };
 
+    const bind = node.bindToCurrentChannel;
+    node.bindToCurrentChannel = function () {
+        setState(2);
         return bind ? bind.call(node) : window.HBBTV_POLYFILL_NS.currentChannel;
+    };
+
+    // Applications stop the broadcast before a video. VDR shows the live TV until
+    // the video starts, the state is what the application expects.
+    node.stop = function () {
+        if (node.playState !== 0 && node.playState !== 3) {
+            setState(3);
+        }
+    };
+
+    node.release = function () {
+        if (node.playState !== 0) {
+            setState(0);
+        }
+    };
+
+    // setChannel(null) releases the broadcast, a channel switch isn't supported
+    const setChannel = node.setChannel;
+    node.setChannel = function (channel) {
+        if (channel === null) {
+            node.release();
+            return;
+        }
+        console.log('Node setChannel() is not supported');
+        if (setChannel) {
+            setChannel.apply(node, arguments);
+        }
     };
 
     node.getChannelConfig = node.getChannelConfig || function () {
