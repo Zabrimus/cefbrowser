@@ -291,6 +291,9 @@ void BrowserApp::OnContextCreated(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFr
     CefRefPtr<CefV8Value> streamEventFilter = CefV8Value::CreateFunction("StreamEventFilter", handler);
     object->SetValue("cefStreamEventFilter", streamEventFilter, V8_PROPERTY_ATTRIBUTE_NONE);
 
+    CefRefPtr<CefV8Value> setChannel = CefV8Value::CreateFunction("SetChannel", handler);
+    object->SetValue("cefSetChannel", setChannel, V8_PROPERTY_ATTRIBUTE_NONE);
+
     CefRefPtr<CefV8Value> mseStart = CefV8Value::CreateFunction("MseStart", handler);
     object->SetValue("cefMseStart", mseStart, V8_PROPERTY_ATTRIBUTE_NONE);
 }

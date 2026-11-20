@@ -141,6 +141,60 @@ function _vdrProgrammes() {
 window._vdrBroadcastNodes = new Set();
 
 // VDR sends new data of the current channel, e.g. a new present programme
+// a channel of setChannel() or createChannelObject(): the DVB triplet, VDR finds the channel
+function _vdrChannelObject(idType, onid, tsid, sid) {
+    return { channelType: 0, idType: idType, onid: onid, tsid: tsid, sid: sid, nid: onid, name: '', longName: '', ccid: '', channelId: '' };
+}
+
+function _vdrSameChannel(a, b) {
+    if (a.channelId && b.channelId) {
+        return a.channelId === b.channelId;
+    }
+    return Number(a.onid) === Number(b.onid) && Number(a.tsid) === Number(b.tsid) && Number(a.sid) === Number(b.sid);
+}
+
+function _vdrChannelEvent(node, type, channel, error) {
+    let handler = node['on' + type];
+    if (typeof handler === 'function') {
+        if (error === undefined) {
+            handler.call(node, channel);
+        } else {
+            handler.call(node, channel, error);
+        }
+    }
+
+    let event = new Event(type);
+    event.channel = channel;
+    if (error !== undefined) {
+        event.errorState = error;
+    }
+    node.dispatchEvent(event);
+}
+
+// VDR has switched the channel (setChannel() or the user): the bound video/broadcast
+// objects present the new channel
+window._vdrChannelSwitched = function (channel) {
+    if (!channel) {
+        return;
+    }
+    window.HBBTV_POLYFILL_NS.currentChannel = channel;
+
+    window._vdrBroadcastNodes.forEach((node) => {
+        if (!node.isConnected) {
+            window._vdrBroadcastNodes.delete(node);
+            return;
+        }
+
+        if (node.playState === 0 && !node._vdrPendingChannel) {
+            return;
+        }
+
+        node._vdrPendingChannel = null;
+        node._vdrSetState(2);
+        _vdrChannelEvent(node, 'ChannelChangeSucceeded', channel);
+    });
+};
+
 window._vdrChannelUpdate = function (channel) {
     let current = window.HBBTV_POLYFILL_NS.currentChannel;
     if (!channel || !current || channel.channelId !== current.channelId) {
@@ -328,6 +382,9 @@ function addBroadcastFunctions(node) {
     node.playState = 0;
 
     const setState = function (state) {
+        if (node.playState === state) {
+            return;
+        }
         node.playState = state;
         if (typeof node.onPlayStateChange === 'function') {
             node.onPlayStateChange(node.playState, 0);
@@ -358,17 +415,43 @@ function addBroadcastFunctions(node) {
         }
     };
 
-    // setChannel(null) releases the broadcast, a channel switch isn't supported
-    const setChannel = node.setChannel;
+    node._vdrSetState = setState;
+
+    // setChannel(null) releases the broadcast, another channel is switched by VDR.
+    // The success follows with the new channel (_vdrChannelSwitched).
     node.setChannel = function (channel) {
-        if (channel === null) {
+        if (channel === null || channel === undefined) {
             node.release();
             return;
         }
-        console.log('Node setChannel() is not supported');
-        if (setChannel) {
-            setChannel.apply(node, arguments);
+
+        let current = window.HBBTV_POLYFILL_NS.currentChannel;
+        if (current && _vdrSameChannel(channel, current)) {
+            setState(2);
+            _vdrChannelEvent(node, 'ChannelChangeSucceeded', current);
+            return;
         }
+
+        setState(1);
+        node._vdrPendingChannel = channel;
+
+        let switched = typeof window.cefSetChannel === 'function' &&
+            window.cefSetChannel(channel.channelId || '', Number(channel.onid) || 0, Number(channel.tsid) || 0, Number(channel.sid) || 0);
+
+        if (!switched) {
+            // 5: unknown channel
+            node._vdrPendingChannel = null;
+            setState(0);
+            _vdrChannelEvent(node, 'ChannelChangeError', channel, 5);
+        }
+    };
+
+    // createChannelObject(idType, onid, tsid, sid, ...) or (idType, dsd, sid)
+    node.createChannelObject = function (idType, a, b, c) {
+        if (arguments.length >= 4) {
+            return _vdrChannelObject(idType, Number(a), Number(b), Number(c));
+        }
+        return _vdrChannelObject(idType, 0, 0, Number(b));
     };
 
     node.getChannelConfig = node.getChannelConfig || function () {
@@ -377,7 +460,9 @@ function addBroadcastFunctions(node) {
 
         list.item = (i) => list[i] || null;
         list.getChannel = (id) => list.find((c) => c.channelId === id) || null;
-        list.getChannelByTriplet = (onid, tsid, sid) => list.find((c) => c.onid === onid && c.tsid === tsid && c.sid === sid) || null;
+        // only the current channel is known, another one is found by VDR at setChannel()
+        list.getChannelByTriplet = (onid, tsid, sid) => list.find((c) => c.onid === onid && c.tsid === tsid && c.sid === sid) ||
+            _vdrChannelObject(12, onid, tsid, sid);
 
         return {
             channelList: list,

@@ -406,6 +406,12 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         transcoderClient->AudioInfo(result, streamId);
         retval = CefV8Value::CreateString(result);
         return true;
+    } else if (name == "SetChannel") {
+        // setChannel() of video/broadcast: channel id, onid, tsid, sid. VDR switches synchronously.
+        bool result = vdrClient->SwitchChannel(arg(0)->IsString() ? arg(0)->GetStringValue().ToString() : "",
+                                               arg(1)->GetIntValue(), arg(2)->GetIntValue(), arg(3)->GetIntValue());
+        retval = CefV8Value::CreateBool(result);
+        return true;
     } else if (name == "StreamEventFilter") {
         bool result = false;
         if (arguments.size() >= 2) {

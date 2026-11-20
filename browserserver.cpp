@@ -310,6 +310,13 @@ bool BrowserServer::InsertChannel(const InsertChannelType &input) {
         stopType.reason = "ChannelSwitch";
         StopVideo(stopType);
 
+        // the running application gets the new channel (video/broadcast: ChannelChangeSucceeded)
+        if (!lastInsertChannel.empty()) {
+            if (CefRefPtr<CefBrowser> browser = getCurrentBrowser()) {
+                executeJavaScriptOnUi(browser, "window._vdrChannelSwitched && window._vdrChannelSwitched(" + input.channel + ");");
+            }
+        }
+
         lastInsertChannel = channelId;
     } else if (CefRefPtr<CefBrowser> browser = getCurrentBrowser()) {
         // new data of the current channel (e.g. the present programme) for the running application
