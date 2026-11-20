@@ -1,3 +1,4 @@
+#include <mutex>
 #include <chrono>
 #include <algorithm>
 #include "browserclient.h"
@@ -385,6 +386,21 @@ bool BrowserClient::OnBeforeBrowse(CefRefPtr<CefBrowser> browser, CefRefPtr<CefF
 
 void BrowserClient::OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string) {
     CRITICAL("[Crash] Render process terminated, errorcode: {}, error message: {}", error_code, error_string.ToString());
+}
+
+static std::mutex pageTitleMutex;
+static std::string pageTitle;
+
+std::string CurrentPageTitle() {
+    std::lock_guard<std::mutex> lock(pageTitleMutex);
+    return pageTitle;
+}
+
+void BrowserClient::OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString &title) {
+    DEBUG("Page title: {}", title.ToString());
+
+    std::lock_guard<std::mutex> lock(pageTitleMutex);
+    pageTitle = title.ToString();
 }
 
 void BrowserClient::OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString &value) {

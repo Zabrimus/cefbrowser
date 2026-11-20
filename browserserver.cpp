@@ -433,5 +433,5 @@ bool BrowserServer::SetBrowserOptions(const BrowserOptionsType &input) {
 }
 
 void BrowserServer::PageTitle(std::string &_return) {
-    _return.clear();
+    _return = CurrentPageTitle();
 }
