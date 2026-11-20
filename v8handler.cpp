@@ -117,23 +117,28 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
 
     std::string streamId = bParam.browserIp + "_" + std::to_string(bParam.browserPort);
 
+    // a missing argument of a page is undefined: at() would throw and end the renderer
+    auto arg = [&arguments](size_t i) -> CefRefPtr<CefV8Value> {
+        return i < arguments.size() && arguments[i] != nullptr ? arguments[i] : CefV8Value::CreateUndefined();
+    };
+
     if (name == "StreamVideo") {
         videoMse = false;
 
         if (!arguments.empty()) {
-            const auto& urlParam = arguments.at(0);
+            const auto& urlParam = arg(0);
             auto url = urlParam.get()->GetStringValue();
 
-            const auto& cookiesParam = arguments.at(1);
+            const auto& cookiesParam = arg(1);
             auto cookies = cookiesParam.get()->GetStringValue();
 
-            const auto& refererParam = arguments.at(2);
+            const auto& refererParam = arg(2);
             auto referer = refererParam.get()->GetStringValue();
 
-            const auto& userAgentParam = arguments.at(3);
+            const auto& userAgentParam = arg(3);
             auto userAgent = userAgentParam.get()->GetStringValue();
 
-            const auto& mpdStartParam = arguments.at(4);
+            const auto& mpdStartParam = arg(4);
             auto mpdStart = mpdStartParam.get()->GetIntValue();
 
             // if video is pause, then some special handling is necessary
@@ -202,14 +207,14 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         std::vector<std::string> tracks;
         std::string duration = "N/A";
 
-        if (!arguments.empty() && arguments.at(0)->IsArray()) {
-            for (int i = 0; i < arguments.at(0)->GetArrayLength(); ++i) {
-                tracks.push_back(arguments.at(0)->GetValue(i)->GetStringValue().ToString());
+        if (!arguments.empty() && arg(0)->IsArray()) {
+            for (int i = 0; i < arg(0)->GetArrayLength(); ++i) {
+                tracks.push_back(arg(0)->GetValue(i)->GetStringValue().ToString());
             }
         }
 
-        if (arguments.size() >= 2 && arguments.at(1)->IsString()) {
-            duration = arguments.at(1)->GetStringValue().ToString();
+        if (arguments.size() >= 2 && arg(1)->IsString()) {
+            duration = arg(1)->GetStringValue().ToString();
         }
 
         bool playerReset = false;
@@ -284,7 +289,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
     } else if (name == "ResumeVideo") {
         isVideoPaused = false;
 
-        const auto &param = arguments.at(0);
+        const auto &param = arg(0);
         auto position = param.get()->GetStringValue().ToString();
 
         DEBUG("RESUME at timestamp {}", position);
@@ -305,7 +310,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         isVideoPaused = false;
 
         if (!arguments.empty()) {
-            const auto& param = arguments.at(0);
+            const auto& param = arg(0);
             auto position = param.get()->GetStringValue().ToString();
 
             DEBUG("V8Handler::Execute SeekVideo Argument Pos {}", position);
@@ -320,7 +325,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         return true;
     } else if (name == "RedButton") {
         if (!arguments.empty()) {
-            const auto& param = arguments.at(0);
+            const auto& param = arg(0);
             auto channelId = param.get()->GetStringValue().ToString();
 
             DEBUG("V8Handler::Execute RedButton Argument ChannelId {}", channelId);
@@ -331,8 +336,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         retval = CefV8Value::CreateBool(true);
         return true;
     } else if (name == "SetKeySet") {
-        if (!arguments.empty() && (arguments.at(0)->IsInt() || arguments.at(0)->IsUInt() || arguments.at(0)->IsDouble())) {
-            int value = static_cast<int>(arguments.at(0)->GetDoubleValue());
+        if (!arguments.empty() && (arg(0)->IsInt() || arg(0)->IsUInt() || arg(0)->IsDouble())) {
+            int value = static_cast<int>(arg(0)->GetDoubleValue());
             sendMessageToProcess("KeySet", std::to_string(value));
         }
 
@@ -340,8 +345,8 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         return true;
     } else if (name == "DestroyApp") {
         std::string channelId;
-        if (!arguments.empty() && arguments.at(0)->IsString()) {
-            channelId = arguments.at(0)->GetStringValue().ToString();
+        if (!arguments.empty() && arg(0)->IsString()) {
+            channelId = arg(0)->GetStringValue().ToString();
         }
 
         DEBUG("V8Handler::Execute DestroyApp ChannelId {}", channelId);
@@ -351,7 +356,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         return true;
     } else if (name == "LoadUrl") {
         if (!arguments.empty()) {
-            const auto& param = arguments.at(0);
+            const auto& param = arg(0);
             auto url = param.get()->GetStringValue().ToString();
 
             DEBUG("V8Handler::Execute LoadUrl {}", url);
@@ -363,10 +368,10 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         return true;
     }  else if (name == "VideoSize") {
         if (!arguments.empty()) {
-            const auto x = arguments.at(0)->GetIntValue();
-            const auto y = arguments.at(1)->GetIntValue();
-            const auto w = arguments.at(2)->GetIntValue();
-            const auto h = arguments.at(3)->GetIntValue();
+            const auto x = arg(0)->GetIntValue();
+            const auto y = arg(1)->GetIntValue();
+            const auto w = arg(2)->GetIntValue();
+            const auto h = arg(3)->GetIntValue();
 
             DEBUG("VideoSize New({}, {}, {}, {}", x,y,w,h);
             vdrClient->VideoSize(x, y, w, h);
@@ -382,9 +387,9 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         return true;
     } else if (name == "StartApp") {
         if (!arguments.empty()) {
-            const auto channelId = arguments.at(0)->GetStringValue();
-            const auto appId = arguments.at(1)->GetStringValue();
-            const auto args = arguments.at(2)->GetStringValue();
+            const auto channelId = arg(0)->GetStringValue();
+            const auto appId = arg(1)->GetStringValue();
+            const auto args = arg(2)->GetStringValue();
 
             std::vector<std::string> params;
             params.push_back(channelId);
@@ -404,7 +409,7 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
     } else if (name == "StreamEventFilter") {
         bool result = false;
         if (arguments.size() >= 2) {
-            result = vdrClient->StreamEventFilter(arguments.at(0)->GetIntValue(), arguments.at(1)->GetBoolValue());
+            result = vdrClient->StreamEventFilter(arg(0)->GetIntValue(), arg(1)->GetBoolValue());
         }
         retval = CefV8Value::CreateBool(result);
         return true;
@@ -412,13 +417,13 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
         bool result = false;
         if (!arguments.empty()) {
             // -1 switches the subtitles off
-            result = vdrClient->SelectSubtitleTrack(std::to_string(arguments.at(0)->GetIntValue()));
+            result = vdrClient->SelectSubtitleTrack(std::to_string(arg(0)->GetIntValue()));
         }
         retval = CefV8Value::CreateBool(result);
         return true;
     } else if (name == "SelectAudioTrack") {
         if (!arguments.empty()) {
-            auto nr = std::to_string(arguments.at(0)->GetIntValue());
+            auto nr = std::to_string(arg(0)->GetIntValue());
             bool result = vdrClient->SelectAudioTrack(nr);
             retval = CefV8Value::CreateBool(result);
             return true;
