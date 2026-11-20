@@ -91,6 +91,7 @@ void OsdSender::Paint(const void *buffer, int width, int height, const std::vect
         std::vector<CefRect> regions = rects;
         if (width != frameWidth || height != frameHeight) {
             frame.assign((size_t) width * height, 0);
+            visiblePixels = 0;
             frameWidth = width;
             frameHeight = height;
             dirty.clear();
@@ -115,13 +116,27 @@ void OsdSender::Paint(const void *buffer, int width, int height, const std::vect
                 for (int x = 0; x < r.width; ++x) {
                     // the video shall be visible in these parts of the OSD
                     uint32_t c = src[x];
-                    dst[x] = (c == VIDEO_KEY_COLOR) ? VIDEO_TRANSPARENT : c;
+                    uint32_t n = (c == VIDEO_KEY_COLOR) ? VIDEO_TRANSPARENT : c;
+
+                    if ((dst[x] >> 24) != 0) {
+                        --visiblePixels;
+                    }
+                    if ((n >> 24) != 0) {
+                        ++visiblePixels;
+                    }
+
+                    dst[x] = n;
                 }
                 src += width;
                 dst += width;
             }
 
             AddDirty(r);
+        }
+
+        if ((visiblePixels == 0) != empty) {
+            empty = visiblePixels == 0;
+            emptyChanged = true;
         }
     }
 
@@ -134,14 +149,21 @@ void OsdSender::Run() {
         clock::time_point waitStart;
         std::vector<CefRect> rects;
         std::vector<std::string> data;
+        bool reportEmpty = false;
+        bool isEmpty = false;
 
         {
             std::unique_lock<std::mutex> lock(mutex);
-            condition.wait(lock, [this] { return stop || !dirty.empty(); });
+            condition.wait(lock, [this] { return stop || !dirty.empty() || emptyChanged; });
 
             if (stop) {
                 return;
             }
+
+            // reported after the frame, VDR shows the hint over the last content
+            reportEmpty = emptyChanged;
+            isEmpty = empty;
+            emptyChanged = false;
 
             rects.swap(dirty);
             width = frameWidth;
@@ -170,10 +192,16 @@ void OsdSender::Run() {
         }
 
         auto sendStart = clock::now();
-        Send(width, height, rects, data);
+        if (!rects.empty()) {
+            Send(width, height, rects, data);
 
-        if (measure) {
-            Measure(waitStart, sendStart, (int) rects.size(), bytes);
+            if (measure) {
+                Measure(waitStart, sendStart, (int) rects.size(), bytes);
+            }
+        }
+
+        if (reportEmpty) {
+            vdrClient->OsdEmpty(isEmpty);
         }
     }
 }

@@ -44,6 +44,11 @@ private:
     int frameHeight = 0;
     std::vector<CefRect> dirty;       // regions not sent yet
 
+    // VDR shows a hint if the page shows nothing (all pixels transparent)
+    size_t visiblePixels = 0;
+    bool empty = true;
+    bool emptyChanged = false;
+
     std::thread thread;
 
     // measurement (--measure)
