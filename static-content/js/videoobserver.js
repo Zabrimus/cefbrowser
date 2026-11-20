@@ -16,7 +16,7 @@ window.addVideoOverlay = (node) => {
     tv.style.background = "rgb(254, 46, 154)";
     tv.style.zIndex = 999;
     tv.style.position = "relative";
-    node.visibility = "hidden";
+    node.style.visibility = "hidden";
     node.append(tv);
 }
 

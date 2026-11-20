@@ -14,4 +14,16 @@
     background: ##2c2c2c;
 }
 
-
+/* Chromium has no plugin for the HbbTV objects and draws "This plugin is not supported"
+   until the scripts at the end of the body handle them. The objects show nothing
+   themselves, a child (e.g. the video overlay) is shown by its own visibility. */
+object[type="video/broadcast"],
+object[type="video/mp4"],
+object[type="video/mpeg"],
+object[type="video/mpeg4"],
+object[type="audio/mp4"],
+object[type="audio/mpeg"],
+object[type="application/dash+xml"],
+object[type^="application/oipf"] {
+    visibility: hidden !important;
+}
