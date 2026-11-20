@@ -431,3 +431,7 @@ bool BrowserServer::SetBrowserOptions(const BrowserOptionsType &input) {
     browserOptions.zdfQuirks = input.zdfQuirks;
     return true;
 }
+
+void BrowserServer::PageTitle(std::string &_return) {
+    _return.clear();
+}

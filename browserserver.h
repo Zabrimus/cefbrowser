@@ -43,6 +43,7 @@ public:
     bool StreamEvent(const StreamEventType& input) override;
     bool SetRenderParameters(const RenderParametersType& input) override;
     bool SetBrowserOptions(const BrowserOptionsType& input) override;
+    void PageTitle(std::string& _return) override;
 };
 
 class BrowserCloneFactory : virtual public CefBrowserIfFactory {
