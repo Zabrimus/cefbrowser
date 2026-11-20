@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "database.h"
 #include "browserclient.h"
+#include "osdsender.h"
 #include "keycodes.h"
 #include "json.hpp"
 #include "include/wrapper/cef_closure_task.h"
@@ -423,12 +424,17 @@ void BrowserCloneFactory::releaseHandler(CommonServiceIf *handler) {
 }
 
 bool BrowserServer::SetBrowserOptions(const BrowserOptionsType &input) {
-    if (browserOptions.mse != input.mse || browserOptions.zdfQuirks != input.zdfQuirks) {
-        INFO("Browser options: MSE {}, ZDF special handling {}", input.mse ? "on" : "off", input.zdfQuirks ? "on" : "off");
+    if (browserOptions.mse != input.mse || browserOptions.zdfQuirks != input.zdfQuirks || browserOptions.sharedMemory != input.sharedMemory) {
+        INFO("Browser options: MSE {}, ZDF special handling {}, OSD in shared memory {}", input.mse ? "on" : "off",
+             input.zdfQuirks ? "on" : "off", input.sharedMemory ? "on" : "off");
     }
 
     browserOptions.mse = input.mse;
     browserOptions.zdfQuirks = input.zdfQuirks;
+    browserOptions.sharedMemory = input.sharedMemory;
+
+    // a failed shared memory is tried again with the next application
+    OsdSender::RetrySharedMemory();
     return true;
 }
 

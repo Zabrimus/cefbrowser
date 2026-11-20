@@ -50,6 +50,7 @@ std::string readFile(const char *filename);
 struct BrowserOptions {
     std::atomic<bool> mse { true };          // Media Source Extensions for VDR
     std::atomic<bool> zdfQuirks { true };    // special handling of the ZDF applications
+    std::atomic<bool> sharedMemory { false };  // the OSD in shared memory, VDR on the same machine
 };
 
 extern BrowserOptions browserOptions;

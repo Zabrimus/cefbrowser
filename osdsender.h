@@ -27,10 +27,23 @@ public:
     // measurement: a key has been sent to the page
     static void KeyPressed(const std::string &key);
 
+    // VDR couldn't read the shared memory: try it again
+    static void RetrySharedMemory();
+
 private:
     void Run();
     void AddDirty(const CefRect &rect);
     void Send(int width, int height, const std::vector<CefRect> &rects, std::vector<std::string> &data);
+
+    // The whole frame in a file of /dev/shm for VDR on the same machine: only the
+    // changed regions are told, VDR reads them. Used by the sender thread only.
+    bool OpenShm(int width, int height);
+    void CloseShm();
+
+    uint8_t *shm = nullptr;
+    size_t shmSize = 0;
+    std::string shmName;
+    int shmGeneration = 0;
 
     VdrClient *vdrClient;
     bool useQoi;

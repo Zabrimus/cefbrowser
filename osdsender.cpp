@@ -1,8 +1,13 @@
+#include <cerrno>
 #include <cstring>
 #include <algorithm>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
 #include "osdsender.h"
 #include "logger.h"
 #include "qoi.h"
+#include "tools.h"
 
 // more dirty regions are merged into their bounding box
 #define MAX_DIRTY_RECTS 16
@@ -20,6 +25,13 @@ void OsdSender::KeyPressed(const std::string &key) {
     std::lock_guard<std::mutex> lock(keyMutex);
     keyName = key;
     keyTime = std::chrono::steady_clock::now();
+}
+
+// VDR couldn't read the shared memory: the OSD is sent via thrift
+static std::atomic<bool> shmFailed(false);
+
+void OsdSender::RetrySharedMemory() {
+    shmFailed = false;
 }
 
 static double ms(std::chrono::steady_clock::duration d) {
@@ -40,6 +52,54 @@ OsdSender::~OsdSender() {
 
     if (thread.joinable()) {
         thread.join();
+    }
+
+    CloseShm();
+}
+
+bool OsdSender::OpenShm(int width, int height) {
+    size_t size = (size_t) width * height * 4;
+    if (shm != nullptr && shmSize == size) {
+        return true;
+    }
+
+    // a new size: a new file, VDR maps it again
+    CloseShm();
+
+    std::string name = "cefbrowser-osd-" + std::to_string(getpid()) + "-" + std::to_string(shmGeneration++);
+    std::string path = "/dev/shm/" + name;
+
+    int fd = open(path.c_str(), O_CREAT | O_EXCL | O_RDWR, 0644);
+    if (fd < 0) {
+        ERROR("Unable to create {}: {}", path, strerror(errno));
+        return false;
+    }
+
+    void *p = MAP_FAILED;
+    if (ftruncate(fd, (off_t) size) == 0) {
+        p = mmap(nullptr, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    }
+    close(fd);
+
+    if (p == MAP_FAILED) {
+        ERROR("Unable to map {}: {}", path, strerror(errno));
+        unlink(path.c_str());
+        return false;
+    }
+
+    shm = (uint8_t *) p;
+    shmSize = size;
+    shmName = name;
+    return true;
+}
+
+void OsdSender::CloseShm() {
+    if (shm != nullptr) {
+        munmap(shm, shmSize);
+        unlink(("/dev/shm/" + shmName).c_str());
+        shm = nullptr;
+        shmSize = 0;
+        shmName.clear();
     }
 }
 
@@ -151,6 +211,7 @@ void OsdSender::Run() {
         std::vector<std::string> data;
         bool reportEmpty = false;
         bool isEmpty = false;
+        bool shared;
 
         {
             std::unique_lock<std::mutex> lock(mutex);
@@ -171,10 +232,27 @@ void OsdSender::Run() {
             waitStart = firstPaint;
 
             // copy the regions, the frame may change while sending
+            shared = browserOptions.sharedMemory && !shmFailed;
+            if (shared && !rects.empty() && !OpenShm(width, height)) {
+                shmFailed = true;
+            }
+            shared = shared && !rects.empty() && shm != nullptr;
             for (const auto &r : rects) {
+                const uint32_t *src = frame.data() + (size_t) r.y * width + r.x;
+
+                if (shared) {
+                    // at their place in the whole frame
+                    uint32_t *dst = (uint32_t *) shm + (size_t) r.y * width + r.x;
+                    for (int y = 0; y < r.height; ++y) {
+                        memcpy(dst, src, (size_t) r.width * 4);
+                        src += width;
+                        dst += width;
+                    }
+                    continue;
+                }
+
                 std::string region((size_t) r.width * r.height * 4, '\0');
                 uint32_t *dst = (uint32_t *) region.data();
-                const uint32_t *src = frame.data() + (size_t) r.y * width + r.x;
 
                 for (int y = 0; y < r.height; ++y) {
                     memcpy(dst, src, (size_t) r.width * 4);
@@ -186,13 +264,52 @@ void OsdSender::Run() {
             }
         }
 
+        // switched off
+        if (!browserOptions.sharedMemory && shm != nullptr) {
+            CloseShm();
+        }
+
         size_t bytes = 0;
         for (const auto &d : data) {
             bytes += d.size();
         }
+        if (shared) {
+            for (const auto &r : rects) {
+                bytes += (size_t) r.width * r.height * 4;
+            }
+        }
 
         auto sendStart = clock::now();
-        if (!rects.empty()) {
+        if (!rects.empty() && shared) {
+            std::vector<OsdRectType> osdRects;
+            for (const auto &r : rects) {
+                OsdRectType rect;
+                rect.x = r.x;
+                rect.y = r.y;
+                rect.width = r.width;
+                rect.height = r.height;
+                osdRects.push_back(rect);
+            }
+
+            if (!vdrClient->ProcessOsdShm(width, height, shmName, osdRects)) {
+                // VDR on another machine or without support: the regions via thrift
+                INFO("VDR can't read the OSD in shared memory, it is sent via thrift");
+                shmFailed = true;
+
+                for (const auto &r : rects) {
+                    std::string region((size_t) r.width * r.height * 4, '\0');
+                    for (int y = 0; y < r.height; ++y) {
+                        memcpy(&region[(size_t) y * r.width * 4], shm + (((size_t) (r.y + y) * width) + r.x) * 4, (size_t) r.width * 4);
+                    }
+                    data.push_back(std::move(region));
+                }
+                Send(width, height, rects, data);
+            }
+
+            if (measure) {
+                Measure(waitStart, sendStart, (int) rects.size(), bytes);
+            }
+        } else if (!rects.empty()) {
             Send(width, height, rects, data);
 
             if (measure) {

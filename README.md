@@ -58,6 +58,10 @@ It's up to you to decide what you want to use and test ;)
          [qoi](https://qoiformat.org/) and are transferred via TCP/IP over 
          the network. With this option the browser can be started on a 
          different machine as VDR.                      
+         With the setup option "OSD in shared memory" of vdr-plugin-web the
+         browser writes the OSD into a file of /dev/shm and only tells VDR the
+         changed regions. This needs VDR on the same machine, otherwise the
+         OSD is sent via TCP/IP again.
 -f / --fullosd Normally only changed parts of the OSD are exchanged between 
          the browser and VDR. With this option the full OSD will exchanged. 
          This is much slower but could lead to visual better results.
