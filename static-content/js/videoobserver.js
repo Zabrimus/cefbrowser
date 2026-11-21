@@ -1111,6 +1111,54 @@ function html5VdrStatus(video, position, state) {
     }, true);
 });
 
+// The HTML5 video element VDR plays the video of (see addVideoNodeTypeVideo).
+function _vdrIsActiveVideo(video) {
+    return window._vdrActiveVideo === video;
+}
+
+function _vdrStopActiveVideo(reason) {
+    console.log("Stop the video: " + reason);
+    window._vdrActiveVideo = null;
+    window.stop_video_quirk();
+    console.log("window.cefStopVideo()");
+    window.cefStopVideo();
+}
+
+// ZDF leaves its player by pausing the video and moving to another route, the
+// video element stays. On a TV the pages then cover the paused video; here VDR
+// kept showing it and the video quirk kept the pages hidden, so the application
+// was gone until the next video. Stop the video once the player is left.
+function _vdrZdfInPlayer() {
+    return document.location.pathname.startsWith("/video/");
+}
+
+function _vdrZdfCheckLeftPlayer() {
+    let video = window._vdrActiveVideo;
+    if (!video || !video.paused || _vdrZdfInPlayer()) {
+        return;
+    }
+
+    if (!document.location.toString().includes("hbbtv.zdf.de") || !_vdrZdfQuirks()) {
+        return;
+    }
+
+    _vdrStopActiveVideo("ZDF left the player");
+}
+
+// The route changes before or after the pause, check after both.
+(function () {
+    let check = () => setTimeout(_vdrZdfCheckLeftPlayer, 500);
+    for (const name of ['pushState', 'replaceState']) {
+        let original = history[name];
+        history[name] = function () {
+            let result = original.apply(this, arguments);
+            check();
+            return result;
+        };
+    }
+    window.addEventListener('popstate', check);
+})();
+
 function addVideoNodeTypeVideo(node, url) {
     let video = node;
 
@@ -1118,6 +1166,11 @@ function addVideoNodeTypeVideo(node, url) {
     node._vdrStatus = new VdrStatus();
     node._vdrEnded = false;
     window._vdrActiveMedia = (position, state) => html5VdrStatus(node, position, state);
+
+    // ZDF inserts a new video element for the next video and only then empties
+    // the old one. The old element's events must not act on VDR any more: its
+    // 'abort' stopped the video that had just been started on the new one.
+    window._vdrActiveVideo = node;
 
     // ZDF reuses the video element for the next video. Register the listeners
     // only once, they use the current url.
@@ -1201,12 +1254,15 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('abort', function (e) {
         console.log("video tag abort: " + video.playState + ", src = " + video.src);
+        if (!_vdrIsActiveVideo(video)) {
+            return;
+        }
+
         if (video.src.includes("_muted_onl")) {
             console.log("Abort fake video -> cefStopVideo");
             window.cefStopVideo();
         } else if (video.src === "") {
-            window.stop_video_quirk();
-            window.cefStopVideo();
+            _vdrStopActiveVideo("the application emptied the video");
         } else if (video.src.includes("http://localhost")) {
             e.stopPropagation();
         }
@@ -1287,13 +1343,16 @@ function addVideoNodeTypeVideo(node, url) {
 
     video && video.addEventListener && video.addEventListener('ended', function () {
         console.log("video tag ended: " + video.playState);
+        if (!_vdrIsActiveVideo(video)) {
+            return;
+        }
         window.stop_video_quirk();
     }, false);
 
 
     video && video.addEventListener && video.addEventListener('playing', function (e) {
         console.log("video tag playing: " + video.playState);
-        if (e._vdrSynthetic) {
+        if (e._vdrSynthetic || !_vdrIsActiveVideo(video)) {
             return;
         }
 
@@ -1313,8 +1372,12 @@ function addVideoNodeTypeVideo(node, url) {
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("video tag pause");
         video.playState = PLAY_STATES.paused;
+        if (!_vdrIsActiveVideo(video)) {
+            return;
+        }
         console.log("window.cefPauseVideo()");
         window.cefPauseVideo();
+        _vdrZdfCheckLeftPlayer();
     }, false);
 
     video && video.addEventListener && video.addEventListener('error', function (e) {
@@ -1324,6 +1387,20 @@ function addVideoNodeTypeVideo(node, url) {
 
         if (video.src !== node._vdrUrl || video.src.endsWith(".mpd")) {
             e.stopPropagation();
+        }
+
+        if (!_vdrIsActiveVideo(video)) {
+            return;
+        }
+
+        // The application emptied the source to end the video (3sat on Back).
+        // An empty src reads back as the page's URL, so this looked like a
+        // video the browser cannot play and the transparent video was started
+        // again - VDR played on behind the page until the next video.
+        let attr = videoSrc.getAttribute('src');
+        if (attr === null || attr === '') {
+            _vdrStopActiveVideo("the application emptied the video");
+            return;
         }
 
         // The browser can't play the original url (e.g. H.264 or a manifest), VDR plays
@@ -1458,6 +1535,9 @@ function checkRemovedObjectNode(summary) {
         if (node._vdrManaged && !node._vdrStopped && typeof node.stop === 'function') {
             console.log("checkRemovedObjectNode: stop the video of the removed object");
             node.stop();
+        } else if (_vdrIsActiveVideo(node)) {
+            // the same for a HTML5 video element, nothing else ends its video
+            _vdrStopActiveVideo("the video element was removed");
         }
     });
 }
