@@ -393,7 +393,9 @@ bool BrowserServer::SetRenderParameters(const RenderParametersType &input) {
 
             INFO("Set render size to {}x{}", width, height);
             writeZoomScript(staticPath, width, height, zoomLevel);
-            c->setRenderSize(width, height);
+            c->setRenderSize(width, height, zoomLevel);
+            // the scale factor is part of the screen info
+            browser->GetHost()->NotifyScreenInfoChanged();
             browser->GetHost()->WasResized();
 
             // the zoom of the page is set when it is loaded

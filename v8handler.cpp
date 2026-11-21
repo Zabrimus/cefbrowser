@@ -373,8 +373,21 @@ bool V8Handler::Execute(const CefString &name, CefRefPtr<CefV8Value> object, con
             const auto w = arg(2)->GetIntValue();
             const auto h = arg(3)->GetIntValue();
 
-            DEBUG("VideoSize New({}, {}, {}, {}", x,y,w,h);
-            vdrClient->VideoSize(x, y, w, h);
+            // The page reports CSS pixels, but the OSD updates the plugin maps
+            // this against are graphics plane pixels, so scale it the same way
+            // the renderer scales the page. devicePixelRatio is that factor and
+            // follows a size set at runtime (SetRenderParameters).
+            double s = 1.0;
+            CefRefPtr<CefV8Context> context = CefV8Context::GetCurrentContext();
+            if (context.get() != nullptr) {
+                CefRefPtr<CefV8Value> ratio = context->GetGlobal()->GetValue("devicePixelRatio");
+                if (ratio.get() != nullptr && ratio->IsDouble() && ratio->GetDoubleValue() > 0) {
+                    s = ratio->GetDoubleValue();
+                }
+            }
+
+            DEBUG("VideoSize New({}, {}, {}, {}) scaled by {}", x, y, w, h, s);
+            vdrClient->VideoSize((int)(x * s), (int)(y * s), (int)(w * s), (int)(h * s));
         }
 
         retval = CefV8Value::CreateBool(true);

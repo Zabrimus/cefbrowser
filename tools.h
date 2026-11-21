@@ -22,8 +22,11 @@ typedef struct BrowserParameter {
 
     image_type_enum osdqoi;
 
+    // Graphics plane, in pixels, and the ratio between it and the 1280x720
+    // co-ordinate system HbbTV applications are written against.
     int zoom_width;
     int zoom_height;
+    double zoom_level;
 
     bool use_dirty_recs;
 

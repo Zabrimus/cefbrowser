@@ -37,10 +37,15 @@ bool zoomForWidth(int width, int &height, double &zoomLevel) {
 }
 
 void writeZoomScript(const std::string& staticPath, int width, int height, double zoomLevel) {
+    // Scaling to the graphics plane is the screen's device scale factor
+    // (BrowserClient::GetScreenInfo), so nothing here zooms: a CSS zoom on top
+    // of a body sized to the plane laid the page out zoomLevel times larger than
+    // the plane. The body still gets the co-ordinate system explicitly,
+    // applications are written against a full screen body and one left at its
+    // intrinsic size collapses to nothing.
     std::ofstream zoom;
     zoom.open(staticPath + "/js/_zoom_level.js", std::ios_base::trunc);
-    zoom << "document.body.style[\"zoom\"] = " << zoomLevel << ";\n" << std::endl;
-    zoom << "document.body.style[\"width\"] = \"" << width << "px\";\n" << std::endl;
-    zoom << "document.body.style[\"height\"] = \"" << height << "px\";\n" << std::endl;
+    zoom << "document.body.style[\"width\"] = \"" << (int)(width / zoomLevel) << "px\";\n" << std::endl;
+    zoom << "document.body.style[\"height\"] = \"" << (int)(height / zoomLevel) << "px\";\n" << std::endl;
     zoom.close();
 }

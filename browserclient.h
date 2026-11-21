@@ -62,10 +62,12 @@ public:
             bool &disable_default_handling) override;
 
     // RenderHandler
-    void setRenderSize(int width, int height);
+    void setRenderSize(int width, int height, double scale);
     int getRenderWidth() const { return renderWidth; }
 
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
+
+    bool GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo &screen_info) override;
 
     void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer,
                  int width, int height) override;
@@ -104,6 +106,8 @@ private:
 private:
     int renderWidth;
     int renderHeight;
+    // graphics plane pixels per CSS pixel
+    double scaleFactor;
     bool fullscreen;
     std::string streamId;
 

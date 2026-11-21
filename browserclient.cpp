@@ -25,6 +25,7 @@ BrowserClient::BrowserClient(bool fullscreen, BrowserParameter bp) : bParam(bp) 
 
     this->renderWidth = bParam.zoom_width;
     this->renderHeight = bParam.zoom_height;
+    this->scaleFactor = bParam.zoom_level;
     this->processorEnabled = true;
 
     // create clients
@@ -49,18 +50,39 @@ BrowserClient::~BrowserClient() {
     vdrClient = nullptr;
 }
 
-void BrowserClient::setRenderSize(int width, int height) {
+void BrowserClient::setRenderSize(int width, int height, double scale) {
     LOG_CURRENT_THREAD();
-    TRACE("BrowserClient::setRenderSize: {}, {}", width, height);
+    TRACE("BrowserClient::setRenderSize: {}, {}, scale {}", width, height, scale);
 
     renderWidth = width;
     renderHeight = height;
+    scaleFactor = scale;
 }
 
+// The view rect is in density independent pixels, so it is the co-ordinate
+// system the application sees - 1280x720 unless the application asked for more.
+// GetScreenInfo then scales it up to the graphics plane, which is what OnPaint
+// delivers and what the OSD is painted from.
 void BrowserClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) {
     LOG_CURRENT_THREAD();
 
-    rect = CefRect(0, 0, renderWidth, renderHeight);
+    rect = CefRect(0, 0, (int)(renderWidth / scaleFactor), (int)(renderHeight / scaleFactor));
+}
+
+// HbbTV 2.0.4 table A.5: a 1280x720 co-ordinate system on a 1920x1080 graphics
+// plane has to report devicePixelRatio 1.5, so that applications pick the
+// matching entry out of an img srcset instead of the 1x one.
+bool BrowserClient::GetScreenInfo(CefRefPtr<CefBrowser> browser, CefScreenInfo &screen_info) {
+    LOG_CURRENT_THREAD();
+
+    CefRect view;
+    GetViewRect(browser, view);
+
+    screen_info.device_scale_factor = (float)scaleFactor;
+    screen_info.rect = view;
+    screen_info.available_rect = view;
+
+    return true;
 }
 
 void BrowserClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type, const RectList &dirtyRects, const void *buffer, int width, int height) {

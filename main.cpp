@@ -351,6 +351,7 @@ int main(int argc, char *argv[]) {
     bParameter.image_type = image_type;
     bParameter.zoom_width = zoom_width;
     bParameter.zoom_height = zoom_height;
+    bParameter.zoom_level = zoom_level;
     bParameter.use_dirty_recs = use_dirty_recs;
     bParameter.static_path = staticPath;
     bParameter.bindAll = bindAll;
@@ -480,7 +481,8 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &sigIntHandler, nullptr);
     sigaction(SIGQUIT, &sigIntHandler, nullptr);
 
-    // write zoom level script
+    // the body gets the co-ordinate system, the screen's device scale factor
+    // scales it to the graphics plane (see writeZoomScript)
     writeZoomScript(staticPath, zoom_width, zoom_height, zoom_level);
 
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.
