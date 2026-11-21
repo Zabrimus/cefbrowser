@@ -5,6 +5,7 @@
 #include "tools.h"
 #include "logger.h"
 #include "cpr/api.h"
+#include "cpr/ssl_options.h"
 #include "cpr/timeout.h"
 
 BrowserOptions browserOptions;
@@ -43,7 +44,16 @@ std::string preferHttps(const std::string &url) {
         }
     }
 
-    const cpr::Response probe = cpr::Head(cpr::Url{httpsUrl}, cpr::Timeout{3000});
+    // Same certificate policy as the rest of the browser, so this does not
+    // reject a host Chromium would have used over https anyway.
+    const cpr::VerifySsl verify{!ignoreCertificateErrors};
+    cpr::Response probe = cpr::Head(cpr::Url{httpsUrl}, cpr::Timeout{3000}, verify);
+
+    // A server that answers GET but not HEAD says nothing either way about
+    // whether the page is there.
+    if (probe.status_code == 405 || probe.status_code == 501) {
+        probe = cpr::Get(cpr::Url{httpsUrl}, cpr::Timeout{3000}, verify);
+    }
 
     const cpr::ErrorCode error = probe.error.code;
     const bool https = error == cpr::ErrorCode::OK && probe.status_code >= 200 && probe.status_code < 400;

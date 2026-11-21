@@ -2,7 +2,9 @@
 #include "json.hpp"
 #include "cpr/api.h"
 #include "cpr/response.h"
+#include "cpr/ssl_options.h"
 #include "logger.h"
+#include "tools.h"
 
 // CefResourceRequestHandler
 CefResourceRequestHandler::ReturnValue BaseInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
@@ -17,13 +19,27 @@ CefResourceRequestHandler::ReturnValue BaseInterception::OnBeforeResourceLoad(Ce
     request->GetHeaderMap(headerMap);
     header.insert(headerMap.begin(), headerMap.end());
 
+    // Broadcasters serve these pages from hosts whose certificate does not match
+    // the name asked for. Chromium can be told to accept that; libcurl has to be
+    // told separately, or a page Chromium would have rendered arrives here as a
+    // transport error instead.
+    const cpr::VerifySsl verify{!ignoreCertificateErrors};
+
     if (request->GetMethod() == "GET") {
-        cprResponse = cpr::Get(cpr::Url{request->GetURL().ToString()}, header, pool);
+        cprResponse = cpr::Get(cpr::Url{request->GetURL().ToString()}, header, pool, verify);
     } else if (request->GetMethod() == "POST") {
-        cprResponse = cpr::Post(cpr::Url{request->GetURL().ToString()}, header, pool);
+        cprResponse = cpr::Post(cpr::Url{request->GetURL().ToString()}, header, pool, verify);
     } else {
         // not implemented
         ERROR("HTTP method {} not implemented", request->GetMethod().ToString());
+        return RV_CANCEL;
+    }
+
+    // A request that never reached the server left status_code at 0, and the
+    // response was built from it anyway: an empty body under a 200, which the
+    // page renders as a blank screen with nothing logged about why.
+    if (cprResponse.error.code != cpr::ErrorCode::OK) {
+        ERROR("{}: {} failed: {}", interceptorName, requestUrl, cprResponse.error.message);
         return RV_CANCEL;
     }
 

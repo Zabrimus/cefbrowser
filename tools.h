@@ -39,6 +39,11 @@ typedef struct BrowserParameter {
     image_type_enum image_type;
 } BrowserParameter;
 
+// Set from --ignore-certificate-errors. The browser fetches pages itself
+// through libcurl, which never sees Chromium's command line, so without this
+// the two disagree about which certificates are acceptable.
+extern bool ignoreCertificateErrors;
+
 bool endsWith(const std::string& str, const std::string& suffix);
 
 // The https form of an http URL when the host serves it, else the URL as given.

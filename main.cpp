@@ -47,6 +47,8 @@ bool bindAll;
 int remoteDebuggingPort = 0;
 bool measure = false;
 
+bool ignoreCertificateErrors;
+
 CefRefPtr<BrowserApp> app;
 
 enum ProcessType {
@@ -328,6 +330,7 @@ int main(int argc, char *argv[]) {
 
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
+    ignoreCertificateErrors = command_line->HasSwitch("ignore-certificate-errors");
 
     int exit_code = CefExecuteProcess(main_args, new BrowserApp(bParameter), nullptr);
     if (exit_code >= 0) {
