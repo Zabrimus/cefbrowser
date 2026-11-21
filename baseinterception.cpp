@@ -9,6 +9,7 @@ CefResourceRequestHandler::ReturnValue BaseInterception::OnBeforeResourceLoad(Ce
     TRACE("{}::OnBeforeResourceLoad: {}", interceptorName, request->GetURL().ToString());
 
     this->callback = callback;
+    requestUrl = request->GetURL().ToString();
 
     cpr::Header header;
 
@@ -58,10 +59,29 @@ bool BaseInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, 
 void BaseInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
     DEBUG("{}::GetResponseHeaders: StatusCode: {}, StatusText: {}", interceptorName, cprResponse.status_code, cprResponse.status_line);
 
+    // libcurl follows redirects itself, so the body can come from a different
+    // URL than the one CEF asked for. Serving it under the original URL leaves
+    // the document on the original origin, and every request the page then makes
+    // that is itself redirected - http to https, for these broadcasters - counts
+    // as cross origin and is dropped by CORS, taking the application's own
+    // scripts and data with it. Point CEF at the final URL and let it ask again
+    // from there, so document and sub resources share one origin.
+    const std::string &finalUrl = cprResponse.url.str();
+    if (!finalUrl.empty() && finalUrl != requestUrl) {
+        redirectUrl = finalUrl;
+        return;
+    }
+
     responseHeaderMap.insert(cprResponse.header.begin(), cprResponse.header.end());
 
     response->SetHeaderMap(responseHeaderMap);
     response_length = cprResponse.downloaded_bytes;
+
+    // The status was never passed on, so every intercepted response looked like
+    // a success to the page no matter what the server said.
+    if (cprResponse.status_code > 0) {
+        response->SetStatus(cprResponse.status_code);
+    }
 
     if (!mimeType.empty()) {
         response->SetMimeType(mimeType);
