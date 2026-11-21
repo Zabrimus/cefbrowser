@@ -120,6 +120,24 @@ void BrowserApp::OnBeforeCommandLineProcessing(const CefString& process_type, Ce
             command_line->AppendSwitchWithValue("num-raster-threads", std::to_string(threads));
         }
     }
+
+    // Broadcast applications are signalled as http and several broadcasters
+    // answer nothing usable over https: VOX serves the page over http and a 503
+    // over https. Chromium upgrades the navigation before any request is made
+    // and falls back only on a transport error, so a valid error page ends the
+    // load and the application never appears.
+    std::string disabledFeatures = command_line->GetSwitchValue("disable-features").ToString();
+    if (!disabledFeatures.empty()) {
+        disabledFeatures += ",";
+    }
+    command_line->AppendSwitchWithValue("disable-features", disabledFeatures + "HttpsUpgrades");
+
+    // The application document is loaded over https where the server offers it,
+    // so that it shares an origin with the sub resources that get upgraded. The
+    // application's own scripts are still signalled as http, and blocking them
+    // as mixed content leaves the page loaded but never started: the
+    // ProSiebenSat.1 red button application initialises nothing at all.
+    command_line->AppendSwitch("allow-running-insecure-content");
 }
 
 void BrowserApp::OnContextInitialized() {
