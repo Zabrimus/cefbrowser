@@ -46,6 +46,17 @@
 #define LOG_CURRENT_THREAD() (void)0
 #endif
 
+// A syslog record has a size limit - rsyslog's default is 8 kB - and a line
+// over it is dropped with a complaint rather than truncated, so dumping a whole
+// response body loses both the body and the lines around it.
+inline std::string logExcerpt(const std::string &text, size_t limit = 4000) {
+    if (text.length() <= limit) {
+        return text;
+    }
+
+    return text.substr(0, limit) + fmt::format("... [{} bytes, {} shown]", text.length(), limit);
+}
+
 class Logger {
 
 public:

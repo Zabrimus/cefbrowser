@@ -49,7 +49,7 @@ void HttpInterception::modifyResponse() {
         // save downloaded data
         cprResponse.text = HttpInterception::modifier.injectAll(cprResponse.text);
 
-        TRACE("[HttpInterception] Injected data\n{}", cprResponse.text);
+        TRACE("[HttpInterception] Injected data\n{}", logExcerpt(cprResponse.text));
         TRACE("[HttpInterception] Downloaded data, length {}", cprResponse.text.length());
 
         // save response headers
