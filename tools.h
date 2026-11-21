@@ -41,6 +41,9 @@ typedef struct BrowserParameter {
 
 bool endsWith(const std::string& str, const std::string& suffix);
 
+// The https form of an http URL when the host serves it, else the URL as given.
+std::string preferHttps(const std::string &url);
+
 // height and zoom level for a page width (1280, 1920, 2560, 3840). Returns false for other widths.
 bool zoomForWidth(int width, int &height, double &zoomLevel);
 

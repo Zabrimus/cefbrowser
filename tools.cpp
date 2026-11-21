@@ -1,7 +1,70 @@
+#include <cstring>
 #include <fstream>
+#include <map>
+#include <mutex>
 #include "tools.h"
+#include "logger.h"
+#include "cpr/api.h"
+#include "cpr/timeout.h"
 
 BrowserOptions browserOptions;
+
+// Chromium force upgrades requests to hosts on its HSTS preload list, but the
+// document itself comes out of the interceptor and keeps the scheme it was
+// asked for. The page then sits on http while everything it asks for is
+// fetched over https - a different origin - and CORS drops the application's
+// own scripts, fonts and data. Load the document over https wherever the
+// server answers there, so both end up on one origin.
+//
+// Applications navigate between their own pages often, so the answer is kept
+// per host: one probe per host, not one per page. A probe that timed out or
+// never connected is not kept, the next page asks again.
+std::string preferHttps(const std::string &url) {
+    if (url.rfind("http://", 0) != 0) {
+        return url;
+    }
+
+    // Never for the browser's own static content, which is http only.
+    if (url.rfind(BLANK_PAGE, 0) == 0 || url.find("://localhost") != std::string::npos) {
+        return url;
+    }
+
+    const std::string rest = url.substr(strlen("http://"));
+    const std::string host = rest.substr(0, rest.find_first_of("/?#"));
+    const std::string httpsUrl = "https://" + rest;
+
+    static std::mutex cacheMutex;
+    static std::map<std::string, bool> httpsHosts;
+    {
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        auto it = httpsHosts.find(host);
+        if (it != httpsHosts.end()) {
+            return it->second ? httpsUrl : url;
+        }
+    }
+
+    const cpr::Response probe = cpr::Head(cpr::Url{httpsUrl}, cpr::Timeout{3000});
+
+    const cpr::ErrorCode error = probe.error.code;
+    const bool https = error == cpr::ErrorCode::OK && probe.status_code >= 200 && probe.status_code < 400;
+    // Keep what the host said, or a closed port or a failed handshake - not a
+    // timeout or a name that did not resolve, which can be gone the next time.
+    const bool definite = error == cpr::ErrorCode::OK || error == cpr::ErrorCode::COULDNT_CONNECT
+                          || error == cpr::ErrorCode::SSL_CONNECT_ERROR
+                          || error == cpr::ErrorCode::PEER_FAILED_VERIFICATION;
+    if (definite) {
+        std::lock_guard<std::mutex> lock(cacheMutex);
+        httpsHosts[host] = https;
+    }
+
+    if (https) {
+        INFO("Loading {} over https", host);
+        return httpsUrl;
+    }
+
+    DEBUG("No https for {}, keeping http", url);
+    return url;
+}
 
 bool endsWith(const std::string& str, const std::string& suffix) {
     return str.size() >= suffix.size() && 0 == str.compare(str.size()-suffix.size(), suffix.size(), suffix);
