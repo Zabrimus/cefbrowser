@@ -288,6 +288,22 @@ bool readConfiguration(std::string configFile) {
     return true;
 }
 
+// Chromium gives every process the zygote forks a fresh stack guard
+// (--change-stack-guard-on-fork), so a frame entered before the fork - main's -
+// no longer matches the guard it is checked against, and every sub process
+// aborted on its way out. Such a process leaves from here without unwinding,
+// which is what Chromium's own sub processes do. It cannot be done in main:
+// the compiler checks the guard before a call to a noreturn function such as
+// _exit() as well (GCC 16), so this frame has no guard at all, and must not be
+// inlined into main, which has one.
+[[gnu::noinline, gnu::no_stack_protector]]
+static void runSubProcess(const CefMainArgs &mainArgs, CefRefPtr<CefApp> app) {
+    int exit_code = CefExecuteProcess(mainArgs, app, nullptr);
+    if (exit_code >= 0) {
+        _exit(exit_code);
+    }
+}
+
 int main(int argc, char *argv[]) {
     // set some default values
     zoom_width = 1280;
@@ -332,10 +348,7 @@ int main(int argc, char *argv[]) {
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
     ignoreCertificateErrors = command_line->HasSwitch("ignore-certificate-errors");
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(bParameter), nullptr);
-    if (exit_code >= 0) {
-        return exit_code;
-    }
+    runSubProcess(main_args, new BrowserApp(bParameter));
 
     if (!readConfiguration(configFilename)) {
         return -1;
