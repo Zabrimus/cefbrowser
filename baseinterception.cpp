@@ -28,7 +28,27 @@ CefResourceRequestHandler::ReturnValue BaseInterception::OnBeforeResourceLoad(Ce
     if (request->GetMethod() == "GET") {
         cprResponse = cpr::Get(cpr::Url{request->GetURL().ToString()}, header, pool, verify);
     } else if (request->GetMethod() == "POST") {
-        cprResponse = cpr::Post(cpr::Url{request->GetURL().ToString()}, header, pool, verify);
+        // The request goes out through libcurl, so its body has to be copied
+        // over as well. Without it the server sees an empty POST: ZDF answers
+        // its /ds/configuration/ request with 400 and the application starts
+        // without its configuration.
+        std::string body;
+        CefRefPtr<CefPostData> postData = request->GetPostData();
+        if (postData != nullptr) {
+            CefPostData::ElementVector elements;
+            postData->GetElements(elements);
+
+            for (const auto &e : elements) {
+                if (e->GetType() == PDE_TYPE_BYTES) {
+                    size_t count = e->GetBytesCount();
+                    size_t offset = body.size();
+                    body.resize(offset + count);
+                    e->GetBytes(count, body.data() + offset);
+                }
+            }
+        }
+
+        cprResponse = cpr::Post(cpr::Url{request->GetURL().ToString()}, header, cpr::Body{body}, pool, verify);
     } else {
         // not implemented
         ERROR("HTTP method {} not implemented", request->GetMethod().ToString());
