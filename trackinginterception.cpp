@@ -21,7 +21,9 @@ std::string trackingUrlBlockList[] {
 CefResourceRequestHandler::ReturnValue TrackingInterception::OnBeforeResourceLoad(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame, CefRefPtr<CefRequest> request, CefRefPtr<CefCallback> callback) {
     // TRACE("TrackingInterception::OnBeforeResourceLoad: {}", request->GetURL().ToString());
 
-    return RV_CONTINUE_ASYNC;
+    // RV_CONTINUE_ASYNC promises that a CefCallback runs later to release the
+    // request, and nothing here ever runs one, so the load hung.
+    return RV_CONTINUE;
 }
 
 bool TrackingInterception::Open(CefRefPtr<CefRequest> request, bool& handle_request, CefRefPtr<CefCallback> callback) {
@@ -32,13 +34,22 @@ bool TrackingInterception::Open(CefRefPtr<CefRequest> request, bool& handle_requ
 }
 
 bool TrackingInterception::Read(void* data_out, int bytes_to_read, int& bytes_read, CefRefPtr<CefResourceReadCallback> callback) {
+    // Completion is 0 bytes and false. Returning true means the data arrives
+    // later through the callback, which this handler never runs.
     bytes_read = 0;
-    return true;
+    return false;
 }
 
 void TrackingInterception::GetResponseHeaders(CefRefPtr<CefResponse> response, int64_t &response_length, CefString &redirectUrl) {
-    response->SetStatus(404);
-    response->SetStatusText("Not Found");
+    // An empty document rather than an error. This handler also serves
+    // BLANK_PAGE, which is a main frame navigation, and a 404 with no body there
+    // makes Chromium substitute its own 'site cannot be reached' page - which
+    // the plugin then paints over the video, opaque and full screen. Blocked
+    // trackers are equally happy with an empty body.
+    response->SetStatus(200);
+    response->SetStatusText("OK");
+    response->SetMimeType("text/html");
+    response_length = 0;
 }
 
 void TrackingInterception::Cancel() {
