@@ -278,6 +278,8 @@
         '<video_broadcast type="ID_DVB_S" scaling="arbitrary" minSize="0">true</video_broadcast>' +
         '<video_broadcast type="ID_DVB_C" scaling="arbitrary" minSize="0">true</video_broadcast>' +
         '<video_broadcast type="ID_DVB_T" scaling="arbitrary" minSize="0">true</video_broadcast>' +
+        '<video_broadcast type="ID_DVB_S2" scaling="arbitrary" minSize="0">true</video_broadcast>' +
+        '<video_broadcast type="ID_DVB_T2" scaling="arbitrary" minSize="0">true</video_broadcast>' +
         '<parentalcontrol schemes="dvb-si">true</parentalcontrol>' +
         '</ext>' +
         '</ui_profile>' +

@@ -462,7 +462,7 @@ function addBroadcastFunctions(node) {
         list.getChannel = (id) => list.find((c) => c.channelId === id) || null;
         // only the current channel is known, another one is found by VDR at setChannel()
         list.getChannelByTriplet = (onid, tsid, sid) => list.find((c) => c.onid === onid && c.tsid === tsid && c.sid === sid) ||
-            _vdrChannelObject(12, onid, tsid, sid);
+            _vdrChannelObject(channel ? channel.idType : 12, onid, tsid, sid);
 
         return {
             channelList: list,
