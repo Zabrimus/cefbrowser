@@ -5,9 +5,9 @@
 // The track index is the position in the PID ordered track list. VDR uses the
 // same order for the selection (cefSelectAudioTrack, cefSelectSubtitleTrack).
 
-const COMPONENT_TYPE_VIDEO = 0;
-const COMPONENT_TYPE_AUDIO = 1;
-const COMPONENT_TYPE_SUBTITLE = 2;
+const _VDR_COMPONENT_TYPE_VIDEO = 0;
+const _VDR_COMPONENT_TYPE_AUDIO = 1;
+const _VDR_COMPONENT_TYPE_SUBTITLE = 2;
 
 function _vdrCollection(list) {
     let collection = list.slice();
@@ -55,9 +55,9 @@ window.addComponentFunctions = function (node, isBroadcast) {
     }
     node._vdrComponents = true;
 
-    node.COMPONENT_TYPE_VIDEO = COMPONENT_TYPE_VIDEO;
-    node.COMPONENT_TYPE_AUDIO = COMPONENT_TYPE_AUDIO;
-    node.COMPONENT_TYPE_SUBTITLE = COMPONENT_TYPE_SUBTITLE;
+    node.COMPONENT_TYPE_VIDEO = _VDR_COMPONENT_TYPE_VIDEO;
+    node.COMPONENT_TYPE_AUDIO = _VDR_COMPONENT_TYPE_AUDIO;
+    node.COMPONENT_TYPE_SUBTITLE = _VDR_COMPONENT_TYPE_SUBTITLE;
 
     // the first audio track is active, subtitles are off
     let activeAudio = 0;
@@ -67,9 +67,9 @@ window.addComponentFunctions = function (node, isBroadcast) {
         let tracks = _vdrReadTracks(isBroadcast);
         let list = [];
 
-        if (type === undefined || type === null || type === COMPONENT_TYPE_VIDEO) {
+        if (type === undefined || type === null || type === _VDR_COMPONENT_TYPE_VIDEO) {
             list.push({
-                type: COMPONENT_TYPE_VIDEO,
+                type: _VDR_COMPONENT_TYPE_VIDEO,
                 componentTag: 0,
                 pid: 0,
                 encoding: "video/mpeg",
@@ -79,10 +79,10 @@ window.addComponentFunctions = function (node, isBroadcast) {
             });
         }
 
-        if (type === undefined || type === null || type === COMPONENT_TYPE_AUDIO) {
+        if (type === undefined || type === null || type === _VDR_COMPONENT_TYPE_AUDIO) {
             tracks.audio.forEach((a, i) => {
                 list.push({
-                    type: COMPONENT_TYPE_AUDIO,
+                    type: _VDR_COMPONENT_TYPE_AUDIO,
                     componentTag: i,
                     pid: a.pid || 0,
                     encoding: a.encoding || _vdrEncoding(a.codec),
@@ -95,10 +95,10 @@ window.addComponentFunctions = function (node, isBroadcast) {
             });
         }
 
-        if (type === undefined || type === null || type === COMPONENT_TYPE_SUBTITLE) {
+        if (type === undefined || type === null || type === _VDR_COMPONENT_TYPE_SUBTITLE) {
             tracks.subtitle.forEach((s, i) => {
                 list.push({
-                    type: COMPONENT_TYPE_SUBTITLE,
+                    type: _VDR_COMPONENT_TYPE_SUBTITLE,
                     componentTag: i,
                     pid: s.pid || 0,
                     encoding: "DVB-SUBT",
@@ -133,9 +133,9 @@ window.addComponentFunctions = function (node, isBroadcast) {
 
     node.getCurrentActiveComponents = function (type) {
         return _vdrCollection(components(type).filter((c) =>
-            c.type === COMPONENT_TYPE_VIDEO ||
-            (c.type === COMPONENT_TYPE_AUDIO && c._index === activeAudio) ||
-            (c.type === COMPONENT_TYPE_SUBTITLE && c._index === activeSubtitle)));
+            c.type === _VDR_COMPONENT_TYPE_VIDEO ||
+            (c.type === _VDR_COMPONENT_TYPE_AUDIO && c._index === activeAudio) ||
+            (c.type === _VDR_COMPONENT_TYPE_SUBTITLE && c._index === activeSubtitle)));
     };
 
     node.selectComponent = function (component) {
@@ -157,15 +157,15 @@ window.addComponentFunctions = function (node, isBroadcast) {
             index = found ? found._index : -1;
         }
 
-        if (component.type === COMPONENT_TYPE_AUDIO && index >= 0) {
+        if (component.type === _VDR_COMPONENT_TYPE_AUDIO && index >= 0) {
             if (window.cefSelectAudioTrack && window.cefSelectAudioTrack(index)) {
                 activeAudio = index;
-                notify(COMPONENT_TYPE_AUDIO);
+                notify(_VDR_COMPONENT_TYPE_AUDIO);
             }
-        } else if (component.type === COMPONENT_TYPE_SUBTITLE && index >= 0) {
+        } else if (component.type === _VDR_COMPONENT_TYPE_SUBTITLE && index >= 0) {
             if (window.cefSelectSubtitleTrack && window.cefSelectSubtitleTrack(index)) {
                 activeSubtitle = index;
-                notify(COMPONENT_TYPE_SUBTITLE);
+                notify(_VDR_COMPONENT_TYPE_SUBTITLE);
             }
         }
     };
@@ -173,14 +173,14 @@ window.addComponentFunctions = function (node, isBroadcast) {
     node.unselectComponent = function (component) {
         let type = typeof component === 'number' ? component : (component ? component.type : undefined);
 
-        if (type === COMPONENT_TYPE_SUBTITLE) {
+        if (type === _VDR_COMPONENT_TYPE_SUBTITLE) {
             if (window.cefSelectSubtitleTrack && window.cefSelectSubtitleTrack(-1)) {
                 activeSubtitle = -1;
-                notify(COMPONENT_TYPE_SUBTITLE);
+                notify(_VDR_COMPONENT_TYPE_SUBTITLE);
             }
-        } else if (type === COMPONENT_TYPE_AUDIO) {
+        } else if (type === _VDR_COMPONENT_TYPE_AUDIO) {
             // audio can't be switched off, return to the default track
-            node.selectComponent({ type: COMPONENT_TYPE_AUDIO, _index: 0 });
+            node.selectComponent({ type: _VDR_COMPONENT_TYPE_AUDIO, _index: 0 });
         }
     };
 };

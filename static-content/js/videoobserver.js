@@ -1,4 +1,4 @@
-const PLAY_STATES = {
+const _VDR_PLAY_STATES = {
     stopped: 0,
     playing: 1,
     paused: 2,
@@ -568,7 +568,7 @@ function isNewObjectData(node) {
     return !!data && !/^https?:\/\/gibbet\.nix\/?$/.test(data) && !data.startsWith("http://localhost/movie/");
 }
 
-const AV_OBJECT_TYPES = ['video/mpeg4', 'video/mp4', 'audio/mp4', 'audio/mpeg', 'application/dash+xml', 'video/mpeg'];
+const _VDR_AV_OBJECT_TYPES = ['video/mpeg4', 'video/mp4', 'audio/mp4', 'audio/mpeg', 'application/dash+xml', 'video/mpeg'];
 
 // HbbTV: an A/V object plays after play(). The application may call play() before
 // the MutationSummary has found the object, the call is remembered until then.
@@ -598,7 +598,7 @@ const AV_OBJECT_TYPES = ['video/mpeg4', 'video/mp4', 'audio/mp4', 'audio/mpeg', 
         Object.defineProperty(HTMLObjectElement.prototype, name, {
             configurable: true,
             get: function () {
-                return (this._vdrManaged || AV_OBJECT_TYPES.includes(this.type)) ? early[name] : undefined;
+                return (this._vdrManaged || _VDR_AV_OBJECT_TYPES.includes(this.type)) ? early[name] : undefined;
             },
             set: function (value) {
                 Object.defineProperty(this, name, { value: value, writable: true, configurable: true, enumerable: true });
@@ -723,14 +723,14 @@ function addVideoNodeTypeObject(node, originalUrl) {
             if (!video.paused) {
                 video.pause();
             }
-            node.playState = PLAY_STATES.finished;
+            node.playState = _VDR_PLAY_STATES.finished;
             notifyPlayState();
             window.stop_video_quirk();
-        } else if (state === VDR_STATE_BUFFERING && node.playState === PLAY_STATES.playing) {
-            node.playState = PLAY_STATES.buffering;
+        } else if (state === VDR_STATE_BUFFERING && node.playState === _VDR_PLAY_STATES.playing) {
+            node.playState = _VDR_PLAY_STATES.buffering;
             notifyPlayState();
-        } else if (state === VDR_STATE_PLAYING && node.playState === PLAY_STATES.buffering) {
-            node.playState = PLAY_STATES.playing;
+        } else if (state === VDR_STATE_PLAYING && node.playState === _VDR_PLAY_STATES.buffering) {
+            node.playState = _VDR_PLAY_STATES.playing;
             notifyPlayState();
         }
     }
@@ -746,7 +746,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
         node._vdrEnded = false;
         vdr = new VdrStatus();
         window._vdrActiveMedia = onVdrStatus;
-        node.playState = PLAY_STATES.connecting;
+        node.playState = _VDR_PLAY_STATES.connecting;
         notifyPlayState();
 
         (async () => {
@@ -772,7 +772,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
             window._vdrActiveMedia = null;
         }
         node.error = 5;     // content not available
-        node.playState = PLAY_STATES.error;
+        node.playState = _VDR_PLAY_STATES.error;
         notifyPlayState();
     }
 
@@ -829,12 +829,12 @@ function addVideoNodeTypeObject(node, originalUrl) {
                 window.cefPauseVideo();
 
                 video.pause();
-                node.playState = PLAY_STATES.paused;
+                node.playState = _VDR_PLAY_STATES.paused;
                 changeSpeed(0);
             }, 0);
         } else {
             setTimeout(() => {
-                if (node.playState === PLAY_STATES.paused) {
+                if (node.playState === _VDR_PLAY_STATES.paused) {
                     // the position shown by VDR (or of the last seek), not of the transparent video
                     let position = node.playPosition || 0;
                     console.log("window.cefResumeVideo()");
@@ -842,7 +842,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
                     vdr.restart(position);
                 }
 
-                node.playState = PLAY_STATES.playing;
+                node.playState = _VDR_PLAY_STATES.playing;
                 changeSpeed(1);
                 video.play()
                     .then((v) => {
@@ -863,8 +863,8 @@ function addVideoNodeTypeObject(node, originalUrl) {
 
         if (node._vdrStopped) {
             // nothing runs (stopped, error): don't stop the video of another object
-            if (node.playState !== PLAY_STATES.stopped) {
-                node.playState = PLAY_STATES.stopped;
+            if (node.playState !== _VDR_PLAY_STATES.stopped) {
+                node.playState = _VDR_PLAY_STATES.stopped;
                 notifyPlayState();
             }
             return true;
@@ -886,7 +886,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
         video.removeAttribute('src'); // empty source
         video.load();
 
-        node.playState = PLAY_STATES.stopped;
+        node.playState = _VDR_PLAY_STATES.stopped;
         node.playPosition = 0;
         node.speed = 0;
 
@@ -921,7 +921,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
             return;
         }
 
-        node.playState = PLAY_STATES.playing;
+        node.playState = _VDR_PLAY_STATES.playing;
         notifyPlayState();
 
         window.start_video_quirk();
@@ -931,7 +931,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("Video event pause");
 
-        if (node._vdrStopped || video._vdrDead || node._vdrEnded || node.playState === PLAY_STATES.error) {
+        if (node._vdrStopped || video._vdrDead || node._vdrEnded || node.playState === _VDR_PLAY_STATES.error) {
             return;
         }
 
@@ -940,7 +940,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
             return;
         }
 
-        node.playState = PLAY_STATES.paused;
+        node.playState = _VDR_PLAY_STATES.paused;
         notifyPlayState();
     }, false);
 
@@ -956,7 +956,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
             return;
         }
 
-        node.playState = PLAY_STATES.finished;
+        node.playState = _VDR_PLAY_STATES.finished;
         notifyPlayState();
 
         window.stop_video_quirk();
@@ -970,7 +970,7 @@ function addVideoNodeTypeObject(node, originalUrl) {
             return;
         }
 
-        node.playState = PLAY_STATES.error;
+        node.playState = _VDR_PLAY_STATES.error;
         node.error = 0; // 0 - A/V format not supported
         notifyPlayState();
     }, false);
@@ -1043,10 +1043,10 @@ function addVideoNodeTypeObject(node, originalUrl) {
     // HbbTV: the object is stopped until play()
     let previousState = node.playState;
     node._vdrStopped = true;
-    node.playState = PLAY_STATES.stopped;
+    node.playState = _VDR_PLAY_STATES.stopped;
     node.playPosition = 0;
     node.speed = 0;
-    if (previousState !== undefined && previousState !== PLAY_STATES.stopped) {
+    if (previousState !== undefined && previousState !== _VDR_PLAY_STATES.stopped) {
         notifyPlayState();
     }
 
@@ -1356,7 +1356,7 @@ function addVideoNodeTypeVideo(node, url) {
             return;
         }
 
-        if (video.playState === PLAY_STATES.paused) {
+        if (video.playState === _VDR_PLAY_STATES.paused) {
             let position = video.currentTime;
             console.log("window.cefResumeVideo()");
             window.cefResumeVideo(String(position));
@@ -1366,12 +1366,12 @@ function addVideoNodeTypeVideo(node, url) {
             window.cefUnfreezeDevice();
         }
 
-        video.playState = PLAY_STATES.playing;
+        video.playState = _VDR_PLAY_STATES.playing;
     }, false);
 
     video && video.addEventListener && video.addEventListener('pause', function () {
         console.log("video tag pause");
-        video.playState = PLAY_STATES.paused;
+        video.playState = _VDR_PLAY_STATES.paused;
         if (!_vdrIsActiveVideo(video)) {
             return;
         }
@@ -1414,7 +1414,7 @@ function addVideoNodeTypeVideo(node, url) {
         }
 
         console.log("video tag error: video.PlayState=" + video.playState);
-        // if (video.playState === PLAY_STATES.error) {
+        // if (video.playState === _VDR_PLAY_STATES.error) {
         console.log("window.cefStopVideo()");
         window.cefStopVideo();
         // }
@@ -1629,7 +1629,8 @@ function checkSingleObjectNode(node) {
     }
 }
 
-const ms = new MutationSummary({
+// not a global "ms": WELT declares "var ms" and its start script failed with a SyntaxError
+window._vdrMutationSummary = new MutationSummary({
     callback(summaries) {
         summaries.forEach((summary) => {
             console.log(summary);
