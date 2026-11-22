@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include "cef_includes.h"
 #include "logger.h"
 #include "tools.h"
@@ -125,6 +126,9 @@ private:
     CefRefPtr<CefRegistration> registration;
 
     cpr::ConnectionPool pool;
+
+    // when the application last started another one (createApplication), UI thread only
+    std::chrono::steady_clock::time_point appStarted{};
 
 private:
     IMPLEMENT_REFCOUNTING(BrowserClient);

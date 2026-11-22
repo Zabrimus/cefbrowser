@@ -169,6 +169,14 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             channelId = message->GetArgumentList()->GetString(0).ToString();
         }
 
+        // An application starts another one with createApplication() and then destroys
+        // itself. The new application replaces it, nothing more to do: the blank page or
+        // the autostart application would replace the new one instead.
+        if (std::chrono::steady_clock::now() - appStarted < std::chrono::seconds(3)) {
+            DEBUG("BrowserClient::OnProcessMessageReceived: DestroyApp after starting an application -> ignored");
+            return true;
+        }
+
         std::string url = channelId.empty() ? "" : database->getRedButtonUrl(channelId);
         std::string current = browser->GetMainFrame() ? browser->GetMainFrame()->GetURL().ToString() : "";
 
@@ -192,6 +200,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             std::string url = message->GetArgumentList()->GetString(0).ToString();
             DEBUG("BrowserClient::OnProcessMessageReceived: LoadUrl {}", url);
 
+            appStarted = std::chrono::steady_clock::now();
             loadUrl(browser, url);
             return true;
         } else {
@@ -208,7 +217,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
             // get AppUrl
             std::string url = database->getAppUrl(channelId, appId);
             if (url.empty()) {
-                INFO("Application with appId {} for channelId {} not found -> ignore request");
+                INFO("Application with appId {} for channelId {} not found -> ignore request", appId, channelId);
                 return false;
             }
 
@@ -216,6 +225,7 @@ bool BrowserClient::OnProcessMessageReceived(CefRefPtr<CefBrowser> browser, CefR
                 url += args;
             }
 
+            appStarted = std::chrono::steady_clock::now();
             loadUrl(browser, url);
             return true;
         } else {
