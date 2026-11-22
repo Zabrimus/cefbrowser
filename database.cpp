@@ -242,7 +242,7 @@ std::string Database::getUserAgent(std::string channelId) {
             TRACE("No default configuration for UserAgent found, use system wide default");
 
             // still no UserAgent. Return system wide default value
-            return "HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome";
+            return "HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2021;T-KSU2EDEUC-1100.2;;) OsrTvViewer;Chrome";
         } else {
             TRACE("Found default configuration for UserAgent: {}", ua);
             return ua;

@@ -399,7 +399,7 @@ int main(int argc, char *argv[]) {
 
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.4.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
-    CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
+    CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2021;T-KSU2EDEUC-1100.2;;) OsrTvViewer;Chrome");
 
     // check if a custom profile exists, otherwise use the default values
     std::string exepath = getexepath();
