@@ -71,9 +71,19 @@ function _vdrPositionOf(node) {
     return { position, bodyPos, key };
 }
 
+// A video until it is stopped. An OIPF object counts from its data on.
+function _vdrVideoRuns(node) {
+    return (node._vdrManaged && !node._vdrStopped) || _vdrIsActiveVideo(node);
+}
+
 // An application may replace the object of the TV, the new one is followed then.
+// A stopped video may stay in the page (ZDF keeps its player in full size behind
+// the pages): the TV is shown again then, so its object is followed again.
 setInterval(() => {
-    let node = (_vdrPositionNode && _vdrPositionNode.isConnected) ? _vdrPositionNode : document.querySelector('object[type="video/broadcast"]');
+    let node = _vdrPositionNode;
+    if (!node || !node.isConnected || (node.type !== 'video/broadcast' && !_vdrVideoRuns(node))) {
+        node = document.querySelector('object[type="video/broadcast"]');
+    }
     if (node && (node !== _vdrPositionNode || _vdrPositionOf(node).key !== _vdrPositionKey)) {
         promoteVideoSize(node);
     }
