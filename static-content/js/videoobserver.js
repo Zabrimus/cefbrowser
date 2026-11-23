@@ -43,8 +43,28 @@ window.hideVideoOverlay = () => {
 let _vdrPositionNode = null;
 let _vdrPositionKey = '';
 
+// The video fills the content box of its element, without border and padding.
+function _vdrContentBox(node) {
+    let rect = node.getBoundingClientRect();
+    let cs = getComputedStyle(node);
+    let px = (v) => parseFloat(v) || 0;
+    let left = px(cs.borderLeftWidth) + px(cs.paddingLeft);
+    let right = px(cs.borderRightWidth) + px(cs.paddingRight);
+    let top = px(cs.borderTopWidth) + px(cs.paddingTop);
+    let bottom = px(cs.borderBottomWidth) + px(cs.paddingBottom);
+    // border and padding are scaled with a transform of the element
+    let sx = node.offsetWidth ? rect.width / node.offsetWidth : 1;
+    let sy = node.offsetHeight ? rect.height / node.offsetHeight : 1;
+    return {
+        x: rect.x + left * sx,
+        y: rect.y + top * sy,
+        width: Math.max(0, rect.width - (left + right) * sx),
+        height: Math.max(0, rect.height - (top + bottom) * sy)
+    };
+}
+
 function _vdrPositionOf(node) {
-    let position = node.getBoundingClientRect();
+    let position = _vdrContentBox(node);
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
     let key = [position.x, position.y, position.width, position.height,
                bodyPos.x, bodyPos.y, bodyPos.width, bodyPos.height].map((v) => v | 0).join(',');
