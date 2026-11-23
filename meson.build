@@ -136,9 +136,9 @@ sources = ['cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
 
 deps = [deps, mini_dep, cef_lib, spdlog_dep, sqlite3_dep, ssl_dep, crypto_dep, thrift_dep, curl_dep, cpr_dep, libidn2]
 
-# cefbrowser is installed into the prefix. With release_dir, it goes with its
-# static content into Release of the build folder, next to the CEF files of
-# setup.sh, and runs from there as it is.
+# With release_dir (default), cefbrowser goes with its static content into
+# Release of the build folder, next to the CEF files of setup.sh, and runs from
+# there as it is. Without it, cefbrowser is installed into the prefix.
 if get_option('release_dir')
     bin_dir = meson.current_build_dir() / 'Release'
     static_dir = bin_dir
