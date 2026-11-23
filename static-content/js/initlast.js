@@ -15,6 +15,7 @@ function prepareElements() {
             console.log("Init Found TV on node: " + node);
             window.addVideoOverlay(node);
             addNodeFunctions(node);
+            addBroadcastFunctions(node);
 
             setTimeout(() => {
                 promoteVideoSize(node);
@@ -58,8 +59,9 @@ document.body.style["font-family"] = "Tiresias";
 document.body.style["overflow"] = "hidden";
 
 // hack for ZDF to force HTML5 video
+const _vdrZdfHtml5 = !window._vdrOptions || window._vdrOptions.zdfQuirks !== false;
 setTimeout(() => {
-    if (typeof appStorage != "undefined") {
+    if (_vdrZdfHtml5 && typeof appStorage != "undefined") {
         appStorage.getItem('config').isHbbTv = false;
     }
 }, 10);
@@ -68,7 +70,7 @@ setTimeout(() => {
 if (window.GLOBALS) {
     let location = document.location.toString();
     // window.GLOBALS.htmlfive = location.includes("hbbtv.zdf.de") || location.includes("tv.ardmediathek.de");
-    window.GLOBALS.htmlfive = location.includes("hbbtv.zdf.de");
+    window.GLOBALS.htmlfive = _vdrZdfHtml5 && location.includes("hbbtv.zdf.de");
 
     // ZDF (prevent pending CORS related requests)
     if (location.includes("hbbtv.zdf.de")) {

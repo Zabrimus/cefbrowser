@@ -12,11 +12,17 @@ std::unordered_map<std::string, int> keyCodes = {
         {"VK_GREEN",     0x0194},    // green
         {"VK_YELLOW",    0x0195},    // yellow
         {"VK_BLUE",      0x0196},    // blue
-        {"VK_PLAY",      0x0050},    // play
-        {"VK_PAUSE",     0x0051},    // pause
-        {"VK_STOP",      0x0053},    // stop
-        {"VK_FAST_FWD",  0x0046},    // fast forward
-        {"VK_REWIND",    0x0052},    // rewind
+        {"VK_PLAY",      0x019F},    // play
+        {"VK_PAUSE",     0x0013},    // pause
+        {"VK_STOP",      0x019D},    // stop
+        {"VK_FAST_FWD",  0x01A1},    // fast forward
+        {"VK_REWIND",    0x019C},    // rewind
+        {"VK_PLAY_PAUSE", 0x0192},   // play/pause
+        {"VK_TRACK_PREV", 0x01A8},   // previous (skip back)
+        {"VK_TRACK_NEXT", 0x01A9},   // next (skip forward)
+        {"VK_RECORD",    0x01A0},    // record
+        {"VK_INFO",      0x01C9},    // info
+        {"VK_SUBTITLE",  0x01CC},    // subtitle
         {"VK_PAGE_UP",   0x0021},    // page up, vk_Prior
         {"VK_PAGE_DOWN", 0x0022},    // page down, vk_Next
         {"VK_0",         0x0030},    // 0
@@ -116,3 +122,44 @@ std::unordered_map<std::string, int> keyCodes = {
         {"VK_NUMLOCK",   0x0090},    // NumLock
         {"VK_SCROLL",    0x0091}     // Rollen
 };
+
+std::atomic<int> currentKeySet(KEYSET_DEFAULT);
+
+int keySetGroup(const std::string& key) {
+    static const std::unordered_map<std::string, int> groups = {
+        {"VK_RED",        KEYSET_RED},
+        {"VK_GREEN",      KEYSET_GREEN},
+        {"VK_YELLOW",     KEYSET_YELLOW},
+        {"VK_BLUE",       KEYSET_BLUE},
+        {"VK_UP",         KEYSET_NAVIGATION},
+        {"VK_DOWN",       KEYSET_NAVIGATION},
+        {"VK_LEFT",       KEYSET_NAVIGATION},
+        {"VK_RIGHT",      KEYSET_NAVIGATION},
+        {"VK_ENTER",      KEYSET_NAVIGATION},
+        {"VK_BACK",       KEYSET_NAVIGATION},
+        {"VK_PLAY",       KEYSET_VCR},
+        {"VK_PAUSE",      KEYSET_VCR},
+        {"VK_PLAY_PAUSE", KEYSET_VCR},
+        {"VK_STOP",       KEYSET_VCR},
+        {"VK_FAST_FWD",   KEYSET_VCR},
+        {"VK_REWIND",     KEYSET_VCR},
+        {"VK_TRACK_PREV", KEYSET_VCR},
+        {"VK_TRACK_NEXT", KEYSET_VCR},
+        {"VK_PAGE_UP",    KEYSET_SCROLL},
+        {"VK_PAGE_DOWN",  KEYSET_SCROLL},
+        {"VK_INFO",       KEYSET_INFO},
+        {"VK_0",          KEYSET_NUMERIC},
+        {"VK_1",          KEYSET_NUMERIC},
+        {"VK_2",          KEYSET_NUMERIC},
+        {"VK_3",          KEYSET_NUMERIC},
+        {"VK_4",          KEYSET_NUMERIC},
+        {"VK_5",          KEYSET_NUMERIC},
+        {"VK_6",          KEYSET_NUMERIC},
+        {"VK_7",          KEYSET_NUMERIC},
+        {"VK_8",          KEYSET_NUMERIC},
+        {"VK_9",          KEYSET_NUMERIC},
+    };
+
+    auto it = groups.find(key);
+    return it != groups.end() ? it->second : KEYSET_OTHER;
+}

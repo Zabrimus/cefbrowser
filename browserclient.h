@@ -6,6 +6,10 @@
 #include "cpr/connection_pool.h"
 #include "thrift-services/src-client/TranscoderClient.h"
 #include "thrift-services/src-client/VdrClient.h"
+#include "osdsender.h"
+
+// the title of the current page, e.g. for the search of a video in MediathekView
+std::string CurrentPageTitle();
 
 class BrowserClient : public CefClient,
                       public CefRenderHandler,
@@ -36,8 +40,7 @@ public:
 
     // CefDisplayHandler
     CefRefPtr<CefDisplayHandler> GetDisplayHandler() override {
-        // Disabled
-        return nullptr;
+        return this;
     }
 
     // CefFrameHandler
@@ -60,6 +63,7 @@ public:
 
     // RenderHandler
     void setRenderSize(int width, int height);
+    int getRenderWidth() const { return renderWidth; }
 
     void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect &rect) override;
 
@@ -75,6 +79,7 @@ public:
     void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, TerminationStatus status, int error_code, const CefString& error_string) override;
 
     // CefDisplayHandler
+    void OnTitleChange(CefRefPtr<CefBrowser> browser, const CefString& title) override;
     void OnStatusMessage(CefRefPtr<CefBrowser> browser, const CefString& value) override;
     bool OnConsoleMessage(CefRefPtr<CefBrowser> browser, cef_log_severity_t level, const CefString& message, const CefString& source, int line) override;
 
@@ -110,6 +115,7 @@ private:
     bool videoIsFullscreen;
 
     VdrClient* vdrClient;
+    OsdSender* osdSender;
     TranscoderClient *transcoderClient;
 
     CefRefPtr<CefRegistration> registration;

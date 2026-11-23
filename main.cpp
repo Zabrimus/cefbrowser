@@ -1,6 +1,8 @@
 #include <thread>
 #include <csignal>
 #include <getopt.h>
+#include <unistd.h>
+#include <cstdlib>
 #include "mainapp.h"
 #include "logger.h"
 #include "mini/ini.h"
@@ -42,6 +44,8 @@ double zoom_level;
 bool use_dirty_recs;
 
 bool bindAll;
+int remoteDebuggingPort = 0;
+bool measure = false;
 
 CefRefPtr<BrowserApp> app;
 
@@ -79,7 +83,10 @@ void signal_handler(int signal)
     database->shutdown();
     delete database;
 
-    currentBrowser->GetHost()->CloseBrowser(true);
+    CefRefPtr<CefBrowser> browser = getCurrentBrowser();
+    if (browser) {
+        browser->GetHost()->CloseBrowser(true);
+    }
     app = nullptr;
 
     CefQuitMessageLoop();
@@ -104,6 +111,8 @@ void parseCommandLine(int argc, char *argv[]) {
             { "bindall",     optional_argument, nullptr, 'b' },
             { "uagent",      optional_argument, nullptr, 'u' },
             { "browserdb",   optional_argument, nullptr, 'd' },
+            { "remotedebug", required_argument, nullptr, 'r' },
+            { "measure",     no_argument,       nullptr, 'm' },
             { nullptr }
     };
 
@@ -120,7 +129,7 @@ void parseCommandLine(int argc, char *argv[]) {
     staticPath = getexepath();
     staticPath = staticPath.substr(0, staticPath.find_last_of('/'));
 
-    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:a:", long_options, &option_index)) != -1)
+    while ((c = getopt_long(argc, argv, "qc:l:z:fp:s:bu:d:a:r:m", long_options, &option_index)) != -1)
     {
         switch (c)
         {
@@ -194,6 +203,14 @@ void parseCommandLine(int argc, char *argv[]) {
 
             case 'a':
                 cachePath = optarg;
+                break;
+
+            case 'r':
+                remoteDebuggingPort = atoi(optarg);
+                break;
+
+            case 'm':
+                measure = true;
                 break;
 
             default:
@@ -277,6 +294,27 @@ int main(int argc, char *argv[]) {
 
     parseCommandLine(argc, argv);
 
+    // Without HOME and XDG_CACHE_HOME (e.g. a systemd service without User=) fontconfig
+    // has no writable cache directory and scans all fonts at every start. Use the cache
+    // directory of the browser instead.
+    if (getenv("XDG_CACHE_HOME") == nullptr && getenv("HOME") == nullptr) {
+        std::string fontCache = cachePath;
+        if (fontCache.empty()) {
+            std::string exepath = getexepath();
+            fontCache = exepath.substr(0, exepath.find_last_of('/')) + "/profile";
+        }
+        setenv("XDG_CACHE_HOME", fontCache.c_str(), 1);
+    }
+
+    // Use an own font configuration, the bundled fontconfig of libcef may not understand
+    // the system configuration. Set before the subprocesses are started, they inherit it.
+    if (getenv("FONTCONFIG_FILE") == nullptr) {
+        std::string fontConfig = staticPath + "/fonts/fonts.conf";
+        if (access(fontConfig.c_str(), R_OK) == 0) {
+            setenv("FONTCONFIG_FILE", fontConfig.c_str(), 1);
+        }
+    }
+
     switch (loglevel) {
         case 0:  logger->set_level(spdlog::level::critical); break;
         case 1:  logger->set_level(spdlog::level::err); break;
@@ -316,6 +354,7 @@ int main(int argc, char *argv[]) {
     bParameter.use_dirty_recs = use_dirty_recs;
     bParameter.static_path = staticPath;
     bParameter.bindAll = bindAll;
+    bParameter.measure = measure;
     bParameter.user_agent_path = userAgentPath;
 
     // Main browser process
@@ -326,7 +365,20 @@ int main(int argc, char *argv[]) {
     CefSettings settings;
     settings.windowless_rendering_enabled = true;
     settings.no_sandbox = true;
-    settings.remote_debugging_port = 9222;
+    // Chromium's own log follows the log level of cefbrowser. With the default level
+    // (errors only) Chromium logs only fatal errors, its other messages concern
+    // features cefbrowser doesn't use (e.g. D-Bus, GPU, deprecations).
+    switch (loglevel) {
+        case 0:  settings.log_severity = LOGSEVERITY_DISABLE; break;
+        case 1:  settings.log_severity = LOGSEVERITY_FATAL; break;
+        case 2:  settings.log_severity = LOGSEVERITY_ERROR; break;
+        case 3:  settings.log_severity = LOGSEVERITY_WARNING; break;
+        case 4:  settings.log_severity = LOGSEVERITY_VERBOSE; break;
+        default: settings.log_severity = LOGSEVERITY_FATAL; break;
+    }
+
+    // remote debugging (DevTools) only on request, it costs memory and opens a port
+    settings.remote_debugging_port = remoteDebuggingPort;
 
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.4.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
@@ -429,12 +481,7 @@ int main(int argc, char *argv[]) {
     sigaction(SIGQUIT, &sigIntHandler, nullptr);
 
     // write zoom level script
-    std::ofstream _zoom_level;
-    _zoom_level.open (staticPath + "/js/_zoom_level.js", std::ios_base::trunc);
-    _zoom_level << "document.body.style[\"zoom\"] = " << zoom_level << ";\n" << std::endl;
-    _zoom_level << "document.body.style[\"width\"] = \"" << zoom_width << "px\";\n" << std::endl;
-    _zoom_level << "document.body.style[\"height\"] = \"" << zoom_height << "px\";\n" << std::endl;
-    _zoom_level.close();
+    writeZoomScript(staticPath, zoom_width, zoom_height, zoom_level);
 
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.
     CefRunMessageLoop();

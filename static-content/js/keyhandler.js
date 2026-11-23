@@ -16,12 +16,18 @@
     window.KeyEvent.VK_YELLOW = (typeof window.KeyEvent.VK_YELLOW !== 'undefined' ? window.KeyEvent.VK_YELLOW : 405);
     window.KeyEvent.VK_BLUE = (typeof window.KeyEvent.VK_BLUE !== 'undefined' ? window.KeyEvent.VK_BLUE : 406);
 
-    window.KeyEvent.VK_PLAY = (typeof window.KeyEvent.VK_PLAY !== 'undefined' ? window.KeyEvent.VK_PLAY : 0x50);
-    window.KeyEvent.VK_PAUSE = (typeof window.KeyEvent.VK_PAUSE !== 'undefined' ? window.KeyEvent.VK_PAUSE : 0x51);
-    window.KeyEvent.VK_STOP = (typeof window.KeyEvent.VK_STOP !== 'undefined' ? window.KeyEvent.VK_STOP : 0x53);
+    window.KeyEvent.VK_PLAY = (typeof window.KeyEvent.VK_PLAY !== 'undefined' ? window.KeyEvent.VK_PLAY : 415);
+    window.KeyEvent.VK_PAUSE = (typeof window.KeyEvent.VK_PAUSE !== 'undefined' ? window.KeyEvent.VK_PAUSE : 19);
+    window.KeyEvent.VK_STOP = (typeof window.KeyEvent.VK_STOP !== 'undefined' ? window.KeyEvent.VK_STOP : 413);
 
-    window.KeyEvent.VK_FAST_FWD = (typeof window.KeyEvent.VK_FAST_FWD !== 'undefined' ? window.KeyEvent.VK_FAST_FWD : 0x46);
-    window.KeyEvent.VK_REWIND = (typeof window.KeyEvent.VK_REWIND !== 'undefined' ? window.KeyEvent.VK_REWIND : 0x52);
+    window.KeyEvent.VK_FAST_FWD = (typeof window.KeyEvent.VK_FAST_FWD !== 'undefined' ? window.KeyEvent.VK_FAST_FWD : 417);
+    window.KeyEvent.VK_REWIND = (typeof window.KeyEvent.VK_REWIND !== 'undefined' ? window.KeyEvent.VK_REWIND : 412);
+    window.KeyEvent.VK_PLAY_PAUSE = (typeof window.KeyEvent.VK_PLAY_PAUSE !== 'undefined' ? window.KeyEvent.VK_PLAY_PAUSE : 402);
+    window.KeyEvent.VK_INFO = (typeof window.KeyEvent.VK_INFO !== 'undefined' ? window.KeyEvent.VK_INFO : 457);
+    window.KeyEvent.VK_TRACK_PREV = (typeof window.KeyEvent.VK_TRACK_PREV !== 'undefined' ? window.KeyEvent.VK_TRACK_PREV : 424);
+    window.KeyEvent.VK_TRACK_NEXT = (typeof window.KeyEvent.VK_TRACK_NEXT !== 'undefined' ? window.KeyEvent.VK_TRACK_NEXT : 425);
+    window.KeyEvent.VK_RECORD = (typeof window.KeyEvent.VK_RECORD !== 'undefined' ? window.KeyEvent.VK_RECORD : 416);
+    window.KeyEvent.VK_SUBTITLE = (typeof window.KeyEvent.VK_SUBTITLE !== 'undefined' ? window.KeyEvent.VK_SUBTITLE : 460);
 
     window.KeyEvent.VK_PAGE_UP = (typeof window.KeyEvent.VK_PAGE_UP !== 'undefined' ? window.KeyEvent.VK_PAGE_UP : 0x21);
     window.KeyEvent.VK_PAGE_DOWN = (typeof window.KeyEvent.VK_PAGE_DOWN !== 'undefined' ? window.KeyEvent.VK_PAGE_DOWN : 0x22);
@@ -51,12 +57,18 @@
     window.VK_YELLOW = (typeof window.VK_YELLOW !== 'undefined' ? window.VK_YELLOW : 405);
     window.VK_BLUE = (typeof window.VK_BLUE !== 'undefined' ? window.VK_BLUE : 406);
 
-    window.VK_PLAY = (typeof window.VK_PLAY !== 'undefined' ? window.VK_PLAY : 0x50);
-    window.VK_PAUSE = (typeof window.VK_PAUSE !== 'undefined' ? window.VK_PAUSE : 0x51);
-    window.VK_STOP = (typeof window.VK_STOP !== 'undefined' ? window.VK_STOP : 0x53);
+    window.VK_PLAY = (typeof window.VK_PLAY !== 'undefined' ? window.VK_PLAY : 415);
+    window.VK_PAUSE = (typeof window.VK_PAUSE !== 'undefined' ? window.VK_PAUSE : 19);
+    window.VK_STOP = (typeof window.VK_STOP !== 'undefined' ? window.VK_STOP : 413);
 
-    window.VK_FAST_FWD = (typeof window.VK_FAST_FWD !== 'undefined' ? window.VK_FAST_FWD : 0x46);
-    window.VK_REWIND = (typeof window.VK_REWIND !== 'undefined' ? window.VK_REWIND : 0x52);
+    window.VK_FAST_FWD = (typeof window.VK_FAST_FWD !== 'undefined' ? window.VK_FAST_FWD : 417);
+    window.VK_REWIND = (typeof window.VK_REWIND !== 'undefined' ? window.VK_REWIND : 412);
+    window.VK_PLAY_PAUSE = (typeof window.VK_PLAY_PAUSE !== 'undefined' ? window.VK_PLAY_PAUSE : 402);
+    window.VK_INFO = (typeof window.VK_INFO !== 'undefined' ? window.VK_INFO : 457);
+    window.VK_TRACK_PREV = (typeof window.VK_TRACK_PREV !== 'undefined' ? window.VK_TRACK_PREV : 424);
+    window.VK_TRACK_NEXT = (typeof window.VK_TRACK_NEXT !== 'undefined' ? window.VK_TRACK_NEXT : 425);
+    window.VK_RECORD = (typeof window.VK_RECORD !== 'undefined' ? window.VK_RECORD : 416);
+    window.VK_SUBTITLE = (typeof window.VK_SUBTITLE !== 'undefined' ? window.VK_SUBTITLE : 460);
 
     window.VK_PAGE_UP = (typeof window.VK_PAGE_UP !== 'undefined' ? window.VK_PAGE_UP : 0x21);
     window.VK_PAGE_DOWN = (typeof window.VK_PAGE_DOWN !== 'undefined' ? window.VK_PAGE_DOWN : 0x22);
@@ -73,39 +85,22 @@
     window.VK_9 = (typeof window.VK_9 !== 'undefined' ? window.VK_9 : 0x39);
 
     window.cefKeyPress = function(keyCode) {
-        // create and dispatch the event (keydown)
-        let keyDownEvent = new KeyboardEvent("keydown", {
-            bubbles: true,
-            cancelable: true,
-        });
+        // Dispatch at the focused element like a real key event, so that listeners at
+        // the body or any other element see the key, not only listeners at document/window.
+        let target = document.activeElement || document.body || document;
+        let code = window[keyCode];
 
-        delete keyDownEvent.keyCode;
-        Object.defineProperty(keyDownEvent, "keyCode", {"value": window[keyCode]});
-        Object.defineProperty(keyDownEvent, "detail", {"value": {hbbInternal: true}});
+        for (const type of ["keydown", "keypress", "keyup"]) {
+            let event = new KeyboardEvent(type, {
+                bubbles: true,
+                cancelable: true,
+            });
 
-        document.dispatchEvent(keyDownEvent);
+            Object.defineProperty(event, "keyCode", {"value": code});
+            Object.defineProperty(event, "which", {"value": code});
+            Object.defineProperty(event, "detail", {"value": {hbbInternal: true}});
 
-        // create and dispatch the event (keypress)
-        let keypressEvent = new KeyboardEvent("keypress", {
-            bubbles: true,
-            cancelable: true,
-        });
-        delete keypressEvent.keyCode;
-        Object.defineProperty(keypressEvent, "keyCode", {"value": window[keyCode]});
-        Object.defineProperty(keypressEvent, "detail", {"value": {hbbInternal: true}});
-
-        document.dispatchEvent(keypressEvent);
-
-        // create and dispatch the event (keyup)
-        let keyUpEvent = new KeyboardEvent("keyup", {
-            bubbles: true,
-            cancelable: true,
-        });
-
-        delete keyUpEvent.keyCode;
-        Object.defineProperty(keyUpEvent, "keyCode", {"value": window[keyCode]});
-        Object.defineProperty(keyUpEvent, "detail", {"value": {hbbInternal: true}});
-
-        document.dispatchEvent(keyUpEvent);
+            target.dispatchEvent(event);
+        }
     }
 })();
