@@ -1,6 +1,6 @@
 project('cefbrowser', 'cpp', 'c',
   version : '0.1',
-  default_options : ['warning_level=1', 'cpp_std=c++17', 'default_library=static', 'optimization=3', 'buildtype=debug' ],
+  default_options : ['warning_level=1', 'cpp_std=c++20', 'default_library=static', 'optimization=3', 'buildtype=debug' ],
   meson_version: '>=0.63.0')
 
 add_global_arguments('-O3', language : 'cpp')
@@ -16,13 +16,18 @@ cmake = import('cmake')
 CXX = meson.get_compiler('cpp')
 
 #
-# Download and extract subprojects
-#
-run_command('./setup.sh', arch, meson.current_build_dir(), check: false)
-
-#
 # Build cef
 #
+# An empty cef_libdir keeps the bundled CEF: setup.sh downloads the binary
+# distribution into subprojects/cef. Packagers point it at an installed
+# libcef.so instead, because a distribution build cannot reach the network.
+cef_libdir = get_option('cef_libdir')
+
+if cef_libdir == ''
+    run_command('./setup.sh', arch, meson.current_build_dir(), check: false)
+    cef_libdir = meson.project_source_root() / 'subprojects' / 'cef' / 'Release'
+endif
+
 cef_opt_var = cmake.subproject_options()
 
 if arch == 'arm'
@@ -39,21 +44,15 @@ if get_option('vdrsternelec')
 endif
 
 cef_opt_var.append_compile_args('cpp', '-Wno-unused-variable')
-cef_opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': 'Debug'})
+cef_opt_var.add_cmake_defines({'CMAKE_BUILD_TYPE': get_option('buildtype') == 'debug' ? 'Debug' : 'Release'})
 cef_proj = cmake.subproject('cef', options: cef_opt_var)
 cef_lib = cef_proj.dependency('libcef_dll_wrapper')
 
 #
 # spdlog
 #
-spdlog_proj = subproject('spdlog')
-spdlog_dep = spdlog_proj.get_variable('spdlog_dep', ['tests=disabled', 'compile_library=true'] )
-
-#
-# tiny-process-library
-#
-tiny_process_library_proj = subproject('tiny_process_library')
-tiny_process_library_dep = tiny_process_library_proj.get_variable('tiny_process_library_dep')
+spdlog_dep = dependency('spdlog',
+                        default_options: ['tests=disabled', 'compile_library=true'])
 
 #
 # mINI
@@ -64,8 +63,7 @@ mini_dep = mini_proj.get_variable('mini_dep')
 #
 # sqlite3
 #
-sqlite3_proj = subproject('sqlite3')
-sqlite3_dep = sqlite3_proj.get_variable('sqlite3_dep')
+sqlite3_dep = dependency('sqlite3')
 
 #
 # ssl
@@ -76,9 +74,9 @@ crypto_dep = dependency('libcrypto')
 #
 # thrift
 #
-if get_option('vdrsternelec')
-    thrift_dep = dependency('thrift')
-else
+thrift_dep = dependency('thrift', required: false)
+
+if not thrift_dep.found()
     thrift_opts = cmake.subproject_options()
     thrift_opts.add_cmake_defines({'WITH_AS3': 'OFF',
                                    'WITH_QT5': 'OFF',
@@ -106,8 +104,7 @@ curl_dep = dependency('libcurl', fallback: ['curl', 'curl_dep'])
 #
 # cpr
 #
-cpr_proj = subproject('cpr', default_options: [])
-cpr_dep = cpr_proj.get_variable('cpr_dep')
+cpr_dep = dependency('cpr')
 
 libidn2 = dependency('libidn2', required: true)
 
@@ -117,7 +114,7 @@ libidn2 = dependency('libidn2', required: true)
 shared_libs = ['cef', 'z']
 deps = []
 foreach lib_name : shared_libs
-        deps += CXX.find_library(lib_name, dirs : [meson.project_source_root() + '/subprojects/cef/Release'])
+        deps += CXX.find_library(lib_name, dirs : [cef_libdir])
 endforeach
 
 incdir = include_directories(['thrift-services/src-gen', 'thrift-services/src-client'])
@@ -139,36 +136,23 @@ sources = ['cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
 
 deps = [deps, mini_dep, cef_lib, spdlog_dep, sqlite3_dep, ssl_dep, crypto_dep, thrift_dep, curl_dep, cpr_dep, libidn2]
 
-if get_option('vdrsternelec')
-    exe = executable(sources,
-                     include_directories : incdir,
-                     cpp_args : browser_compile_args,
-                     install : true,
-                     link_args: '-lrt',
-                     dependencies: deps)
-else
-    exe = executable(sources,
+# cef_libdir is kept off the loader's default path on purpose: it also holds
+# libEGL, libGLESv2 and libvulkan, which must not shadow the system copies for
+# anything else. An rpath on this one binary is how libcef.so is found.
+exe = executable(sources,
                  include_directories : incdir,
                  cpp_args : browser_compile_args,
                  install : true,
-                 install_dir : meson.current_build_dir() + '/Release',
-                 dependencies: deps)
-endif
+                 install_rpath : cef_libdir,
+                 link_args : get_option('vdrsternelec') ? ['-lrt'] : [],
+                 dependencies : deps)
 
 #
 # install static content
 #
-if get_option('vdrsternelec')
-    install_subdir('static-content/js', install_dir : 'cefbrowser')
-    install_subdir('static-content/css', install_dir : 'cefbrowser')
-    install_subdir('static-content/database', install_dir : 'cefbrowser')
-    install_subdir('static-content/application', install_dir : 'cefbrowser')
-    install_subdir('static-content/fonts', install_dir : 'cefbrowser')
-else
-    install_subdir('static-content/js', install_dir : meson.current_build_dir() + '/Release')
-    install_subdir('static-content/css', install_dir : meson.current_build_dir() + '/Release')
-    install_subdir('static-content/database', install_dir : meson.current_build_dir() + '/Release')
-    install_subdir('static-content/application', install_dir : meson.current_build_dir() + '/Release')
-    install_subdir('static-content/fonts', install_dir : meson.current_build_dir() + '/Release')
-endif
+# The browser rewrites js/_zoom_level.js under staticdir on every start, so
+# the tree cannot sit under a read-only prefix.
+foreach part : ['js', 'css', 'database', 'application', 'fonts']
+    install_subdir('static-content' / part, install_dir : get_option('staticdir'))
+endforeach
 

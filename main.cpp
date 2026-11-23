@@ -47,6 +47,8 @@ bool bindAll;
 int remoteDebuggingPort = 0;
 bool measure = false;
 
+bool ignoreCertificateErrors;
+
 CefRefPtr<BrowserApp> app;
 
 enum ProcessType {
@@ -286,6 +288,22 @@ bool readConfiguration(std::string configFile) {
     return true;
 }
 
+// Chromium gives every process the zygote forks a fresh stack guard
+// (--change-stack-guard-on-fork), so a frame entered before the fork - main's -
+// no longer matches the guard it is checked against, and every sub process
+// aborted on its way out. Such a process leaves from here without unwinding,
+// which is what Chromium's own sub processes do. It cannot be done in main:
+// the compiler checks the guard before a call to a noreturn function such as
+// _exit() as well (GCC 16), so this frame has no guard at all, and must not be
+// inlined into main, which has one.
+[[gnu::noinline, gnu::no_stack_protector]]
+static void runSubProcess(const CefMainArgs &mainArgs, CefRefPtr<CefApp> app) {
+    int exit_code = CefExecuteProcess(mainArgs, app, nullptr);
+    if (exit_code >= 0) {
+        _exit(exit_code);
+    }
+}
+
 int main(int argc, char *argv[]) {
     // set some default values
     zoom_width = 1280;
@@ -328,11 +346,9 @@ int main(int argc, char *argv[]) {
 
     CefMainArgs main_args(argc, argv);
     CefRefPtr<CefCommandLine> command_line = CreateCommandLine(main_args);
+    ignoreCertificateErrors = command_line->HasSwitch("ignore-certificate-errors");
 
-    int exit_code = CefExecuteProcess(main_args, new BrowserApp(bParameter), nullptr);
-    if (exit_code >= 0) {
-        return exit_code;
-    }
+    runSubProcess(main_args, new BrowserApp(bParameter));
 
     if (!readConfiguration(configFilename)) {
         return -1;
@@ -351,6 +367,7 @@ int main(int argc, char *argv[]) {
     bParameter.image_type = image_type;
     bParameter.zoom_width = zoom_width;
     bParameter.zoom_height = zoom_height;
+    bParameter.zoom_level = zoom_level;
     bParameter.use_dirty_recs = use_dirty_recs;
     bParameter.static_path = staticPath;
     bParameter.bindAll = bindAll;
@@ -382,7 +399,7 @@ int main(int argc, char *argv[]) {
 
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.4.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
     // CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR+DRM;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
-    CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2015;T-HKM6DEUC-1490.3;;) OsrTvViewer;Chrome");
+    CefString(&settings.user_agent).FromASCII("HbbTV/1.2.1 (+DL+PVR;Samsung;SmartTV2021;T-KSU2EDEUC-1100.2;;) OsrTvViewer;Chrome");
 
     // check if a custom profile exists, otherwise use the default values
     std::string exepath = getexepath();
@@ -480,7 +497,8 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &sigIntHandler, nullptr);
     sigaction(SIGQUIT, &sigIntHandler, nullptr);
 
-    // write zoom level script
+    // the body gets the co-ordinate system, the screen's device scale factor
+    // scales it to the graphics plane (see writeZoomScript)
     writeZoomScript(staticPath, zoom_width, zoom_height, zoom_level);
 
     // Run the CEF message loop. This will block until CefQuitMessageLoop() is called.

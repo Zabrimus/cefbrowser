@@ -11,7 +11,7 @@ void XhrInterception::modifyResponse() {
 
         // hbbtv.zdf.de
         if (logger->isTraceEnabled()) {
-            TRACE("[XhrInterception] Downloaded data:\n{}\n", cprResponse.text);
+            TRACE("[XhrInterception] Downloaded data:\n{}\n", logExcerpt(cprResponse.text));
         }
 
         try {
@@ -23,7 +23,7 @@ void XhrInterception::modifyResponse() {
 
         auto j_flat = dataJson.flatten();
         if (logger->isTraceEnabled()) {
-            TRACE("[XhrInterception] Json (flatten):\n{}", to_string(j_flat));
+            TRACE("[XhrInterception] Json (flatten):\n{}", logExcerpt(to_string(j_flat)));
         }
 
         // ZDF special handling: the video URLs are hidden from the dash player

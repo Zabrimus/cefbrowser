@@ -116,6 +116,15 @@ bool BrowserServer::RedButton(const RedButtonType &input) {
 
     if (url.empty()) {
         INFO("RedButton for channelId '{}' finally not found. Sent 404.", input.channelId);
+
+        // the channel has no application: end the one of the previous channel, as a TV does.
+        // Otherwise it stays loaded and is shown again with the next OSD.
+        runOnUiThread([browser]() {
+            auto frame = browser->GetMainFrame();
+            if (frame != nullptr && frame->GetURL().ToString() != BLANK_PAGE) {
+                frame->LoadURL(BLANK_PAGE);
+            }
+        });
         return false;
     } else {
         DEBUG("RedButton URL found: {}", url);
@@ -393,7 +402,9 @@ bool BrowserServer::SetRenderParameters(const RenderParametersType &input) {
 
             INFO("Set render size to {}x{}", width, height);
             writeZoomScript(staticPath, width, height, zoomLevel);
-            c->setRenderSize(width, height);
+            c->setRenderSize(width, height, zoomLevel);
+            // the scale factor is part of the screen info
+            browser->GetHost()->NotifyScreenInfoChanged();
             browser->GetHost()->WasResized();
 
             // the zoom of the page is set when it is loaded

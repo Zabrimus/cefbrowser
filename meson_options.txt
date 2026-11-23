@@ -2,3 +2,8 @@ option('arch', type : 'combo', choices : ['x86_64', 'arm', 'arm64'], value : 'x8
 option('subarch', type : 'string', value : 'armv8-a')
 option('debug_thrift', type: 'boolean', value: false, description: 'Enable more debug logging')
 option('vdrsternelec', type: 'boolean', value: false, description: 'Build for VDR*ELEC')
+
+option('cef_libdir', type : 'string', value : '',
+       description : 'Directory holding libcef.so; empty downloads CEF into subprojects/cef')
+option('staticdir', type : 'string', value : 'cefbrowser',
+       description : 'Directory for the static content the browser writes to')

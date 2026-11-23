@@ -3,6 +3,7 @@
 #include <utility>
 #include "httpinterception.h"
 #include "json.hpp"
+#include "tools.h"
 
 PageModifier HttpInterception::modifier;
 
@@ -21,6 +22,21 @@ CefResourceRequestHandler::ReturnValue HttpInterception::OnBeforeResourceLoad(Ce
         return RV_CANCEL;
     }
 
+    // Applications are signalled as http and move between their own pages
+    // with http links, also where the host is HSTS preloaded. The document is
+    // fetched here and never sees Chromium's upgrade, so it stays on http while
+    // its fonts, images and data are fetched over https and dropped by CORS.
+    // Redirect the navigation to https where the host serves it; CEF then asks
+    // again for the new URL.
+    if (request->GetMethod() == "GET") {
+        const std::string url = request->GetURL().ToString();
+        const std::string httpsUrl = preferHttps(url);
+        if (httpsUrl != url) {
+            request->SetURL(httpsUrl);
+            return RV_CONTINUE;
+        }
+    }
+
     return BaseInterception::OnBeforeResourceLoad(browser, frame, request, callback);
 }
 
@@ -33,7 +49,7 @@ void HttpInterception::modifyResponse() {
         // save downloaded data
         cprResponse.text = HttpInterception::modifier.injectAll(cprResponse.text);
 
-        TRACE("[HttpInterception] Injected data\n{}", cprResponse.text);
+        TRACE("[HttpInterception] Injected data\n{}", logExcerpt(cprResponse.text));
         TRACE("[HttpInterception] Downloaded data, length {}", cprResponse.text.length());
 
         // save response headers

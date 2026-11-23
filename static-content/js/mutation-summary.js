@@ -11,6 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Injected into every application: a block keeps the classes (Summary, Selector, ...) out of
+// the global scope, where a "var" or "let" of the same name in the application is a SyntaxError.
+{
 var MutationObserverCtor;
 if (typeof WebKitMutationObserver !== 'undefined')
     MutationObserverCtor = WebKitMutationObserver;
@@ -1360,4 +1364,5 @@ MutationSummary.optionKeys = {
     'oldPreviousSibling': true,
     'observeOwnChanges': true
 };
-//# sourceMappingURL=mutation-summary.js.map
+window.MutationSummary = MutationSummary;
+}

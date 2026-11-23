@@ -44,6 +44,9 @@ protected:
     cpr::Response cprResponse;
     CefResponse::HeaderMap responseHeaderMap;
 
+    // What CEF asked for, to compare against the URL the body actually came from.
+    std::string requestUrl;
+
     std::string mimeType;
     size_t offset = 0;
 
