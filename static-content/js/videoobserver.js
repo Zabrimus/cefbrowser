@@ -615,6 +615,7 @@ function VdrStatus() {
     this.waitReset = false;   // after a seek/resume, ignore the status of the old stream
     this.state = -1;
     this.active = false;
+    this.running = false;     // VDR reported this stream as not ended
 }
 
 VdrStatus.prototype.restart = function (positionMs) {
@@ -624,6 +625,14 @@ VdrStatus.prototype.restart = function (positionMs) {
 
 // returns false if the status belongs to the previous stream
 VdrStatus.prototype.update = function (position, state) {
+    // A new stream takes over the player of the previous one, and until VDR has
+    // reset it, VDR still reports that one: an ENDED before the stream ever ran
+    // is the end of the previous video. VDR reports a reset player as playing.
+    if (state === VDR_STATE_ENDED && !this.running) {
+        return false;
+    }
+    this.running = true;
+
     if (this.waitReset) {
         if (position >= 0 && position >= this.elapsed) {
             this.elapsed = position;
