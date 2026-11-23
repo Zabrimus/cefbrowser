@@ -7,3 +7,5 @@ option('cef_libdir', type : 'string', value : '',
        description : 'Directory holding libcef.so; empty downloads CEF into subprojects/cef')
 option('staticdir', type : 'string', value : 'cefbrowser',
        description : 'Directory for the static content the browser writes to')
+option('release_dir', type : 'boolean', value : false,
+       description : 'Install into the subdirectory Release of the build folder instead of the prefix')
