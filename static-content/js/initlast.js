@@ -47,9 +47,12 @@ function prepareElements() {
             videoElement.height = bodyPos.height;
         }
 
-        setTimeout(() => {
-            promoteVideoSize(videoElement);
-        }, 10);
+        // only a video itself, ZDF names a container div "video"
+        if (videoElement.tagName === 'OBJECT' || videoElement.tagName === 'VIDEO') {
+            setTimeout(() => {
+                promoteVideoSize(videoElement);
+            }, 10);
+        }
     }
 }
 

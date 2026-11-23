@@ -38,9 +38,56 @@ window.hideVideoOverlay = () => {
     }
 }
 
-window.promoteVideoSize = (node) => {
-    let position = node.getBoundingClientRect();
+// The layout of the page moves a video without changing the video itself, e.g. a
+// stylesheet that is loaded later. Like a TV, follow the video while it is in the page.
+let _vdrPositionNode = null;
+let _vdrPositionKey = '';
+
+// The video fills the content box of its element, without border and padding.
+function _vdrContentBox(node) {
+    let rect = node.getBoundingClientRect();
+    let cs = getComputedStyle(node);
+    let px = (v) => parseFloat(v) || 0;
+    let left = px(cs.borderLeftWidth) + px(cs.paddingLeft);
+    let right = px(cs.borderRightWidth) + px(cs.paddingRight);
+    let top = px(cs.borderTopWidth) + px(cs.paddingTop);
+    let bottom = px(cs.borderBottomWidth) + px(cs.paddingBottom);
+    // border and padding are scaled with a transform of the element
+    let sx = node.offsetWidth ? rect.width / node.offsetWidth : 1;
+    let sy = node.offsetHeight ? rect.height / node.offsetHeight : 1;
+    return {
+        x: rect.x + left * sx,
+        y: rect.y + top * sy,
+        width: Math.max(0, rect.width - (left + right) * sx),
+        height: Math.max(0, rect.height - (top + bottom) * sy)
+    };
+}
+
+function _vdrPositionOf(node) {
+    let position = _vdrContentBox(node);
     let bodyPos = document.getElementsByTagName('body')[0].getBoundingClientRect();
+    let key = [position.x, position.y, position.width, position.height,
+               bodyPos.x, bodyPos.y, bodyPos.width, bodyPos.height].map((v) => v | 0).join(',');
+    return { position, bodyPos, key };
+}
+
+// An application may replace the object of the TV, the new one is followed then.
+setInterval(() => {
+    let node = (_vdrPositionNode && _vdrPositionNode.isConnected) ? _vdrPositionNode : document.querySelector('object[type="video/broadcast"]');
+    if (node && (node !== _vdrPositionNode || _vdrPositionOf(node).key !== _vdrPositionKey)) {
+        promoteVideoSize(node);
+    }
+}, 500);
+
+window.promoteVideoSize = (node) => {
+    // a removed object has no position, it must not replace the one in the page
+    if (!node.isConnected) {
+        return;
+    }
+
+    let { position, bodyPos, key } = _vdrPositionOf(node);
+    _vdrPositionNode = node;
+    _vdrPositionKey = key;
 
     if ( // video and body have nearly the same size
         ((Math.abs(position.x - bodyPos.x) < 20) &&
