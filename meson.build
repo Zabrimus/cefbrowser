@@ -136,23 +136,42 @@ sources = ['cefbrowser', 'main.cpp', 'mainapp.cpp', 'logger.cpp',
 
 deps = [deps, mini_dep, cef_lib, spdlog_dep, sqlite3_dep, ssl_dep, crypto_dep, thrift_dep, curl_dep, cpr_dep, libidn2]
 
+# cefbrowser is installed into the prefix. With release_dir, it goes with its
+# static content into Release of the build folder, next to the CEF files of
+# setup.sh, and runs from there as it is.
+if get_option('release_dir')
+    bin_dir = meson.current_build_dir() / 'Release'
+    static_dir = bin_dir
+else
+    bin_dir = get_option('bindir')
+    # The browser rewrites js/_zoom_level.js under staticdir on every start, so
+    # the tree cannot sit under a read-only prefix.
+    static_dir = get_option('staticdir')
+endif
+
 # cef_libdir is kept off the loader's default path on purpose: it also holds
 # libEGL, libGLESv2 and libvulkan, which must not shadow the system copies for
 # anything else. An rpath on this one binary is how libcef.so is found.
+# In Release, the bundled CEF lies next to the binary.
+if get_option('release_dir') and get_option('cef_libdir') == ''
+    exe_rpath = '$ORIGIN'
+else
+    exe_rpath = cef_libdir
+endif
+
 exe = executable(sources,
                  include_directories : incdir,
                  cpp_args : browser_compile_args,
                  install : true,
-                 install_rpath : cef_libdir,
+                 install_dir : bin_dir,
+                 install_rpath : exe_rpath,
                  link_args : get_option('vdrsternelec') ? ['-lrt'] : [],
                  dependencies : deps)
 
 #
 # install static content
 #
-# The browser rewrites js/_zoom_level.js under staticdir on every start, so
-# the tree cannot sit under a read-only prefix.
 foreach part : ['js', 'css', 'database', 'application', 'fonts']
-    install_subdir('static-content' / part, install_dir : get_option('staticdir'))
+    install_subdir('static-content' / part, install_dir : static_dir)
 endforeach
 
